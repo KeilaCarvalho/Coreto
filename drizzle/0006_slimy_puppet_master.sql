@@ -1,0 +1,1 @@
+ALTER TABLE `sales_records` ADD `commission_value` real DEFAULT 0 NOT NULL;

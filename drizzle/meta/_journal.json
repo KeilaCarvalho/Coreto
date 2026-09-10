@@ -29,6 +29,55 @@
       "when": 1788281803652,
       "tag": "0003_dusty_living_mummy",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788291543015,
+      "tag": "0004_smart_felicia_hardy",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788297770726,
+      "tag": "0005_wild_havok",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1788349439666,
+      "tag": "0006_slimy_puppet_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1788356740233,
+      "tag": "0007_curved_warstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788376875477,
+      "tag": "0008_condemned_the_santerians",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1788470420507,
+      "tag": "0009_daffy_ben_urich",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1788527593826,
+      "tag": "0010_peaceful_green_goblin",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE `daily_finance` ADD `receivable_entries_json` text DEFAULT '[]' NOT NULL;

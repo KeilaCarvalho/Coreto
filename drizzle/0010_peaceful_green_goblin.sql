@@ -1,0 +1,1 @@
+ALTER TABLE `monthly_finance` ADD `accounts_paid` real DEFAULT 0 NOT NULL;

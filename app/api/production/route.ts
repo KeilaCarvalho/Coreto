@@ -1,11 +1,13 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { cutBatches, priceHistory, pricingSettings, productVariantSuggestions, supplies, technicalSheets } from "@/db/schema";
+import { accessError, getCurrentAccess } from "@/lib/access";
 export const dynamic = "force-dynamic";
 const n = (value: unknown) => Number(value) || 0;
 
 export async function GET() {
   try {
+    const denied = accessError(await getCurrentAccess(), ["admin"]); if (denied) return denied;
     const db = getDb();
     const [supplyRows, cutRows, sheetRows, historyRows, variants, settingsRows] = await Promise.all([
       db.select().from(supplies).orderBy(desc(supplies.invoiceDate), desc(supplies.id)),
@@ -21,10 +23,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const denied = accessError(await getCurrentAccess(), ["admin"]); if (denied) return denied;
     const body = await request.json() as Record<string, unknown>; const action = String(body.action ?? ""); const db = getDb();
     if (action === "supply") {
       if (!String(body.name ?? "").trim() || !String(body.supplier ?? "").trim() || n(body.unitValue) <= 0) return Response.json({ error: "Preencha o insumo, fornecedor e valor unitário." }, { status: 400 });
-      const [row] = await db.insert(supplies).values({ name: String(body.name).trim(), unit: String(body.unit || "unidade"), unitValue: n(body.unitValue), supplier: String(body.supplier).trim(), invoiceDate: String(body.invoiceDate), invoiceNumber: String(body.invoiceNumber || "") || null, observation: String(body.observation || "") || null }).returning(); return Response.json({ row }, { status: 201 });
+      const [row] = await db.insert(supplies).values({ name: String(body.name).trim(), unit: String(body.unit || "unidade"), unitValue: n(body.unitValue), supplier: String(body.supplier).trim(), invoiceDate: String(body.invoiceDate), invoiceNumber: String(body.invoiceNumber || "") || null, observation: String(body.observation || "") || null, sourceFileKey: String(body.sourceFileKey || "") || null }).returning(); return Response.json({ row }, { status: 201 });
     }
     if (action === "cut") {
       const days = Array.isArray(body.workDays) ? body.workDays as { date: string; dailyRate: number }[] : []; const totalCost = days.reduce((s, d) => s + n(d.dailyRate), 0); const quantity = n(body.quantity);
