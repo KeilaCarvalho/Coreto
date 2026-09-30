@@ -36,12 +36,12 @@ export function SavedSheet({ sheet, supplies, priceHistory }: { sheet: Sheet; su
   const latest = history[0];
 
   return (
-    <AccordionItem value={String(sheet.id)} className="overflow-hidden rounded-2xl border border-[#dce6ed] bg-white px-5 shadow-sm">
+    <AccordionItem value={String(sheet.id)} className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white px-5 shadow-sm">
       <AccordionTrigger className="hover:no-underline">
         <div className="grid flex-1 gap-3 pr-3 text-left sm:grid-cols-[1fr_auto_auto] sm:items-center">
           <div>
-            <p className="text-base font-black text-[#14375f]">{sheet.reference}</p>
-            <p className="mt-0.5 text-xs font-normal text-[#8294a5]">{sheet.variant || "Sem variação cadastrada"}</p>
+            <p className="text-base font-semibold text-[#111827]">{sheet.reference}</p>
+            <p className="mt-0.5 text-xs font-normal text-[#6B7280]">{sheet.variant || "Sem variação cadastrada"}</p>
           </div>
           <Summary label="Custo total" value={brl(sheet.totalCost)} />
           <Summary label="Preço praticado" value={sheet.currentPrice ? brl(sheet.currentPrice) : "Sem preço"} accent />
@@ -49,10 +49,10 @@ export function SavedSheet({ sheet, supplies, priceHistory }: { sheet: Sheet; su
       </AccordionTrigger>
 
       <AccordionContent>
-        <div className="border-t border-[#e4ebf0] pt-5">
+        <div className="border-t border-[#E5E7EB] pt-5">
           <div className="grid gap-6 xl:grid-cols-2">
             <div>
-              <h3 className="mb-3 font-bold text-[#14375f]">Materiais utilizados</h3>
+              <h3 className="mb-3 font-bold text-[#111827]">Materiais utilizados</h3>
               {sheet.materials.length === 0 ? <Empty text="Nenhum material registrado." /> : (
                 <div className="overflow-x-auto rounded-xl border">
                   <Table>
@@ -67,7 +67,7 @@ export function SavedSheet({ sheet, supplies, priceHistory }: { sheet: Sheet; su
             </div>
 
             <div>
-              <h3 className="mb-3 font-bold text-[#14375f]">Mão de obra</h3>
+              <h3 className="mb-3 font-bold text-[#111827]">Mão de obra</h3>
               {sheet.labor.length === 0 ? <Empty text="Nenhuma mão de obra registrada." /> : <div className="space-y-2">{sheet.labor.map((item, index) => <div key={`${item.type}-${index}`} className="flex items-center justify-between rounded-xl border px-4 py-3"><span>{item.type}</span><b>{brl(item.value)}</b></div>)}</div>}
             </div>
           </div>
@@ -78,8 +78,8 @@ export function SavedSheet({ sheet, supplies, priceHistory }: { sheet: Sheet; su
             <Cost label="Custo total da peça" value={brl(sheet.totalCost)} strong />
           </div>
 
-          <div className="mt-6 rounded-2xl border border-[#dce6ed] bg-[#f8fbfd] p-5">
-            <h3 className="font-bold text-[#14375f]">Como o preço foi calculado</h3>
+          <div className="mt-6 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-5">
+            <h3 className="font-bold text-[#111827]">Como o preço foi calculado</h3>
             <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
               <Rate label="Simples" value={sheet.simpleRate} />
               <Rate label="Cartão" value={sheet.cardRate} />
@@ -88,7 +88,7 @@ export function SavedSheet({ sheet, supplies, priceHistory }: { sheet: Sheet; su
               <Rate label="Lucro desejado" value={sheet.desiredProfitRate} />
               <Rate label="Total considerado" value={taxRate + sheet.desiredProfitRate} />
             </div>
-            <p className="mt-4 text-xs text-[#708398]">Preço calculado = custo total ÷ [1 − (taxas + lucro desejado)]</p>
+            <p className="mt-4 text-xs text-[#6B7280]">Preço calculado = custo total ÷ [1 − (taxas + lucro desejado)]</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <Cost label="Preço calculado" value={divisor > 0 ? brl(calculatedPrice) : "Taxas inválidas"} />
               <Cost label="Preço praticado" value={sheet.currentPrice ? brl(sheet.currentPrice) : "Não definido"} />
@@ -97,12 +97,12 @@ export function SavedSheet({ sheet, supplies, priceHistory }: { sheet: Sheet; su
           </div>
 
           <div className="mt-6">
-            <h3 className="mb-3 font-bold text-[#14375f]">Histórico de preços</h3>
-            {history.length === 0 ? <div className="rounded-xl border border-dashed p-4 text-sm text-[#8294a5]">Ainda não há preços definidos para esta ficha.</div> : (
+            <h3 className="mb-3 font-bold text-[#111827]">Histórico de preços</h3>
+            {history.length === 0 ? <div className="rounded-xl border border-dashed p-4 text-sm text-[#6B7280]">Ainda não há preços definidos para esta ficha.</div> : (
               <div className="overflow-x-auto rounded-xl border">
                 <Table>
                   <TableHeader><TableRow><TableHead>Data da definição</TableHead><TableHead>Preço praticado</TableHead><TableHead>Margem real</TableHead></TableRow></TableHeader>
-                  <TableBody>{history.map((item) => <TableRow key={item.id}><TableCell>{formatDate(item.definedAt)}</TableCell><TableCell className="font-bold text-[#147bc4]">{brl(item.practicedPrice)}</TableCell><TableCell className={item.realMarginRate < 0 ? "font-bold text-red-600" : "font-bold text-[#0f7e7b]"}>{item.realMarginRate.toFixed(2)}%</TableCell></TableRow>)}</TableBody>
+                  <TableBody>{history.map((item) => <TableRow key={item.id}><TableCell>{formatDate(item.definedAt)}</TableCell><TableCell className="font-bold text-[#2563EB]">{brl(item.practicedPrice)}</TableCell><TableCell className={item.realMarginRate < 0 ? "font-bold text-red-600" : "font-bold text-[#2563EB]"}>{item.realMarginRate.toFixed(2)}%</TableCell></TableRow>)}</TableBody>
                 </Table>
               </div>
             )}
@@ -114,14 +114,14 @@ export function SavedSheet({ sheet, supplies, priceHistory }: { sheet: Sheet; su
 }
 
 function Summary({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return <div className="sm:min-w-32 sm:text-right"><p className="text-[11px] font-normal uppercase tracking-wide text-[#8294a5]">{label}</p><p className={`font-black ${accent ? "text-[#147bc4]" : "text-[#14375f]"}`}>{value}</p></div>;
+  return <div className="sm:min-w-32 sm:text-right"><p className="text-[11px] font-normal uppercase tracking-wide text-[#6B7280]">{label}</p><p className={`font-semibold ${accent ? "text-[#2563EB]" : "text-[#111827]"}`}>{value}</p></div>;
 }
 function Cost({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return <div className={`rounded-xl p-4 ${strong ? "bg-[#14375f] text-white" : "bg-white shadow-sm"}`}><p className="text-xs opacity-70">{label}</p><p className="mt-1 text-lg font-black">{value}</p></div>;
+  return <div className={`rounded-xl p-4 ${strong ? "bg-[#111827] text-white" : "bg-white shadow-sm"}`}><p className="text-xs opacity-70">{label}</p><p className="mt-1 text-lg font-semibold">{value}</p></div>;
 }
 function Rate({ label, value }: { label: string; value: number }) {
-  return <div className="rounded-xl bg-white p-3 text-center shadow-sm"><p className="text-[11px] text-[#708398]">{label}</p><p className="mt-1 font-black text-[#14375f]">{value.toFixed(2)}%</p></div>;
+  return <div className="rounded-xl bg-white p-3 text-center shadow-sm"><p className="text-[11px] text-[#6B7280]">{label}</p><p className="mt-1 font-semibold text-[#111827]">{value.toFixed(2)}%</p></div>;
 }
 function Empty({ text }: { text: string }) {
-  return <p className="rounded-xl bg-[#f6f8fa] p-4 text-sm text-[#8294a5]">{text}</p>;
+  return <p className="rounded-xl bg-[#F3F5F8] p-4 text-sm text-[#6B7280]">{text}</p>;
 }

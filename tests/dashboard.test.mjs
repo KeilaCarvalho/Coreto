@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+import {readFile} from 'node:fs/promises';
+import ts from 'typescript';
+const source=await readFile(new URL('../lib/dashboard.ts',import.meta.url),'utf8');
+const output=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+const {summarizeSales}=await import('data:text/javascript;base64,'+Buffer.from(output).toString('base64'));
+const row=(recordType,amount,sellerName='Ana',saleDate='2026-09-01')=>({recordType,amount,sellerName,saleDate,reportMonth:'2026-09',saleCount:1,quantity:1});
+test('overlapping reports do not multiply monthly revenue',()=>{const result=summarizeSales([row('annual',1000),row('daily',1000),row('sellers',1000),row('detailed',1000)]);assert.equal(result.revenue,1000);assert.equal(result.ranking[0].amount,1000);assert.equal(result.days[0].amount,1000);});
+test('missing revenue is unknown rather than a confirmed zero',()=>{assert.equal(summarizeSales([]).revenue,null);assert.equal(summarizeSales([row('daily',0)]).revenue,0);assert.equal(summarizeSales([row('sellers',1000)]).revenue,null);});
+test('ranking aggregates people and excludes unnamed sales',()=>{const result=summarizeSales([row('sellers',100,'Ana'),row('sellers',200,'Ana'),row('sellers',400,'Bia'),row('sellers',999,'Não informado')]);assert.deepEqual(result.ranking.map(x=>[x.name,x.amount,x.count]),[['Bia',400,1],['Ana',300,2]]);});
+test('detailed fallback groups days in chronological order',()=>{const result=summarizeSales([row('detailed',200,'Ana','2026-09-02'),row('detailed',100),row('detailed',50)]);assert.equal(result.revenue,350);assert.deepEqual(result.days,[{date:'2026-09-01',amount:150},{date:'2026-09-02',amount:200}]);});

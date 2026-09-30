@@ -1,56 +1,60 @@
 "use client";
-
-import { useEffect, useState } from "react";
-import { BarChart3, Banknote, Boxes, ClipboardList, ContactRound, Menu, PackageCheck, Shirt, UserCog, Users } from "lucide-react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { ChevronDown, ChevronRight, CircleAlert, LayoutDashboard, Menu, RotateCw, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-
-const links = [
-  { href: "/", label: "Recebimento", icon: PackageCheck, roles: ["admin","conferente"] },
-  { href: "/estoque-precificacao", label: "Estoque & Precificação", icon: Boxes, roles: ["admin"] },
-  { href: "/retiradas", label: "Retiradas", icon: Shirt, roles: ["admin"] },
-  { href: "/folha-comissao", label: "Folha & Comissão", icon: Users, roles: ["admin"] },
-  { href: "/fluxo-financeiro", label: "Fluxo Financeiro", icon: Banknote, roles: ["admin","chefe"] },
-  { href: "/vendas-comparativos", label: "Vendas & Comparativos", icon: BarChart3, roles: ["admin","chefe"] },
-  { href: "/analise-financeira", label: "Análise Financeira", icon: ClipboardList, roles: ["admin","chefe"] },
-  { href: "/crm", label: "CRM de Clientes", icon: ContactRound, roles: ["admin","vendedora"] },
-  { href: "/usuarios", label: "Usuários e Acessos", icon: UserCog, roles: ["admin"] },
-];
-
+import { canAccessPage, groupsForRole, navigationGroups, roleLabels, type NavigationRole } from "@/lib/navigation";
+type SessionUser = { name: string; email: string; role: NavigationRole; active: boolean };
+type SessionState = { user: SessionUser | null; loading: boolean; error: string | null; retry: () => void };
+const SessionContext = createContext<SessionState>({ user: null, loading: true, error: null, retry: () => {} });
+export function useCoreSession() { return useContext(SessionContext); }
+export function CoreSessionProvider({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<Omit<SessionState, "retry">>({ user: null, loading: true, error: null });
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/session", { signal: controller.signal }).then(async response => {
+      const data = await response.json();
+      if (!response.ok || !data.user?.active) throw new Error(response.status === 403 || data.user?.active === false ? "Sua conta não tem acesso ativo ao Coreto. Entre em contato com a administração." : "Não foi possível verificar seu acesso.");
+      setState({ user: data.user, loading: false, error: null });
+    }).catch(error => { if (!controller.signal.aborted) setState({ user: null, loading: false, error: error.message || "Não foi possível conectar ao sistema." }); });
+    return () => controller.abort();
+  }, [attempt]);
+  return <SessionContext.Provider value={{ ...state, retry: () => { setState({ user: null, loading: true, error: null }); setAttempt(value => value + 1); } }}>{children}</SessionContext.Provider>;
+}
 function Brand() {
-  return <div className="flex items-center gap-3"><img src="/coreto-logo.png" alt="Coreto" className="h-14 w-auto object-contain"/><span className="sr-only">Coreto - Gestão interna</span></div>;
+  return <Link href="/" className="core-brand" aria-label="Coreto — Dashboard"><span className="core-brand-mark" aria-hidden="true">c<span>·</span></span><span>coreto<span className="core-brand-caption">GESTÃO INTERNA</span></span></Link>;
 }
-
-function Navigation({ active, role, mobile = false }: { active: string; role: string | null; mobile?: boolean }) {
-  return <nav className="space-y-1 p-4" aria-label="Navegação principal">{links.filter((link) => role && link.roles.includes(role)).map((link) => {
-    const Icon = link.icon;
-    const item = <Link prefetch key={link.href} href={link.href} aria-current={active === link.href ? "page" : undefined} className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-colors ${active === link.href ? "bg-[#159C85] font-semibold shadow-lg" : "hover:bg-white/10"}`}><Icon size={18}/>{link.label}</Link>;
-    return mobile ? <SheetClose asChild key={link.href}>{item}</SheetClose> : item;
-  })}</nav>;
+function Navigation({ active, mobile = false }: { active: string; mobile?: boolean }) {
+  const { user } = useCoreSession();
+  const groups = groupsForRole(user?.role || null);
+  const wrap = (item: React.ReactElement, key: string) => mobile ? <SheetClose asChild key={key}>{item}</SheetClose> : item;
+  return <nav className="core-navigation" aria-label="Menu principal">
+    {wrap(<Link key="dashboard" href="/" className={`core-nav-main ${active === "/" ? "is-active" : ""}`} aria-current={active === "/" ? "page" : undefined}><LayoutDashboard size={19}/><span>Dashboard</span></Link>, "dashboard")}
+    <p className="core-nav-caption">ÁREAS DE GESTÃO</p>
+    {groups.map(group => { const Icon = group.icon; const selected = group.items.some(item => item.href === active); return <details key={`${group.id}-${active}`} className="core-nav-group" open>
+      <summary className={selected ? "is-selected" : ""}><Icon size={19}/><span>{group.label}</span><ChevronDown size={15} className="core-nav-chevron"/></summary>
+      <div className="core-nav-children">{group.items.map(item => wrap(<Link key={item.href} href={item.href} className={`core-nav-child ${active === item.href ? "is-active" : ""}`} aria-current={active === item.href ? "page" : undefined}><span className="core-nav-dot"/>{item.label}</Link>, item.href))}</div>
+    </details>; })}
+    {user?.role === "admin" && <div className="core-nav-settings"><p className="core-nav-caption">ADMINISTRAÇÃO</p>{wrap(<Link href="/usuarios" className={`core-nav-main ${active === "/usuarios" ? "is-active" : ""}`} aria-current={active === "/usuarios" ? "page" : undefined}><SlidersHorizontal size={19}/><span>Usuários e acessos</span></Link>, "users")}</div>}
+  </nav>;
 }
-
 export function CoreShell({ active, title, subtitle, children }: { active: string; title: string; subtitle: string; children: React.ReactNode }) {
-  const [role, setRole] = useState<string | null>(null);
-  useEffect(() => { fetch("/api/session").then(async (response) => ({ response, data: await response.json() })).then(({ response, data }) => { if (!response.ok) return; const nextRole = data.user.role as string; setRole(nextRole); const allowed = links.some((link) => link.href === active && link.roles.includes(nextRole)); if (!allowed) window.location.replace(nextRole === "vendedora" ? "/crm" : "/"); }); }, [active]);
-  return <div className="min-h-screen bg-[#F3F6F8] text-[#16324A]">
-    <aside className="coreto-scrollbar fixed inset-y-0 left-0 hidden w-[268px] flex-col overflow-y-auto bg-[#16324A] text-white lg:flex"><div className="border-b border-white/10 px-7 py-6"><Brand/></div><Navigation active={active} role={role}/><div className="mt-auto border-t border-white/10 p-5 text-xs text-blue-100/60">Sistema interno Coreto</div></aside>
-    <main className="lg:ml-[268px]">
-      <header className="border-b border-[#dce5ed] bg-white px-5 py-6 sm:px-8 lg:px-10"><div className="mx-auto max-w-[1500px]">
-        <Sheet>
-          <SheetTrigger asChild><button type="button" className="mb-3 inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#d7e1ea] bg-white px-3 text-sm font-semibold text-[#159C85] shadow-sm lg:hidden" aria-label="Abrir menu principal"><Menu size={18}/>Menu</button></SheetTrigger>
-          <SheetContent side="left" className="w-[290px] gap-0 border-0 bg-[#16324A] p-0 text-white">
-            <SheetHeader className="border-b border-white/10 px-7 py-6 text-left"><SheetTitle className="sr-only">Menu principal</SheetTitle><SheetDescription className="sr-only">Escolha uma página do sistema Coreto.</SheetDescription><Brand/></SheetHeader>
-            <Navigation active={active} role={role} mobile/>
-            <div className="mt-auto border-t border-white/10 p-5 text-xs text-blue-100/60">Sistema interno Coreto</div>
-          </SheetContent>
-        </Sheet>
-        <p className="text-xs text-[#708398]">{subtitle}</p><h1 className="mt-1 text-2xl font-black tracking-tight text-[#16324A]">{title}</h1>
-      </div></header>
-      <div className="mx-auto max-w-[1500px] p-5 sm:p-8 lg:p-10">{children}</div>
-    </main>
+  const { user, loading, error, retry } = useCoreSession();
+  const group = navigationGroups.find(group => group.items.some(item => item.href === active));
+  const allowed = user && canAccessPage(active, user.role);
+  const initials = user?.name.split(/\s+/).slice(0, 2).map(word => word[0]).join("").toUpperCase() || "C";
+  return <div className="core-app">
+    <a href="#page-content" className="core-skip-link">Pular para o conteúdo</a>
+    <aside className="core-sidebar"><div className="core-brand-area"><Brand/></div><Navigation active={active}/><div className="core-sidebar-footer"><span className="core-avatar">{initials}</span><div><strong>{user?.name || "Coreto"}</strong><span>{user ? roleLabels[user.role] : "Gestão interna"}</span></div></div></aside>
+    <div className="core-workspace">
+      <header className="core-topbar"><div className="flex min-w-0 items-center gap-3"><Sheet><SheetTrigger asChild><button className="core-mobile-menu" aria-label="Abrir menu principal"><Menu size={21}/></button></SheetTrigger><SheetContent side="left" className="core-mobile-sidebar"><SheetHeader><SheetTitle className="sr-only">Menu principal</SheetTitle><SheetDescription className="sr-only">Navegue pelas áreas do Coreto.</SheetDescription><Brand/></SheetHeader><Navigation active={active} mobile/></SheetContent></Sheet><div className="core-breadcrumb"><Link href="/">Coreto</Link><ChevronRight size={14}/><span>{group?.label || (active === "/" ? "Visão geral" : "Administração")}</span></div></div><div className="core-topbar-account"><span className="core-account-label">{user ? roleLabels[user.role] : "Gestão interna"}</span><span className="core-avatar" aria-label={user?.name || "Coreto"}>{initials}</span></div></header>
+      <main id="page-content" className="core-content" tabIndex={-1}><div className="core-page-heading"><div><p className="core-eyebrow">{group?.label || (active === "/" ? "SEU ESPAÇO DE GESTÃO" : "CONFIGURAÇÕES")}</p><h1>{title}</h1><p className="core-page-description">{subtitle}</p></div><span className="core-heading-date">{isoToday().split("-").reverse().join(" / ")}</span></div>
+        {loading ? <div className="core-loading" role="status"><span className="core-loading-dot"/>Carregando seu espaço…</div> : error ? <section className="core-access-state" role="alert"><CircleAlert size={28}/><h2>Não foi possível abrir seu espaço</h2><p>{error}</p><button onClick={retry}><RotateCw size={16}/>Tentar novamente</button></section> : !allowed ? <section className="core-access-state"><CircleAlert size={28}/><h2>Área restrita</h2><p>Seu perfil não tem acesso a esta área.</p><Link href="/">Voltar ao Dashboard</Link></section> : children}
+      </main><footer className="core-page-footer"><span>Coreto</span><span>Gestão interna</span></footer>
+    </div>
   </div>;
 }
-
-export function Panel({ title, children }: { title: string; children: React.ReactNode }) { return <section className="rounded-2xl border border-[#dfe7ee] bg-white shadow-sm"><h2 className="border-b px-5 py-4 font-bold text-[#16324A]">{title}</h2><div className="p-5">{children}</div></section>; }
+export function Panel({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) { return <section className="core-panel"><div className="core-panel-heading"><h2>{title}</h2>{action}</div><div className="core-panel-body">{children}</div></section>; }
 export const money = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export const isoToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });

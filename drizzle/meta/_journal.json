@@ -78,6 +78,27 @@
       "when": 1788527593826,
       "tag": "0010_peaceful_green_goblin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1789086052112,
+      "tag": "0011_whole_joshua_kane",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1789497688849,
+      "tag": "0012_talented_jimmy_woo",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1790771818315,
+      "tag": "0013_striped_typhoid_mary",
+      "breakpoints": true
     }
   ]
 }

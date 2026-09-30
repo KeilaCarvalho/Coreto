@@ -1,0 +1,1 @@
+ALTER TABLE `monthly_finance` ADD `seller_sales_json` text DEFAULT '[]' NOT NULL;

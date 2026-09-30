@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { CoreSessionProvider } from "@/components/core-shell";
 
 export const metadata: Metadata = {
   title: "Coreto — Gestão Interna",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="pt-BR"><body className="antialiased">{children}</body></html>;
+  return <html lang="pt-BR"><body className="antialiased"><CoreSessionProvider>{children}</CoreSessionProvider></body></html>;
 }
