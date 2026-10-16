@@ -1,5 +1,5 @@
 export const ROTULO_TIPO: Record<string, string> = {
-  entrada_producao: "Entrada de produção", remessa_faccao: "Remessa à facção", retorno_faccao: "Retorno de facção",
+  entrada_producao: "Entrada de produção", liberacao: "Liberação para venda", remessa_faccao: "Remessa à facção", retorno_faccao: "Retorno de facção",
   venda: "Venda", troca: "Troca", retirada: "Retirada", emprestimo_marketing: "Saída para fotos",
   devolucao_marketing: "Devolução de fotos", brinde: "Brinde ou permuta", perda: "Perda ou defeito",
   ajuste_entrada: "Ajuste de entrada", ajuste_saida: "Ajuste de saída", transferencia: "Transferência", estorno: "Estorno",

@@ -175,3 +175,152 @@ select teste.ok((select count(*) from public.auditoria where tabela = 'produtos'
 select teste.ok((select count(*) from public.auditoria where tabela = 'movimentacoes_estoque') >= 4,
                 'histórico registra as movimentações');
 commit;
+
+-- ---------------------------------------------------------------------
+-- 6. Chegada da facção, precificação e liberação.
+-- ---------------------------------------------------------------------
+insert into auth.users (email) values ('dani@coreto.com.br');
+insert into teste.ids select 'dani', id from auth.users where email = 'dani@coreto.com.br';
+update public.pessoas set perfil_id = 'conferencia', acesso_ativo = true where email = 'dani@coreto.com.br';
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+insert into public.produtos (referencia, nome, grade_id) values ('BL002', 'Blusa Íris', (select id from public.grades where nome = 'PP ao GG'));
+insert into public.produto_cores (produto_id, cor_id) select p.id, c.id from public.produtos p, public.cores c where p.referencia = 'BL002' and c.codigo = 'PRT';
+select public.gerar_variantes((select id from public.produtos where referencia = 'BL002'));
+commit;
+
+-- A conferência conta as peças, mas não libera.
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'dani'), true);
+select public.registrar_recebimento(null, (select id from public.produtos where referencia = 'BL002'),
+  (select id from public.parceiros where nome = 'Oficina Teste'), public.hoje_sp(), 'primeira entrega',
+  jsonb_build_array(
+    jsonb_build_object('variante_id', (select id from public.variantes where sku = 'BL002-PRT-P'), 'quantidade', 6),
+    jsonb_build_object('variante_id', (select id from public.variantes where sku = 'BL002-PRT-M'), 'quantidade', 4),
+    jsonb_build_object('variante_id', (select id from public.variantes where sku = 'BL002-PRT-G'), 'quantidade', 0)));
+select teste.ok((select recebido = 10 and aguardando = 10 and situacao = 'sem_preco' from public.recebimentos_resumo), 'lote de 10 peças fica aguardando preço');
+select teste.ok(not exists (select 1 from public.saldos_estoque s join public.locais_estoque l on l.id = s.local_id
+                            join public.variantes v on v.id = s.variante_id where v.sku like 'BL002%' and l.tipo = 'loja'),
+                'peças do lote não aparecem na loja antes da liberação');
+select teste.erro($$select public.liberar_recebimento((select id from public.recebimentos), (select id from public.locais_estoque where nome = 'Loja'),
+                    jsonb_build_array(jsonb_build_object('variante_id', (select id from public.variantes where sku = 'BL002-PRT-P'), 'quantidade', 1)))$$,
+                  'preço', 'sem preço o lote não é liberado');
+select teste.ok((select count(*) from public.fichas_custo) = 0, 'conferência não vê fichas de custo');
+update public.recebimentos set pendente = true, pendencia = 'Faltaram 2 G pretas';
+select teste.ok((select situacao from public.recebimentos_resumo) = 'pendente', 'lote marcado como pendente');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+select teste.ok((public.salvar_ficha_custo((select id from public.produtos where referencia = 'BL002'),
+  '{"simples": 6, "cartao": 4, "comissao": 5, "despesas_fixas": 15, "lucro_desejado": 20}',
+  '[{"tipo":"material","descricao":"Viscose","quantidade":1.5,"unidade":"m","valor_unitario":20},
+    {"tipo":"mao_de_obra","descricao":"Facção","quantidade":1,"valor_unitario":15}]', null, 99.90) ->> 'sugerido')::numeric = 90,
+  'custo 45 com 50% de taxas e lucro sugere R$ 90,00');
+select teste.ok((select preco_venda = 99.90 and custo_previsto = 45 from public.produtos where referencia = 'BL002'), 'preço e custo gravados no produto');
+select teste.ok((select margem = 24.95 from public.historico_precos), 'histórico guarda a margem real (24,95%)');
+
+select teste.erro($$select public.liberar_recebimento((select id from public.recebimentos), (select id from public.locais_estoque where nome = 'Loja'),
+                    jsonb_build_array(jsonb_build_object('variante_id', (select id from public.variantes where sku = 'BL002-PRT-P'), 'quantidade', 7)))$$,
+                  'Só há 6', 'não libera mais do que chegou');
+select public.liberar_recebimento((select id from public.recebimentos), (select id from public.locais_estoque where nome = 'Loja'),
+  jsonb_build_array(jsonb_build_object('variante_id', (select id from public.variantes where sku = 'BL002-PRT-P'), 'quantidade', 6)));
+select teste.ok((select liberado = 6 and aguardando = 4 from public.recebimentos_resumo), 'liberação parcial: 6 na loja, 4 aguardando');
+select teste.ok((select saldo from public.saldos_estoque s join public.variantes v on v.id = s.variante_id
+                 join public.locais_estoque l on l.id = s.local_id where v.sku = 'BL002-PRT-P' and l.nome = 'Loja') = 6,
+                'peças liberadas aparecem no saldo da loja');
+select teste.erro($$insert into public.movimentacoes_estoque (tipo, variante_id, quantidade, local_origem_id, local_destino_id)
+                    values ('transferencia', (select id from public.variantes where sku = 'BL002-PRT-M'), 1,
+                            public.local_recebimento_id(), (select id from public.locais_estoque where nome = 'Loja'))$$,
+                  'só saem pela tela', 'transferência manual não tira peça do lote');
+
+select public.registrar_recebimento((select id from public.recebimentos), null, null, public.hoje_sp(), null,
+  jsonb_build_array(jsonb_build_object('variante_id', (select id from public.variantes where sku = 'BL002-PRT-G'), 'quantidade', 2)));
+update public.recebimentos set pendente = false;
+select teste.ok((select recebido = 12 and aguardando = 6 and situacao = 'pronto' from public.recebimentos_resumo), 'complemento entra no mesmo lote');
+select public.liberar_recebimento((select id from public.recebimentos), (select id from public.locais_estoque where nome = 'Loja'),
+  (select jsonb_agg(jsonb_build_object('variante_id', variante_id, 'quantidade', aguardando)) from public.recebimento_itens where aguardando > 0));
+select teste.ok((select situacao from public.recebimentos_resumo) = 'concluido', 'lote todo liberado fica concluído');
+select public.estornar_movimentacao((select max(id) from public.movimentacoes_estoque where tipo = 'liberacao'), 'liberada por engano');
+select teste.ok((select situacao from public.recebimentos_resumo) = 'pronto', 'estorno da liberação volta peças para o lote');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'dani'), true);
+select teste.erro($$insert into public.movimentacoes_estoque (tipo, variante_id, quantidade, local_origem_id, local_destino_id, documento_tipo, documento_id)
+                    values ('liberacao', (select variante_id from public.recebimento_itens where aguardando > 0 limit 1), 1,
+                            public.local_recebimento_id(), (select id from public.locais_estoque where nome = 'Loja'),
+                            'recebimento', (select id::text from public.recebimentos))$$,
+                  'Somente quem aprova', 'conferência não libera peças');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'carla'), true);
+select teste.ok((select count(*) from public.recebimentos) = 0 and (select count(*) from public.historico_precos) = 0,
+                'vendedora não vê recebimentos nem custos');
+commit;
+
+-- ---------------------------------------------------------------------
+-- 7. Fluxo financeiro: só o financeiro vê e lança.
+-- ---------------------------------------------------------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+insert into public.fluxo_dias (data, vendas, saldos, a_receber)
+values ('2026-10-16', '[{"nome":"Pix","valor":1200.5}]', '[{"nome":"Itaú","valor":8000}]', '[{"nome":"Pagarme","valor":500}]');
+insert into public.fluxo_meses (mes, vendas, vendedoras, contas_a_pagar, contas_pagas)
+values ('2026-10-01', '[{"nome":"Pix","valor":30000}]', '[{"nome":"Carla","valor":12000}]', 15000, 9000);
+select teste.ok((select atualizado_por is not null from public.fluxo_dias), 'fluxo do dia registra quem lançou');
+select teste.erro($$insert into public.fluxo_meses (mes) values ('2026-10-15')$$, 'check', 'mês do fluxo é sempre o dia 1');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'carla'), true);
+select teste.ok((select count(*) from public.fluxo_dias) = 0 and (select count(*) from public.fluxo_meses) = 0, 'vendedora não vê o fluxo financeiro');
+select teste.erro($$insert into public.fluxo_dias (data) values ('2026-10-17')$$, 'row-level security', 'vendedora não lança no fluxo');
+commit;
+
+-- ---------------------------------------------------------------------
+-- 8. Clientes: importação, carteira de cada vendedora e contatos.
+-- ---------------------------------------------------------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+update public.pessoas set nome_vendas = 'CARLA V' where email = 'carla@coreto.com.br';
+select teste.ok((public.importar_clientes('primeira_compra', '[
+  {"codigo":"101","nome":"Maria Souza","telefone":"62999990000","cidade":"Goiânia","uf":"GO","vendedora":"Carla V","primeira_compra":"2026-09-02","qtd_pecas":3,"total_gasto":450},
+  {"codigo":"102","nome":"Joana Lima","telefone":"62988880000","vendedora":"BRUNA","primeira_compra":"2026-09-05","qtd_pecas":1,"total_gasto":120},
+  {"codigo":"103","nome":""}]', 'primeira.pdf', '2026-09') ->> 'importados')::int = 2, 'importa 2 clientes e ignora a linha sem nome');
+select teste.ok((select vendedora_id = (select id from public.pessoas where email = 'carla@coreto.com.br') from public.clientes where codigo_externo = '101'),
+                'cliente fica na carteira da vendedora pelo nome do relatório');
+select public.importar_clientes('aniversariantes', '[{"codigo":"101","nome":"Maria Souza","nascimento":"1990-10-20","cpf":"123.456.789-00"}]', 'aniv.pdf');
+select teste.ok((select nascimento = '1990-10-20' and telefone = '62999990000' from public.clientes where codigo_externo = '101'),
+                'aniversariantes completam o cadastro sem apagar o telefone');
+select public.importar_clientes('vendas_vendedora', '[
+  {"codigo_venda":"900001","data":"2026-10-03","nome":"MARIA SOUZA","vendedora":"CARLA V","valor":300},
+  {"codigo_venda":"900002","data":"2026-10-10","nome":"Maria  Souza","vendedora":"CARLA V","valor":200}]', 'vendas.pdf', '2026-10');
+select teste.ok((select qtd_compras = 2 and total_gasto = 500 and ultima_compra = '2026-10-10' from public.clientes where codigo_externo = '101'),
+                'vendas importadas atualizam compras, total e última compra');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'carla'), true);
+select teste.ok((select count(*) from public.clientes) = 1, 'vendedora vê só a própria carteira');
+insert into public.cliente_contatos (cliente_id, etapa, nota, proximo_contato)
+values ((select id from public.clientes where codigo_externo = '101'), 'aguardando_retorno', 'Mandei a coleção nova', '2026-10-20');
+select teste.ok((select etapa = 'aguardando_retorno' and proximo_contato = '2026-10-20' from public.clientes where codigo_externo = '101'),
+                'contato atualiza a etapa e o próximo retorno');
+insert into public.clientes (nome, telefone, vendedora_id) values ('Paula Nova', '62977770000', null);
+select teste.ok((select vendedora_id = (select id from public.pessoas where email = 'carla@coreto.com.br') from public.clientes where nome = 'Paula Nova'),
+                'cliente cadastrada pela vendedora entra na carteira dela');
+select teste.erro($$select public.importar_clientes('carteira', '[{"nome":"X"}]', 'x.csv')$$, 'gestão comercial', 'vendedora não importa relatórios');
+select teste.ok((select count(*) from public.importacoes_clientes) = 0, 'vendedora não vê o histórico de importações');
+commit;

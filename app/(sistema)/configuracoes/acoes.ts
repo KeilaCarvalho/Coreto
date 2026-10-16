@@ -21,7 +21,7 @@ export async function salvarAcesso(_: EstadoAcao, dados: FormData): Promise<Esta
   const ativo = dados.get("acesso_ativo") === "on";
   if (ativo && !perfil) return { erro: "Escolha um perfil antes de liberar o acesso." };
   const supabase = await supabaseServidor();
-  const { error } = await supabase.from("pessoas").update({ perfil_id: perfil, acesso_ativo: ativo }).eq("id", id);
+  const { error } = await supabase.from("pessoas").update({ perfil_id: perfil, acesso_ativo: ativo, ...(perfil === "vendedora" ? { e_vendedora: true } : {}) }).eq("id", id);
   if (error) return { erro: error.message.includes("administrador") ? error.message : mensagemBanco(error.message) };
   revalidatePath("/configuracoes/acessos");
   return { ok: ativo ? "Acesso liberado." : "Acesso salvo como bloqueado." };
@@ -110,6 +110,7 @@ export async function criarPessoa(_: EstadoAcao, dados: FormData): Promise<Estad
   const { error } = await supabase.from("pessoas").insert({
     nome, apelido: ouNulo(texto(dados, "apelido")), cargo: ouNulo(texto(dados, "cargo")),
     telefone: ouNulo(texto(dados, "telefone")), e_vendedora: dados.get("e_vendedora") === "on", e_funcionaria: true,
+    nome_vendas: dados.get("e_vendedora") === "on" ? ouNulo(texto(dados, "nome_vendas")) : null,
   });
   if (error) return { erro: mensagemBanco(error.message) };
   revalidatePath("/pessoas/equipe");

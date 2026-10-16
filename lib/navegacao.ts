@@ -3,7 +3,7 @@ export type Acao = "ver" | "criar" | "editar" | "aprovar";
 
 import type { NomeIcone } from "@/components/icone";
 
-export type ItemMenu = { rotulo: string; href: string; modulo: Modulo; icone: NomeIcone; fase?: string };
+export type ItemMenu = { rotulo: string; href: string; modulo: Modulo; acao?: Acao; icone: NomeIcone; fase?: string };
 export type GrupoMenu = { rotulo: string; itens: ItemMenu[] };
 
 /**
@@ -13,9 +13,10 @@ export type GrupoMenu = { rotulo: string; itens: ItemMenu[] };
 export const MENU: GrupoMenu[] = [
   { rotulo: "Produto", itens: [
     { rotulo: "Catálogo", href: "/produto/catalogo", modulo: "produto", icone: "catalogo" },
-    { rotulo: "Fichas técnicas", href: "/em-breve/fichas", modulo: "produto", icone: "ficha", fase: "F1" },
+    { rotulo: "Precificação", href: "/produto/precificacao", modulo: "produto", acao: "editar", icone: "ficha" },
   ] },
   { rotulo: "Produção", itens: [
+    { rotulo: "Chegada da facção", href: "/producao/recebimentos", modulo: "producao", icone: "entrada" },
     { rotulo: "Quadro de produção", href: "/em-breve/quadro", modulo: "producao", icone: "quadro", fase: "F2" },
     { rotulo: "Facções e corte", href: "/em-breve/faccoes", modulo: "producao", icone: "faccao", fase: "F2" },
   ] },
@@ -25,11 +26,11 @@ export const MENU: GrupoMenu[] = [
   ] },
   { rotulo: "Vendas", itens: [
     { rotulo: "Caixa", href: "/em-breve/caixa", modulo: "comercial", icone: "caixa", fase: "F3" },
-    { rotulo: "Clientes", href: "/em-breve/clientes", modulo: "comercial", icone: "clientes", fase: "F3" },
+    { rotulo: "Clientes", href: "/comercial/clientes", modulo: "comercial", icone: "clientes" },
     { rotulo: "Peças para fotos", href: "/em-breve/marketing", modulo: "marketing", icone: "fotos", fase: "F4" },
   ] },
   { rotulo: "Gestão", itens: [
-    { rotulo: "Financeiro", href: "/em-breve/financeiro", modulo: "financeiro", icone: "financeiro", fase: "F5" },
+    { rotulo: "Fluxo financeiro", href: "/financeiro/fluxo", modulo: "financeiro", icone: "financeiro" },
     { rotulo: "Equipe", href: "/pessoas/equipe", modulo: "pessoas", icone: "equipe" },
     { rotulo: "Folha e retiradas", href: "/em-breve/folha", modulo: "pessoas", icone: "folha", fase: "F4" },
   ] },
@@ -41,8 +42,8 @@ export const MENU: GrupoMenu[] = [
 ];
 
 /** Menu filtrado pelas permissões de quem está logado. */
-export function menuPara(pode: (modulo: Modulo) => boolean): GrupoMenu[] {
-  return MENU.map((g) => ({ ...g, itens: g.itens.filter((i) => pode(i.modulo)) })).filter((g) => g.itens.length);
+export function menuPara(pode: (modulo: Modulo, acao?: Acao) => boolean): GrupoMenu[] {
+  return MENU.map((g) => ({ ...g, itens: g.itens.filter((i) => pode(i.modulo, i.acao)) })).filter((g) => g.itens.length);
 }
 
 export const EM_BREVE: Record<string, { titulo: string; fase: string; texto: string }> = {

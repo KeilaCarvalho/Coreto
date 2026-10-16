@@ -360,3 +360,106 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* =====================================================================
+   Chegada da facção, precificação, fluxo financeiro e clientes
+   ===================================================================== */
+.mini { color: var(--suave); font-size: 12.5px; }
+.subtitulo { font-size: 15px; font-weight: 700; margin: 22px 0 12px; }
+.etiqueta.info { background: var(--info-fundo); color: #2f5f93; border-color: #d3e1f7; }
+.etiqueta.erro { background: var(--erro-fundo); color: var(--erro); border-color: #f5c9c4; }
+
+/* abas em pílula */
+.abas { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px; background: var(--superficie-2); border: 1px solid var(--linha); border-radius: var(--raio-pilula); }
+.abas a, .abas button { padding: 7px 14px; border-radius: var(--raio-pilula); font-size: 13px; font-weight: 600; color: var(--suave); background: none; border: 0; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.abas a:hover, .abas button:hover { color: var(--tinta); }
+.abas a.ativa, .abas button.ativa { background: var(--superficie); color: var(--tinta); box-shadow: 0 1px 2px rgba(15,32,29,0.08), 0 0 0 1px var(--linha); }
+.abas .contador { margin-left: 6px; font-size: 11px; color: var(--verde-700); }
+
+/* grade digitável (cor × tamanho) */
+.grade-digitacao .tabela-rolagem { margin: 0 -10px; }
+.grade-botoes { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.matriz td.inativa { background: transparent; color: var(--tenue); }
+.matriz.digitavel { padding: 0 4px 4px; }
+.matriz.digitavel tbody td { padding: 6px; background: var(--superficie-2); }
+.matriz.digitavel input { width: 100%; min-width: 54px; max-width: 84px; height: 44px; border: 1px solid var(--linha-forte); border-radius: 10px; text-align: center; font-size: 17px; font-weight: 700; background: var(--superficie); -moz-appearance: textfield; }
+.matriz.digitavel input::-webkit-outer-spin-button, .matriz.digitavel input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.matriz.digitavel input:focus { outline: none; border-color: var(--verde-600); box-shadow: 0 0 0 4px rgba(70, 215, 172, 0.25); }
+.matriz.digitavel .codigo { display: block; font-size: 11px; color: var(--tenue); margin-top: 3px; }
+.matriz .total-linha, .matriz .total-geral { font-weight: 700; color: var(--suave); background: transparent !important; }
+.matriz .total-geral { color: var(--verde-900); font-size: 16px; }
+details > summary { list-style: none; cursor: pointer; display: inline-flex; }
+details > summary::-webkit-details-marker { display: none; }
+
+/* ficha de custo */
+.tabela.ficha td { padding: 8px 10px; }
+.tabela.ficha th { padding: 10px; }
+.tabela.ficha .entrada { min-height: 40px; padding: 8px 10px; border: 1px solid var(--linha-forte); border-radius: 10px; background: var(--superficie); width: 100%; }
+.tabela.ficha .entrada.curta { width: 96px; text-align: right; }
+.tabela.ficha .entrada.mini-campo { width: 64px; }
+.tabela.ficha td:nth-child(2) { min-width: 200px; }
+.campos.cinco { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.calculo { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.calculo > div { padding: 14px 16px; border-radius: 16px; background: var(--superficie-2); border: 1px solid var(--linha); display: grid; gap: 2px; }
+.calculo span { font-size: 12.5px; color: var(--suave); font-weight: 600; }
+.calculo strong { font-size: 20px; letter-spacing: -0.02em; }
+.calculo small { font-size: 11.5px; color: var(--tenue); }
+.calculo .destaque { background: radial-gradient(130% 120% at 100% 0%, #1f8a73 0%, var(--verde-900) 60%); border-color: transparent; color: #fff; }
+.calculo .destaque span, .calculo .destaque small { color: #b5ddd1; }
+.resultado { padding: 14px 16px; border-radius: 16px; display: grid; gap: 2px; border: 1px solid var(--linha); }
+.resultado span { font-size: 12.5px; font-weight: 600; color: var(--suave); }
+.resultado strong { font-size: 24px; letter-spacing: -0.02em; }
+.resultado small { font-size: 12px; color: var(--suave); }
+.resultado.bom { background: var(--verde-100); border-color: #c8ebdd; }
+.resultado.bom strong { color: var(--verde-900); }
+.resultado.atencao { background: var(--alerta-fundo); border-color: #f5dcb3; }
+.resultado.atencao strong { color: var(--alerta); }
+.resultado.ruim { background: var(--erro-fundo); border-color: #f5c9c4; }
+.resultado.ruim strong { color: var(--erro); }
+.resultado.neutro { background: var(--superficie-2); }
+
+/* fluxo financeiro */
+.linhas-valor { display: grid; gap: 8px; }
+.linha-valor { display: grid; grid-template-columns: minmax(0, 1fr) 150px 40px; gap: 8px; align-items: center; }
+.linha-valor .entrada { min-height: 42px; padding: 8px 12px; border: 1px solid var(--linha-forte); border-radius: 10px; background: var(--superficie); width: 100%; }
+.linha-valor .entrada.valor { text-align: right; }
+.linha-valor .icone-botao { width: 36px; height: 36px; }
+.total-bloco { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 10px 14px; border-radius: 12px; background: var(--verde-50); font-weight: 700; color: var(--verde-900); }
+.bloco-fluxo + .bloco-fluxo { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--linha); }
+.bloco-fluxo h3 { font-size: 14.5px; font-weight: 700; }
+.bloco-fluxo > p { font-size: 12.5px; color: var(--suave); margin: 2px 0 12px; }
+.barra-acoes { position: sticky; bottom: 12px; z-index: 5; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; padding: 12px; margin-top: 16px; border-radius: 20px; background: rgba(255,255,255,0.92); backdrop-filter: blur(8px); box-shadow: var(--sombra); }
+.distribuicao { display: grid; gap: 10px; padding: 4px 22px 22px; }
+.distribuicao .linha { display: grid; grid-template-columns: 140px minmax(0, 1fr) 110px; gap: 12px; align-items: center; font-size: 13px; }
+.distribuicao .trilha-barra { height: 10px; border-radius: 999px; background: var(--superficie-2); overflow: hidden; }
+.distribuicao .trilha-barra i { display: block; height: 100%; border-radius: 999px; background: var(--verde-700); }
+.distribuicao .valor { text-align: right; font-weight: 700; white-space: nowrap; }
+
+/* clientes */
+.cartao-cliente { display: grid; gap: 4px; }
+.contatos-rapidos { display: flex; gap: 8px; flex-wrap: wrap; }
+.botao.whatsapp { background: #1f9d55; border-color: #1f9d55; }
+.botao.whatsapp:hover { background: #17834a; }
+.linha-tempo { list-style: none; margin: 0; padding: 0 22px 18px; display: grid; gap: 14px; }
+.linha-tempo li { position: relative; padding-left: 22px; }
+.linha-tempo li::before { content: ""; position: absolute; left: 4px; top: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--marca); box-shadow: 0 0 0 3px var(--verde-100); }
+.linha-tempo li strong { display: block; font-size: 13.5px; }
+.linha-tempo li span { font-size: 12.5px; color: var(--suave); }
+.linha-tempo li p { margin-top: 4px; font-size: 13.5px; }
+.dados-cliente { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; padding: 4px 22px 22px; }
+.dados-cliente dt { font-size: 12px; color: var(--tenue); font-weight: 600; }
+.dados-cliente dd { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.atrasado { color: var(--erro); font-weight: 700; }
+.previa-importacao { max-height: 360px; overflow: auto; border: 1px solid var(--linha); border-radius: 14px; }
+.arquivo-escolha { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 18px; border: 1.5px dashed var(--linha-forte); border-radius: 16px; background: var(--superficie-2); }
+
+@media (max-width: 1100px) {
+  .campos.cinco { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .calculo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .campos.cinco { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .linha-valor { grid-template-columns: minmax(0, 1fr) 120px 36px; }
+  .distribuicao .linha { grid-template-columns: 96px minmax(0, 1fr) 96px; }
+  .dados-cliente { grid-template-columns: minmax(0, 1fr); }
+}

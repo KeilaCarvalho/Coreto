@@ -17,7 +17,7 @@ export default async function LayoutSistema({ children }: { children: React.Reac
     pendencias = count ?? 0;
   }
   return (
-    <Estrutura grupos={menuPara((m) => sessao.pode(m))} nome={sessao.pessoa.nome} email={sessao.pessoa.email ?? ""} sair={sair} pendencias={pendencias}>
+    <Estrutura grupos={menuPara((m, a) => sessao.pode(m, a))} nome={sessao.pessoa.nome} email={sessao.pessoa.email ?? ""} sair={sair} pendencias={pendencias}>
       {children}
     </Estrutura>
   );

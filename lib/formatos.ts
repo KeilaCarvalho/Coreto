@@ -5,7 +5,9 @@ const dataLonga = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paul
 
 export const reais = (valor: number | null | undefined) => (valor == null ? "—" : moeda.format(valor));
 export const numero = (valor: number | null | undefined) => (valor == null ? "—" : inteiro.format(valor));
-export const quando = (iso: string | null | undefined) => (iso ? dataHora.format(new Date(iso)) : "—");
+/** "2026-10-16" → "16/10/2026" (data sem fuso, como vem do banco). */
+export const dataCurta = (iso: string | null | undefined) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
+export const quando =(iso: string | null | undefined) => (iso ? dataHora.format(new Date(iso)) : "—");
 
 /** "quinta-feira, 16 de outubro" com a primeira letra maiúscula. */
 export function hojeExtenso(agora = new Date()) {

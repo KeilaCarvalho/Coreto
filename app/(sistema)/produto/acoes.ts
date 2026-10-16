@@ -57,6 +57,7 @@ export async function criarProduto(_: EstadoAcao, dados: FormData): Promise<Esta
   if (erroGrade) return { erro: mensagemBanco(erroGrade.message) };
 
   revalidatePath("/produto/catalogo");
+  if (dados.get("voltar") === "recebimento") redirect(`/producao/recebimentos/novo?produto=${produto.id}`);
   redirect(`/produto/catalogo/${produto.id}?criado=1`);
 }
 
@@ -96,6 +97,64 @@ export async function salvarCoresDoProduto(_: EstadoAcao, dados: FormData): Prom
   revalidatePath(`/produto/catalogo/${id}`);
   const partes = [criadas ? `${criadas} variantes criadas` : null, retirar.length ? `${retirar.length} cor(es) desativada(s)` : null].filter(Boolean);
   return { ok: partes.length ? `Grade atualizada: ${partes.join(", ")}.` : "Nada mudou na grade." };
+}
+
+const Taxas = z.object({
+  simples: z.number().min(0).max(99), cartao: z.number().min(0).max(99), comissao: z.number().min(0).max(99),
+  despesas_fixas: z.number().min(0).max(99), lucro_desejado: z.number().min(0).max(99),
+}).refine((t) => t.simples + t.cartao + t.comissao + t.despesas_fixas + t.lucro_desejado < 100, "A soma dos percentuais precisa ficar abaixo de 100%.");
+
+const lerTaxas = (dados: FormData) => Taxas.safeParse({
+  simples: lerValor(dados.get("simples")) ?? 0, cartao: lerValor(dados.get("cartao")) ?? 0, comissao: lerValor(dados.get("comissao")) ?? 0,
+  despesas_fixas: lerValor(dados.get("despesas_fixas")) ?? 0, lucro_desejado: lerValor(dados.get("lucro_desejado")) ?? 0,
+});
+
+const ItemFicha = z.object({
+  tipo: z.enum(["material", "mao_de_obra", "outro"]),
+  descricao: z.string().trim().min(1).max(120),
+  quantidade: z.number().positive("Quantidade precisa ser maior que zero."),
+  unidade: z.string().trim().max(10).optional(),
+  valor_unitario: z.number().min(0, "Valor não pode ser negativo."),
+});
+
+export async function salvarFicha(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const id = String(dados.get("produto_id") ?? "");
+  const voltar = String(dados.get("voltar") ?? "");
+  const taxas = lerTaxas(dados);
+  if (!taxas.success) return { erro: taxas.error.issues[0].message };
+  let brutos: unknown;
+  try { brutos = JSON.parse(String(dados.get("itens") ?? "[]")); } catch { return { erro: "Não consegui ler os itens da ficha." }; }
+  const itens = z.array(ItemFicha).max(60).safeParse(brutos);
+  if (!itens.success) return { erro: "Confira os itens: " + itens.error.issues[0].message };
+  const preco = lerValor(dados.get("preco"));
+  if (preco != null && preco <= 0) return { erro: "O preço de venda precisa ser maior que zero." };
+  const observacao = String(dados.get("observacao") ?? "").trim() || null;
+
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.rpc("salvar_ficha_custo", {
+    p_produto: id, p_taxas: taxas.data, p_itens: itens.data, p_observacao: observacao, p_preco: preco,
+  });
+  if (error) return { erro: mensagemBanco(error.message) };
+  revalidatePath("/produto/precificacao");
+  revalidatePath(`/produto/precificacao/${id}`);
+  revalidatePath(`/produto/catalogo/${id}`);
+  revalidatePath("/producao/recebimentos");
+  if (/^[0-9a-f-]{36}$/i.test(voltar) && preco != null) {
+    revalidatePath(`/producao/recebimentos/${voltar}`);
+    redirect(`/producao/recebimentos/${voltar}`);
+  }
+  return { ok: preco != null ? "Ficha e preço salvos." : "Ficha salva. O preço de venda continua o mesmo." };
+}
+
+export async function salvarPercentuaisPadrao(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const taxas = lerTaxas(dados);
+  if (!taxas.success) return { erro: taxas.error.issues[0].message };
+  const supabase = await supabaseServidor();
+  const { data, error } = await supabase.from("config_precificacao").update(taxas.data).eq("id", 1).select("id");
+  if (error) return { erro: mensagemBanco(error.message) };
+  if (!data?.length) return { erro: "Seu perfil não pode alterar os percentuais padrão." };
+  revalidatePath("/produto/precificacao");
+  return { ok: "Percentuais padrão salvos. Valem para as próximas fichas." };
 }
 
 export async function arquivarProduto(dados: FormData) {

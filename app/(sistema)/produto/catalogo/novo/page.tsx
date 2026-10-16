@@ -8,8 +8,9 @@ import { criarProduto } from "../../acoes";
 
 export const metadata = { title: "Novo produto" };
 
-export default async function NovoProduto() {
+export default async function NovoProduto({ searchParams }: { searchParams: Promise<{ voltar?: string }> }) {
   await exigir("produto", "criar");
+  const { voltar } = await searchParams;
   const listas = await listasDoProduto();
   return (
     <>
@@ -18,6 +19,7 @@ export default async function NovoProduto() {
       <section className="painel">
         <div className="painel-corpo">
           <FormAcao acao={criarProduto}>
+            {voltar === "recebimento" && <input type="hidden" name="voltar" value="recebimento" />}
             <CamposProduto grades={listas.grades} categorias={listas.categorias} colecoes={listas.colecoes} valores={{ grade_id: listas.grades[0]?.id }} />
             <div style={{ marginTop: 22 }}>
               {listas.cores.length ? <EscolhaCores cores={listas.cores} /> : (
@@ -25,7 +27,7 @@ export default async function NovoProduto() {
               )}
             </div>
             <div className="formulario-rodape">
-              <Link className="botao secundario" href="/produto/catalogo">Cancelar</Link>
+              <Link className="botao secundario" href={voltar === "recebimento" ? "/producao/recebimentos/novo" : "/produto/catalogo"}>Cancelar</Link>
               <BotaoEnviar enviando="Criando grade…">Criar produto</BotaoEnviar>
             </div>
           </FormAcao>
