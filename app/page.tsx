@@ -17,7 +17,7 @@ function DashboardContent() {
   const groups=groupsForRole(user?.role||null), finance=data?.finance, stock=data?.stock;
   if(error)return <div className="core-access-state" role="alert"><CircleAlert/><h2>O resumo do mês não carregou</h2><p>Seus registros continuam salvos. Tente carregar novamente.</p><button onClick={()=>{setError(false);setAttempt(n=>n+1)}}><RotateCw size={16}/>Tentar novamente</button></div>;
   if(!data)return <div className="core-loading" role="status"><span className="core-loading-dot"/>Carregando os indicadores do mês…</div>;
-  const monthLabel=new Date(`${data.month}-15T12:00:00`).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+  const rawMonthLabel=new Date(`${data.month}-15T12:00:00`).toLocaleDateString("pt-BR",{month:"long",year:"numeric"}),monthLabel=rawMonthLabel.charAt(0).toUpperCase()+rawMonthLabel.slice(1);
   return <div className="dashboard">
     <div className="dashboard-section-heading"><h2>Resumo do mês</h2><span className="dashboard-period"><CalendarDays size={15}/>{monthLabel}</span></div>
     {(finance||stock)&&<div className={`dashboard-metrics ${!finance?"stock-only":""}`}>
