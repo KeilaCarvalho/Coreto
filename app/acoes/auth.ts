@@ -45,3 +45,21 @@ export async function sair() {
   await supabase.auth.signOut();
   redirect("/entrar");
 }
+
+export async function trocarSenha(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const atual = String(dados.get("atual") ?? "");
+  const nova = String(dados.get("nova") ?? "");
+  const repetir = String(dados.get("repetir") ?? "");
+  if (!atual || !nova) return { erro: "Preencha a senha atual e a nova." };
+  if (nova.length < 8) return { erro: "A nova senha precisa ter pelo menos 8 caracteres." };
+  if (nova !== repetir) return { erro: "A confirmação não bate com a nova senha." };
+  if (nova === atual) return { erro: "A nova senha precisa ser diferente da atual." };
+  const supabase = await supabaseServidor();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user?.email) return { erro: "Sua sessão expirou. Entre de novo." };
+  const conferida = await supabase.auth.signInWithPassword({ email: auth.user.email, password: atual });
+  if (conferida.error) return { erro: "A senha atual não confere." };
+  const { error } = await supabase.auth.updateUser({ password: nova });
+  if (error) return { erro: traduzir(error.message) };
+  return { ok: "Senha alterada. Use a nova senha no próximo acesso." };
+}

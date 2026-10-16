@@ -83,10 +83,10 @@ export function Estrutura({ grupos, nome, email, sair, pendencias, children }: {
               <Icone nome="sino" />{pendencias > 0 && <span className="ponto" />}
             </Link>
             <form action={sair}><button className="icone-botao" type="submit" aria-label="Sair" title="Sair"><Icone nome="sair" /></button></form>
-            <div className="usuario">
+            <Link className="usuario" href="/conta" title="Minha conta" style={{ color: "inherit" }}>
               <span className="avatar" aria-hidden="true">{iniciais}</span>
               <div><strong>{nome}</strong><span>{email}</span></div>
-            </div>
+            </Link>
           </div>
         </header>
         <main className="pagina" id="conteudo">{children}</main>
