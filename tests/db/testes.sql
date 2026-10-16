@@ -1,0 +1,177 @@
+-- =====================================================================
+-- Testes do banco: permissões, livro de estoque, grade e auditoria.
+-- Cada bloco simula um usuário logado (papel "authenticated" + id do login).
+-- =====================================================================
+\set ON_ERROR_STOP 1
+
+create schema teste;
+grant usage on schema teste to authenticated, anon;
+
+create function teste.ok(condicao boolean, descricao text) returns void language plpgsql as $$
+begin
+  if condicao is not true then raise exception 'FALHOU: %', descricao; end if;
+  raise notice 'ok: %', descricao;
+end $$;
+
+-- Executa um comando que DEVE falhar com uma mensagem contendo "trecho".
+create function teste.erro(comando text, trecho text, descricao text) returns void language plpgsql as $$
+begin
+  begin
+    execute comando;
+  exception when others then
+    if sqlerrm ilike '%' || trecho || '%' then
+      raise notice 'ok: % (bloqueado: %)', descricao, sqlerrm;
+      return;
+    end if;
+    raise exception 'FALHOU: % (erro inesperado: %)', descricao, sqlerrm;
+  end;
+  raise exception 'FALHOU: % (deveria ter sido bloqueado)', descricao;
+end $$;
+grant execute on all functions in schema teste to authenticated, anon;
+
+create table teste.ids (nome text primary key, id uuid);
+grant select on teste.ids to authenticated;
+
+-- ---------------------------------------------------------------------
+-- 1. Primeiro login vira administrador; os seguintes entram sem acesso.
+-- ---------------------------------------------------------------------
+insert into auth.users (email, raw_user_meta_data) values ('ana@coreto.com.br', '{"full_name":"Ana Coreto"}');
+insert into auth.users (email) values ('bia@gmail.com');
+insert into teste.ids select 'ana', id from auth.users where email = 'ana@coreto.com.br';
+insert into teste.ids select 'bia', id from auth.users where email = 'bia@gmail.com';
+
+select teste.ok((select perfil_id = 'admin' and acesso_ativo and nome = 'Ana Coreto' from public.pessoas where email = 'ana@coreto.com.br'),
+                'primeiro login vira administrador ativo');
+select teste.ok((select perfil_id is null and not acesso_ativo from public.pessoas where email = 'bia@gmail.com'),
+                'segundo login entra sem acesso');
+
+-- ---------------------------------------------------------------------
+-- 2. Administração cadastra produto, cores e gera a grade.
+-- ---------------------------------------------------------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+
+insert into public.pessoas (nome, email, perfil_id, acesso_ativo, e_vendedora)
+values ('Carla Vendas', 'carla@coreto.com.br', 'vendedora', true, true);
+
+insert into public.cores (nome, codigo, hex) values ('Verde Água', 'VAG', '#46D7AC'), ('Preto', 'PRT', '#111111');
+insert into public.produtos (referencia, nome, grade_id, preco_venda)
+values ('VL001', 'Vestido Lírio', (select id from public.grades where nome = 'PP ao GG'), 289.90);
+insert into public.produto_cores (produto_id, cor_id)
+select p.id, c.id from public.produtos p, public.cores c where p.referencia = 'VL001';
+
+select teste.ok(public.gerar_variantes((select id from public.produtos where referencia = 'VL001')) = 10,
+                'grade 2 cores × 5 tamanhos gera 10 variantes');
+select teste.ok(public.gerar_variantes((select id from public.produtos where referencia = 'VL001')) = 0,
+                'gerar de novo não duplica variantes');
+select teste.ok(exists (select 1 from public.variantes where sku = 'VL001-VAG-M'), 'SKU no formato REFERÊNCIA-COR-TAMANHO');
+select teste.ok((select bool_and(codigo_barras ~ '^2[0-9]{12}$') from public.variantes), 'código de barras EAN-13 interno');
+select teste.erro($$insert into public.produtos (referencia, nome, grade_id) values ('vl001', 'Outro', (select id from public.grades limit 1))$$,
+                  'produtos_referencia_unica', 'referência repetida (maiúscula/minúscula) é recusada');
+
+-- Entrada de produção na loja: 10 peças do verde M.
+insert into public.movimentacoes_estoque (tipo, variante_id, quantidade, local_destino_id, registrado_por)
+values ('entrada_producao', (select id from public.variantes where sku = 'VL001-VAG-M'), 10,
+        (select id from public.locais_estoque where nome = 'Loja'),
+        (select id from public.pessoas where email = 'bia@gmail.com'));  -- tenta assinar por outra pessoa
+select teste.ok((select saldo from public.saldos_estoque s join public.variantes v on v.id = s.variante_id
+                 join public.locais_estoque l on l.id = s.local_id where v.sku = 'VL001-VAG-M' and l.nome = 'Loja') = 10,
+                'entrada de 10 peças aparece no saldo da loja');
+select teste.ok((select registrado_por = (select id from public.pessoas where email = 'ana@coreto.com.br')
+                 from public.movimentacoes_estoque order by id desc limit 1),
+                'movimentação fica assinada por quem está logado, não por quem foi informado');
+
+-- Facção: cadastrar o parceiro cria o local de estoque dela.
+insert into public.parceiros (tipo, nome) values ('faccao', 'Oficina Teste');
+select teste.ok(exists (select 1 from public.locais_estoque where nome = 'Facção · Oficina Teste'),
+                'cadastrar facção cria o local de estoque dela');
+commit;
+
+-- ---------------------------------------------------------------------
+-- 3. Vendedora: vê produtos, vende, mas não mexe no que não é dela.
+-- ---------------------------------------------------------------------
+insert into auth.users (email) values ('carla@coreto.com.br');
+insert into teste.ids select 'carla', id from auth.users where email = 'carla@coreto.com.br';
+select teste.ok((select usuario_id is not null and perfil_id = 'vendedora' from public.pessoas where email = 'carla@coreto.com.br'),
+                'login de pessoa já cadastrada é vinculado pelo e-mail');
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'carla'), true);
+
+select teste.ok((select count(*) from public.produtos) = 1, 'vendedora consulta produtos');
+insert into public.movimentacoes_estoque (tipo, variante_id, quantidade, local_origem_id)
+values ('venda', (select id from public.variantes where sku = 'VL001-VAG-M'), 2,
+        (select id from public.locais_estoque where nome = 'Loja'));
+select teste.ok((select saldo from public.saldos_estoque s join public.variantes v on v.id = s.variante_id
+                 where v.sku = 'VL001-VAG-M') = 8, 'venda de 2 peças baixa o saldo para 8');
+select teste.erro($$insert into public.movimentacoes_estoque (tipo, variante_id, quantidade, local_destino_id)
+                    values ('entrada_producao', (select id from public.variantes where sku = 'VL001-VAG-M'), 5,
+                            (select id from public.locais_estoque where nome = 'Loja'))$$,
+                  'row-level security', 'vendedora não lança entrada de produção');
+select teste.erro($$insert into public.movimentacoes_estoque (tipo, variante_id, quantidade, local_origem_id)
+                    values ('venda', (select id from public.variantes where sku = 'VL001-VAG-M'), 100,
+                            (select id from public.locais_estoque where nome = 'Loja'))$$,
+                  'Saldo insuficiente', 'venda acima do saldo é recusada');
+select teste.ok((select count(*) from public.pessoas) = 1, 'vendedora só enxerga o próprio cadastro (e outras vendedoras)');
+select teste.ok((select count(*) from public.auditoria) = 0, 'vendedora não lê o histórico de alterações');
+update public.pessoas set perfil_id = 'admin' where usuario_id = auth.uid();
+select teste.ok((select perfil_id from public.pessoas where usuario_id = auth.uid()) = 'vendedora',
+                'vendedora não se promove a administradora');
+select teste.erro($$insert into public.produtos (referencia, nome, grade_id) values ('X1', 'X', (select id from public.grades limit 1))$$,
+                  'row-level security', 'vendedora não cadastra produto');
+select teste.erro($$select public.estornar_movimentacao((select max(id) from public.movimentacoes_estoque), 'teste')$$,
+                  'row-level security', 'vendedora não estorna movimentação');
+commit;
+
+-- ---------------------------------------------------------------------
+-- 4. Login sem acesso liberado não enxerga nada.
+-- ---------------------------------------------------------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'bia'), true);
+select teste.ok((select count(*) from public.produtos) = 0, 'usuário sem acesso não vê produtos');
+select teste.ok((select count(*) from public.movimentacoes_estoque) = 0, 'usuário sem acesso não vê estoque');
+select teste.ok((select count(*) from public.minhas_permissoes()) = 0, 'usuário sem acesso não tem permissões');
+commit;
+
+begin;
+set local role anon;
+select teste.erro('select count(*) from public.produtos', 'permission denied', 'visitante sem login não lê nada');
+commit;
+
+-- ---------------------------------------------------------------------
+-- 5. Livro imutável, estorno e facção.
+-- ---------------------------------------------------------------------
+select teste.erro('update public.movimentacoes_estoque set quantidade = 1', 'não pode ser alterado', 'livro não aceita alteração nem do dono do banco');
+select teste.erro('delete from public.movimentacoes_estoque', 'não pode ser alterado', 'livro não aceita exclusão');
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+select public.estornar_movimentacao((select id from public.movimentacoes_estoque where tipo = 'venda'), 'Venda lançada por engano');
+select teste.ok((select saldo from public.saldos_estoque s join public.variantes v on v.id = s.variante_id
+                 where v.sku = 'VL001-VAG-M') = 10, 'estorno da venda devolve o saldo para 10');
+select teste.erro($$select public.estornar_movimentacao((select id from public.movimentacoes_estoque where tipo = 'venda'), 'de novo')$$,
+                  'movimentacoes_estoque_estorno_de_key', 'a mesma movimentação não é estornada duas vezes');
+
+insert into public.movimentacoes_estoque (tipo, variante_id, quantidade, local_origem_id, local_destino_id)
+values ('remessa_faccao', (select id from public.variantes where sku = 'VL001-VAG-M'), 3,
+        (select id from public.locais_estoque where nome = 'Loja'),
+        (select id from public.locais_estoque where nome = 'Facção · Oficina Teste'));
+select teste.ok((select saldo from public.saldos_estoque s join public.locais_estoque l on l.id = s.local_id
+                 where l.nome = 'Facção · Oficina Teste') = 3, 'saldo em poder da facção = 3');
+select teste.erro($$insert into public.movimentacoes_estoque (tipo, variante_id, quantidade, local_origem_id, local_destino_id)
+                    values ('retorno_faccao', (select id from public.variantes where sku = 'VL001-VAG-M'), 4,
+                            (select id from public.locais_estoque where nome = 'Facção · Oficina Teste'),
+                            (select id from public.locais_estoque where nome = 'Loja'))$$,
+                  'Saldo insuficiente', 'facção não devolve mais do que recebeu');
+
+select teste.erro($$update public.pessoas set perfil_id = 'gestao' where email = 'ana@coreto.com.br'$$,
+                  'pelo menos um administrador', 'o último administrador não pode perder o acesso');
+select teste.ok((select count(*) from public.auditoria where tabela = 'produtos' and acao = 'criou') = 1,
+                'histórico registra a criação do produto');
+select teste.ok((select count(*) from public.auditoria where tabela = 'movimentacoes_estoque') >= 4,
+                'histórico registra as movimentações');
+commit;
