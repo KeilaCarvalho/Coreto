@@ -9,14 +9,14 @@
 
 :root {
   color-scheme: light;
-  --canvas: #eef2f0;
+  --canvas: #dfe7e3;
   --superficie: #ffffff;
-  --superficie-2: #f6f8f7;
+  --superficie-2: #f2f6f4;
   --tinta: #0f201d;
   --suave: #687a76;
   --tenue: #9aaaa6;
-  --linha: #e4ebe8;
-  --linha-forte: #d3ddd9;
+  --linha: #dde6e2;
+  --linha-forte: #c6d3cd;
 
   --verde-950: #0b2f2a;
   --verde-900: #0e3b35;
@@ -36,7 +36,8 @@
   --raio-cartao: 22px;
   --raio-campo: 12px;
   --raio-pilula: 999px;
-  --sombra: 0 0 0 1px rgba(15, 32, 29, 0.04), 0 1px 2px rgba(15, 32, 29, 0.04), 0 8px 24px -12px rgba(15, 32, 29, 0.10);
+  --sombra: 0 0 0 1px rgba(15, 32, 29, 0.07), 0 1px 3px rgba(15, 32, 29, 0.08), 0 14px 32px -14px rgba(15, 32, 29, 0.22);
+  --fundo-pagina: #e9efec;
   --sombra-destaque: 0 18px 32px -16px rgba(11, 47, 42, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --menu-largura: 264px;
   --flor-marca: url("/coreto-flor-branca.png");
@@ -67,7 +68,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---------- Estrutura ---------- */
 .app { min-height: 100dvh; display: grid; grid-template-columns: var(--menu-largura) minmax(0, 1fr); gap: 16px; padding: 16px; }
 .conteudo { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
-.pagina { width: 100%; min-width: 0; background: var(--superficie-2); border-radius: 28px; padding: 28px 28px 40px; flex: 1; }
+.pagina { width: 100%; min-width: 0; background: var(--fundo-pagina); box-shadow: inset 0 0 0 1px rgba(15, 32, 29, 0.05); border-radius: 28px; padding: 28px 28px 40px; flex: 1; }
 
 /* ---------- Menu lateral ---------- */
 .menu {
