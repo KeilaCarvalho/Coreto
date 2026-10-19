@@ -324,3 +324,10 @@ select teste.ok((select vendedora_id = (select id from public.pessoas where emai
 select teste.erro($$select public.importar_clientes('carteira', '[{"nome":"X"}]', 'x.csv')$$, 'gestão comercial', 'vendedora não importa relatórios');
 select teste.ok((select count(*) from public.importacoes_clientes) = 0, 'vendedora não vê o histórico de importações');
 commit;
+
+-- ---------------------------------------------------------------------
+-- 9. Nenhuma função do sistema pode ser chamada sem login.
+-- ---------------------------------------------------------------------
+select teste.ok(not exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace
+                            and has_function_privilege('anon', p.oid, 'execute')),
+                'visitante sem login não executa nenhuma função');
