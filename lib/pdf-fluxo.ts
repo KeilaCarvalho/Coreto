@@ -9,18 +9,18 @@ import { dataPorExtenso, mesPorExtenso, totaisFluxo, type DadosFluxo, type Linha
 
 type Cor = [number, number, number];
 const C = {
-  verde950: [11, 47, 42] as Cor,
-  verde900: [14, 59, 53] as Cor,
-  verde700: [15, 107, 95] as Cor,
-  marca: [70, 215, 172] as Cor,
+  verde950: [31, 33, 29] as Cor,
+  verde900: [47, 50, 45] as Cor,
+  verde700: [0, 121, 124] as Cor,
+  marca: [0, 206, 209] as Cor,
   flor: [20, 184, 169] as Cor,
-  verde100: [226, 245, 238] as Cor,
-  verde50: [241, 250, 247] as Cor,
-  tinta: [15, 32, 29] as Cor,
-  suave: [104, 122, 118] as Cor,
-  tenue: [154, 170, 166] as Cor,
-  linha: [228, 235, 232] as Cor,
-  fundo: [246, 248, 247] as Cor,
+  verde100: [215, 244, 244] as Cor,
+  verde50: [238, 249, 249] as Cor,
+  tinta: [47, 50, 45] as Cor,
+  suave: [106, 112, 107] as Cor,
+  tenue: [157, 161, 155] as Cor,
+  linha: [223, 230, 228] as Cor,
+  fundo: [246, 250, 249] as Cor,
   alerta: [154, 91, 7] as Cor,
   alertaFundo: [253, 241, 222] as Cor,
   branco: [255, 255, 255] as Cor,
@@ -72,7 +72,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   else { fonte("bold", 18); ink(C.branco); doc.text("Coreto", M, 17); }
   fonte("bold", 20); ink(C.branco);
   doc.text("Fluxo financeiro diário", M, 31);
-  fonte("normal", 9.5); ink([168, 212, 200]);
+  fonte("normal", 9.5); ink([191, 195, 188]);
   doc.text(dataPorExtenso(d.data), M, 38);
   fonte("bold", 7.5); ink(C.marca);
   doc.text("DATA DE REFERÊNCIA", L - M, 14, { align: "right" });
@@ -105,7 +105,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
     doc.text(c.titulo, x + 5, cy + 7);
     fonte("bold", 14.5); ink(c.destaque ? C.branco : c.alerta ? C.alerta : C.tinta);
     doc.text(c.valor, x + 5, cy + 15.5);
-    fonte("normal", 7.5); ink(c.destaque ? [181, 221, 209] : C.suave);
+    fonte("normal", 7.5); ink(c.destaque ? [198, 202, 195] : C.suave);
     doc.text(c.nota, x + 5, cy + 21);
   });
   y += ch * 2 + 4 + 10;
