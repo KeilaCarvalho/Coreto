@@ -158,10 +158,10 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
               destaque={pecas ? `${Math.round((naLoja / pecas) * 100)}%` : "0"}
               legenda={pecas ? "das peças estão na loja" : "nenhuma peça ainda"}
               partes={[
-                { nome: "Loja", valor: naLoja, cor: "#0e3b35" },
-                { nome: "Depósito", valor: noDeposito, cor: "#3aa98b" },
+                { nome: "Loja", valor: naLoja, cor: "#2f322d" },
+                { nome: "Depósito", valor: noDeposito, cor: "#00a7aa" },
                 { nome: "Facções", valor: nasFaccoes, cor: "url(#listra)" },
-                ...(outros ? [{ nome: "Outros", valor: outros, cor: "#46d7ac" }] : []),
+                ...(outros ? [{ nome: "Outros", valor: outros, cor: "#8fe3e4" }] : []),
               ]}
             />
           </section>
