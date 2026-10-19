@@ -34,6 +34,12 @@ export const ICONES = {
   bolo: "M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8 M4 16s1.5-1 4-1 4 2 6 2 4-1 4-1 M2 21h20 M7 8v3 M12 8v3 M17 8v3 M7 4h.01 M12 4h.01 M17 4h.01",
   relogio: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 6v6l4 2",
   arquivo: "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M14 3v6h6 M12 18v-6 M9 15l3 3 3-3",
+  lapis: "M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
+  esquerda: "M15 18l-6-6 6-6",
+  direita: "M9 18l6-6-6-6",
+  calendario: "M3 4h18v18H3z M16 2v4 M8 2v4 M3 10h18",
+  banco: "M3 10h18 M5 10v8 M9 10v8 M15 10v8 M19 10v8 M3 21h18 M12 3l9 5H3z",
+  cifrao: "M12 2v20 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
   flor: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v4 M12 18v4 M2 12h4 M18 12h4",
 } as const;
 

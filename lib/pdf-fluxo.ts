@@ -1,6 +1,6 @@
 "use client";
 
-import { dataPorExtenso, mesPorExtenso, totaisFluxo, type DadosFluxo, type LinhaValor } from "@/lib/fluxo";
+import { dataPorExtenso, mesPorExtenso, nomeDoDia, rotuloPeriodo, totaisFluxo, vendasPorDia, type DadosFluxo, type LinhaValor } from "@/lib/fluxo";
 
 /*
  * PDF do fluxo financeiro diário (A4 retrato), gerado no navegador.
@@ -89,7 +89,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
 
   const cartoes: { titulo: string; valor: string; nota: string; destaque?: boolean; alerta?: boolean }[] = [
     { titulo: "VENDAS DO MÊS", valor: reais(t.vendasMes), nota: "acumulado até hoje", destaque: true },
-    { titulo: "VENDAS DO DIA ANTERIOR", valor: reais(t.vendasDia), nota: "fechamento do caixa" },
+    { titulo: rotuloPeriodo(d.diasVenda).toUpperCase(), valor: reais(t.vendasDia), nota: d.diasVenda.length > 1 ? vendasPorDia(d).map((v) => `${nomeDoDia(v.dia).slice(0, 3)} ${reais(v.valor)}`).join(" · ") : "fechamento do caixa" },
     { titulo: "SALDO EM CONTA", valor: reais(t.saldo), nota: `${d.saldos.length} ${d.saldos.length === 1 ? "conta" : "contas"}` },
     { titulo: "CONTAS PAGAS NO MÊS", valor: reais(t.contasPagas), nota: "já saíram do caixa" },
     { titulo: "CONTAS A PAGAR", valor: reais(t.contasAPagar), nota: "ainda no mês", alerta: t.contasAPagar > t.saldo + t.aReceber },
@@ -169,7 +169,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   const alturaPar = (a: LinhaValor[], b: LinhaValor[], barras: boolean) => 30 + Math.max(1, a.length, b.length) * (barras ? 9 : 7);
 
   garantir(alturaPar(d.vendasDia, d.vendasMes, true));
-  const a1 = bloco(M, y, meia, "Fechamento do dia anterior", "Vendas por forma de pagamento", d.vendasDia, "Total do dia", true);
+  const a1 = bloco(M, y, meia, rotuloPeriodo(d.diasVenda), "Vendas por forma de pagamento", d.vendasDia, "Total", true);
   const a2 = bloco(M + meia + 5, y, meia, "Acumulado do mês", "Vendas por forma de pagamento", d.vendasMes, "Total do mês", true);
   y += Math.max(a1, a2) + 6;
 
