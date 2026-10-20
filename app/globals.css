@@ -656,3 +656,39 @@ details > summary::-webkit-details-marker { display: none; }
 .fx-seta, .fx-editar { box-shadow: 0 3px 8px -4px rgba(0, 60, 62, 0.35); }
 .fx-bloco { box-shadow: var(--sombra); }
 .topo, .menu { box-shadow: var(--sombra); }
+
+/* janela lateral genérica (formulários das telas) */
+.janela-generica { display: block; }
+.janela-generica .formulario-rodape { position: sticky; bottom: -28px; margin: 22px -24px -28px; padding: 14px 24px; background: var(--superficie); border-top: 1px solid var(--linha); box-shadow: 0 -8px 20px -14px rgba(0, 60, 62, 0.35); z-index: 2; }
+.janela-generica .bloco-janela { background: var(--superficie); border-radius: 18px; box-shadow: var(--sombra); padding: 18px; margin-bottom: 14px; }
+.janela-generica .bloco-janela h3 { font-size: 15px; margin-bottom: 2px; }
+.janela-generica .bloco-janela > p { font-size: 12.5px; color: var(--suave); margin-bottom: 12px; }
+.janela-generica .matriz { padding: 0; }
+@media (max-width: 900px) { .janela-generica .formulario-rodape { margin: 22px -16px -28px; padding: 12px 16px; } }
+
+/* chegada da facção */
+.andamento { display: grid; gap: 4px; min-width: 140px; }
+.andamento .trilho-lote { height: 8px; border-radius: 999px; background: var(--superficie-2); box-shadow: inset 0 0 0 1px var(--linha); overflow: hidden; }
+.andamento .trilho-lote i { display: block; height: 100%; border-radius: 999px; background: var(--azul); }
+.andamento .trilho-lote i.completo { background: var(--tinta); }
+.andamento span { font-size: 11.5px; color: var(--suave); }
+.pendencias-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; padding: 4px 22px 22px; }
+.pendencia-cartao { display: grid; gap: 6px; padding: 14px 16px; border-radius: 16px; background: var(--alerta-fundo); color: var(--tinta); box-shadow: 0 6px 16px -10px rgba(154, 91, 7, 0.5); }
+.pendencia-cartao:hover { color: var(--tinta); transform: translateY(-1px); }
+.pendencia-cartao b { font-size: 14px; }
+.pendencia-cartao span { font-size: 12.5px; color: var(--alerta); }
+.pendencia-cartao small { font-size: 11.5px; color: var(--suave); }
+.lote-alerta { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 16px 20px; border-radius: 18px; background: var(--alerta-fundo); color: var(--alerta); box-shadow: var(--sombra); margin-bottom: 16px; }
+.lote-alerta strong { color: var(--tinta); display: block; }
+.progresso-lote { padding: 4px 22px 22px; display: grid; gap: 8px; }
+.progresso-lote .barra-lote { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--superficie-2); box-shadow: inset 0 0 0 1px var(--linha); }
+.progresso-lote .barra-lote i { display: block; height: 100%; }
+.progresso-lote .legenda-lote { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--suave); }
+.progresso-lote .legenda-lote b { color: var(--tinta); }
+.progresso-lote .legenda-lote i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.escolha-liberar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.escolha-liberar label { display: grid; gap: 4px; padding: 14px; border-radius: 14px; border: 1.5px solid var(--linha-forte); background: var(--superficie); cursor: pointer; font-size: 13px; color: var(--suave); }
+.escolha-liberar label b { font-size: 14px; color: var(--tinta); }
+.escolha-liberar label:has(input:checked) { border-color: var(--tinta); background: var(--verde-50); box-shadow: 0 3px 0 var(--tinta); }
+.escolha-liberar input { position: absolute; opacity: 0; pointer-events: none; }
+@media (max-width: 600px) { .escolha-liberar { grid-template-columns: 1fr; } }

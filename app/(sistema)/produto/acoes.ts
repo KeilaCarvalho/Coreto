@@ -57,7 +57,7 @@ export async function criarProduto(_: EstadoAcao, dados: FormData): Promise<Esta
   if (erroGrade) return { erro: mensagemBanco(erroGrade.message) };
 
   revalidatePath("/produto/catalogo");
-  if (dados.get("voltar") === "recebimento") redirect(`/producao/recebimentos/novo?produto=${produto.id}`);
+  if (dados.get("voltar") === "recebimento") redirect(`/producao/recebimentos?registrar=1&produto=${produto.id}`);
   redirect(`/produto/catalogo/${produto.id}?criado=1`);
 }
 

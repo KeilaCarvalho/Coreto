@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { exigir } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
@@ -7,6 +8,8 @@ import { Icone } from "@/components/icone";
 import { Kpi } from "@/components/painel";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { GradeQuantidades, type CelulaGrade } from "@/components/grade-quantidades";
+import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
+import { EscolhaLiberar } from "@/components/recebimento/campos";
 import { montarGrade, ordenarTamanhos, SITUACAO, type VarianteGrade } from "@/lib/grade";
 import { ROTULO_TIPO } from "@/lib/estoque";
 import { dataCurta, numero, quando, reais } from "@/lib/formatos";
@@ -61,6 +64,10 @@ export default async function Lote({ params, searchParams }: { params: Promise<{
   const podeLiberar = sessao.pode("producao", "aprovar");
   const podeEditar = sessao.pode("producao", "editar") || sessao.pode("estoque", "criar");
   const podePrecificar = sessao.pode("produto", "editar");
+  const linkPrecificar = `/produto/precificacao/${lote.produto_id}?voltar=${lote.id}`;
+  const base = `/producao/recebimentos/${lote.id}`;
+  const semPreco = lote.preco_venda == null;
+  const pLib = lote.recebido ? (lote.liberado / lote.recebido) * 100 : 0;
 
   return (
     <>
@@ -68,23 +75,50 @@ export default async function Lote({ params, searchParams }: { params: Promise<{
         trilha={[{ rotulo: "Chegada da facção", href: "/producao/recebimentos" }]}
         titulo={`Lote nº ${lote.numero} · ${lote.produto_nome}`}
         descricao={[`Chegou em ${dataCurta(lote.recebido_em)}`, lote.faccao_nome ? `facção ${lote.faccao_nome}` : null, lote.observacao].filter(Boolean).join(", ")}
-        acoes={<span className={`etiqueta ${s.classe}`} title={s.ajuda} style={{ fontSize: 13, padding: "6px 14px" }}>{s.rotulo}</span>}
+        acoes={<>
+          <span className={`etiqueta ${s.classe}`} title={s.ajuda} style={{ fontSize: 13, padding: "6px 14px", alignSelf: "center" }}>{s.rotulo}</span>
+          {podeEditar && <Link className="botao leve" href={`${base}?acao=complemento`} scroll={false}><Icone nome="entrada" />Chegou o que faltava</Link>}
+          {podeEditar && lote.aguardando > 0 && !lote.pendente && <Link className="botao secundario" href={`${base}?acao=pendencia`} scroll={false}><Icone nome="alerta" />Segurar o lote</Link>}
+          {podeLiberar && lote.aguardando > 0 && !semPreco && <Link className="botao" href={`${base}?acao=liberar`} scroll={false}><Icone nome="certo" />Liberar peças</Link>}
+          {semPreco && lote.aguardando > 0 && podePrecificar && <Link className="botao" href={linkPrecificar}><Icone nome="cifrao" />Precificar</Link>}
+        </>}
       />
+      <Suspense><AvisoDaUrl /></Suspense>
       {registrado && <p className="aviso ok" role="status"><Icone nome="certo" />Chegada registrada: {numero(lote.recebido)} peças aguardando liberação.</p>}
-      {lote.pendente && <p className="aviso alerta" role="status"><Icone nome="alerta" />Pendente: {lote.pendencia}</p>}
-      {lote.preco_venda == null && lote.aguardando > 0 && (
-        <p className="aviso alerta"><Icone nome="alerta" />{lote.produto_nome} ainda não tem preço de venda. {podePrecificar ? <Link href={`/produto/precificacao/${lote.produto_id}?voltar=${lote.id}`}>Precificar agora</Link> : "Peça para quem precifica definir o preço."}</p>
+
+      {lote.pendente && (
+        <div className="lote-alerta" role="status">
+          <div><strong>Lote seguro: faltou peça da facção</strong>{lote.pendencia}</div>
+          {podeEditar && <Link className="botao secundario pequeno" href={`${base}?acao=pendencia`} scroll={false}><Icone nome="certo" />Resolver pendência</Link>}
+        </div>
+      )}
+      {semPreco && lote.aguardando > 0 && (
+        <div className="lote-alerta" role="status">
+          <div><strong>{lote.produto_nome} ainda não tem preço de venda</strong>{podePrecificar ? "Precifique o modelo para poder liberar as peças." : "Peça para quem precifica definir o preço."}</div>
+          {podePrecificar && <Link className="botao pequeno" href={linkPrecificar}><Icone nome="cifrao" />Precificar agora</Link>}
+        </div>
       )}
 
       <div className="kpis">
         <Kpi destaque titulo="Aguardando liberação" valor={numero(lote.aguardando)} nota="peças contadas, fora da venda" />
         <Kpi titulo="Chegaram" valor={numero(lote.recebido)} nota="somando complementos" />
         <Kpi titulo="Liberadas" valor={numero(lote.liberado)} nota="já estão à venda" />
-        <Kpi titulo="Preço de venda" valor={reais(lote.preco_venda)} nota={lote.preco_venda == null ? "falta precificar" : "do catálogo"} href={podePrecificar ? `/produto/precificacao/${lote.produto_id}?voltar=${lote.id}` : undefined} />
+        <Kpi titulo="Preço de venda" valor={reais(lote.preco_venda)} nota={semPreco ? "falta precificar" : "do catálogo"} href={podePrecificar ? linkPrecificar : undefined} />
       </div>
 
       <section className="painel" style={{ marginBottom: 16 }}>
         <div className="painel-topo"><div><h2>Contagem do lote</h2><p>Em cada tamanho: peças aguardando, e quantas chegaram no total.</p></div></div>
+        <div className="progresso-lote">
+          <div className="barra-lote" aria-label={`${Math.round(pLib)}% liberado`}>
+            <i style={{ width: `${pLib}%`, background: "var(--tinta)" }} />
+            <i style={{ width: `${100 - pLib}%`, background: lote.pendente ? "#f2c879" : "var(--azul)" }} />
+          </div>
+          <div className="legenda-lote">
+            <span><i style={{ background: "var(--tinta)" }} />Liberadas <b>{numero(lote.liberado)}</b></span>
+            <span><i style={{ background: lote.pendente ? "#f2c879" : "var(--azul)" }} />Aguardando <b>{numero(lote.aguardando)}</b></span>
+            <span>Total que chegou <b>{numero(lote.recebido)}</b></span>
+          </div>
+        </div>
         <div className="tabela-rolagem">
           <table className="matriz">
             <thead><tr><th scope="col" style={{ textAlign: "left" }}>Cor</th>{tamanhos.map((t) => <th scope="col" key={t}>{t}</th>)}</tr></thead>
@@ -109,84 +143,89 @@ export default async function Lote({ params, searchParams }: { params: Promise<{
         </div>
       </section>
 
-      <div className="grade-lateral">
-        <section className="painel">
-          <div className="painel-topo"><div><h2>Liberar para venda</h2><p>Libere tudo ou só o que pode ir para a loja agora. O resto continua aguardando.</p></div></div>
-          <div className="painel-corpo">
-            {!podeLiberar ? (
-              <p className="mini">Seu perfil conta as peças. A liberação é feita por quem aprova a produção.</p>
-            ) : lote.aguardando === 0 ? (
-              <p className="mini">Não há peças aguardando neste lote.</p>
-            ) : lote.preco_venda == null ? (
-              <p className="mini">Defina o preço de venda do modelo para liberar.</p>
-            ) : (
-              <FormAcao acao={liberarRecebimento}>
-                <input type="hidden" name="id" value={lote.id} />
-                <div className="campo" style={{ maxWidth: 260, marginBottom: 14 }}>
-                  <label htmlFor="destino_id">Vai para</label>
-                  <select id="destino_id" name="destino_id" defaultValue={(destinos ?? []).find((d) => d.tipo === "loja")?.id ?? ""} required>
-                    {(destinos ?? []).map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
-                  </select>
-                </div>
-                <GradeQuantidades key={`l${lote.aguardando}`} linhas={linhasLiberar} tamanhos={tamanhos} celulas={paraLiberar} comBotoes />
-                <div className="formulario-rodape"><BotaoEnviar enviando="Liberando…">Liberar peças</BotaoEnviar></div>
-              </FormAcao>
-            )}
-          </div>
-        </section>
-
-        <div style={{ display: "grid", gap: 16 }}>
-          {podeEditar && (
-            <section className="painel">
-              <div className="painel-topo"><div><h2>Pendência</h2><p>Faltou peça? Anote aqui e o lote fica marcado até resolver.</p></div></div>
-              <div className="painel-corpo">
-                <FormAcao acao={salvarPendencia} className="campos">
-                  <input type="hidden" name="id" value={lote.id} />
-                  <input type="hidden" name="pendente" value={lote.pendente ? "0" : "1"} />
-                  {!lote.pendente && (
-                    <div className="campo">
-                      <label htmlFor="pendencia">O que faltou</label>
-                      <textarea id="pendencia" name="pendencia" defaultValue={lote.pendencia ?? ""} placeholder="Ex.: faltaram 3 P pretas; facção manda sexta" />
-                    </div>
-                  )}
-                  <BotaoEnviar className={lote.pendente ? "botao" : "botao secundario"}>{lote.pendente ? "Marcar como resolvida" : "Marcar como pendente"}</BotaoEnviar>
-                </FormAcao>
-              </div>
-            </section>
-          )}
-          {podeEditar && (
-            <section className="painel">
-              <div className="painel-topo"><div><h2>Chegou o que faltava</h2><p>Some as peças ao mesmo lote.</p></div></div>
-              <div className="painel-corpo">
-                <details>
-                  <summary className="botao leve pequeno">Registrar complemento</summary>
-                  <div style={{ marginTop: 12 }}>
-                    <FormAcao acao={complementarRecebimento} limparAoSalvar>
-                      <input type="hidden" name="id" value={lote.id} />
-                      <GradeQuantidades key={`c${lote.recebido}`} linhas={linhas} tamanhos={tamanhos} celulas={celulas} />
-                      <div className="formulario-rodape"><BotaoEnviar enviando="Somando…">Somar ao lote</BotaoEnviar></div>
-                    </FormAcao>
-                  </div>
-                </details>
-              </div>
-            </section>
-          )}
-        </div>
-      </div>
-
-      <section className="painel" style={{ marginTop: 16 }}>
-        <div className="painel-topo"><div><h2>Histórico do lote</h2></div></div>
+      <section className="painel">
+        <div className="painel-topo"><div><h2>Histórico do lote</h2><p>Tudo o que entrou e saiu deste lote</p></div></div>
         <ul className="lista-simples">
           {movimentos.map((m) => (
             <li key={m.id}>
               <div className="item">
-                <span className={`marcador ${m.tipo === "liberacao" ? "" : m.tipo === "estorno" ? "rosa" : "areia"}`}><Icone nome={m.tipo === "liberacao" ? "certo" : m.tipo === "estorno" ? "alerta" : "entrada"} /></span>
+                <span className={`marcador ${m.tipo === "liberacao" ? "escuro" : m.tipo === "estorno" ? "rosa" : ""}`}><Icone nome={m.tipo === "liberacao" ? "certo" : m.tipo === "estorno" ? "alerta" : "entrada"} /></span>
                 <div><strong>{ROTULO_TIPO[m.tipo] ?? m.tipo} · {numero(m.quantidade)} {m.variantes?.sku}</strong><span>{quando(m.ocorrido_em)}, {m.quem?.nome ?? "Sistema"}{m.destino ? ` → ${m.destino.nome}` : ""}{m.tipo === "estorno" && m.observacao ? `. ${m.observacao}` : ""}</span></div>
               </div>
             </li>
           ))}
+          {!movimentos.length && <li>Nada registrado ainda.</li>}
         </ul>
       </section>
+
+      {/* ---------- janelas ---------- */}
+      {podeLiberar && lote.aguardando > 0 && !semPreco && (
+        <Suspense>
+          <JanelaLateral param="acao" valor="liberar" titulo="Liberar peças" subtitulo={`Lote nº ${lote.numero} · ${lote.produto_nome} · ${reais(lote.preco_venda)}`}>
+            <FormAcao acao={liberarRecebimento}>
+              <input type="hidden" name="id" value={lote.id} />
+              <div className="bloco-janela">
+                <h3>Para onde vão</h3>
+                <p>As peças liberadas aparecem para venda neste local.</p>
+                <div className="campo">
+                  <select id="destino_id" name="destino_id" defaultValue={(destinos ?? []).find((d) => d.tipo === "loja")?.id ?? ""} required aria-label="Local de destino">
+                    {(destinos ?? []).map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="bloco-janela">
+                <h3>Quanto liberar</h3>
+                <p>{lote.pendente ? "Este lote está pendente: libere só o que pode ir para a loja agora." : "Libere tudo ou só uma parte."}</p>
+                <EscolhaLiberar linhas={linhasLiberar} tamanhos={tamanhos} celulas={paraLiberar} aguardando={lote.aguardando} />
+              </div>
+              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar enviando="Liberando…">Liberar peças</BotaoEnviar></div>
+            </FormAcao>
+          </JanelaLateral>
+        </Suspense>
+      )}
+
+      {podeEditar && (
+        <Suspense>
+          <JanelaLateral param="acao" valor="pendencia" titulo={lote.pendente ? "Resolver pendência" : "Segurar o lote"}
+            subtitulo={lote.pendente ? "Chegou o que faltava ou decidiu liberar assim mesmo?" : "Faltou peça da facção? O lote fica marcado como pendente até você resolver."}>
+            <FormAcao acao={salvarPendencia}>
+              <input type="hidden" name="id" value={lote.id} />
+              <input type="hidden" name="pendente" value={lote.pendente ? "0" : "1"} />
+              <div className="bloco-janela">
+                {lote.pendente ? (
+                  <>
+                    <h3>O que estava faltando</h3>
+                    <p style={{ fontSize: 14, color: "var(--tinta)" }}>{lote.pendencia}</p>
+                    <p>Se as peças chegaram, registre também em “Chegou o que faltava”.</p>
+                  </>
+                ) : (
+                  <div className="campo">
+                    <label htmlFor="pendencia">O que faltou</label>
+                    <textarea id="pendencia" name="pendencia" rows={4} defaultValue={lote.pendencia ?? ""} placeholder="Ex.: faltaram 3 P pretas; a facção manda sexta" required />
+                  </div>
+                )}
+              </div>
+              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar>{lote.pendente ? "Marcar como resolvida" : "Segurar o lote"}</BotaoEnviar></div>
+            </FormAcao>
+          </JanelaLateral>
+        </Suspense>
+      )}
+
+      {podeEditar && (
+        <Suspense>
+          <JanelaLateral param="acao" valor="complemento" titulo="Chegou o que faltava" subtitulo={`Some as peças ao lote nº ${lote.numero}`}>
+            <FormAcao acao={complementarRecebimento}>
+              <input type="hidden" name="id" value={lote.id} />
+              <div className="bloco-janela">
+                <h3>Contagem do complemento</h3>
+                <p>Digite só as peças que chegaram agora.</p>
+                <GradeQuantidades linhas={linhas} tamanhos={tamanhos} celulas={celulas} />
+              </div>
+              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar enviando="Somando…">Somar ao lote</BotaoEnviar></div>
+            </FormAcao>
+          </JanelaLateral>
+        </Suspense>
+      )}
     </>
   );
 }

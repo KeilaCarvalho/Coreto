@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { Icone } from "@/components/icone";
+import { useFecharJanela } from "@/components/janela-lateral";
 
 export type EstadoAcao = { erro?: string; ok?: string } | null;
 type Acao = (estado: EstadoAcao, dados: FormData) => Promise<EstadoAcao>;
@@ -13,13 +14,15 @@ export function FormAcao({ acao, children, className, limparAoSalvar = false }: 
 }) {
   const [estado, enviar] = useActionState(acao, null);
   const form = useRef<HTMLFormElement>(null);
+  const fecharJanela = useFecharJanela();
   useEffect(() => {
+    if (estado?.ok && fecharJanela) { fecharJanela(estado.ok); return; }
     if (estado?.ok && limparAoSalvar) form.current?.reset();
-  }, [estado, limparAoSalvar]);
+  }, [estado, limparAoSalvar]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <form ref={form} action={enviar} className={className}>
       {estado?.erro && <p className="aviso erro" role="alert"><Icone nome="alerta" />{estado.erro}</p>}
-      {estado?.ok && <p className="aviso ok" role="status"><Icone nome="certo" />{estado.ok}</p>}
+      {estado?.ok && !fecharJanela && <p className="aviso ok" role="status"><Icone nome="certo" />{estado.ok}</p>}
       {children}
     </form>
   );
