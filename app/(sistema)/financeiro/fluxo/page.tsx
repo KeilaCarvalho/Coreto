@@ -332,7 +332,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
               <div className="fx-rodape"><span>Total</span><span>{reais(t.aReceber)}</span></div>
             </section>
 
-            <section className="painel c8">
+            <section className="painel c12">
               <div className="painel-topo">
                 <div><h2>Equipe no mês</h2><p>Vendas de cada vendedora até {nomeDoDia(ultimoDiaVenda)}</p></div>
                 {podeLancar && <Editar href={lancar("b-equipe")} rotulo="Editar equipe" />}
@@ -351,13 +351,6 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
               </ul>
             </section>
 
-            <section className="painel c4">
-              <div className="painel-topo">
-                <div><h2>Recado para a Deborah</h2><p>Sai no fim do PDF</p></div>
-                {podeLancar && <Editar href={lancar("b-recado")} rotulo="Editar recado" />}
-              </div>
-              <p className={`fx-recado ${salvoDados.observacao ? "" : "vazio"}`}>{salvoDados.observacao || "Sem recado neste dia."}</p>
-            </section>
           </div>
         </>
       )}

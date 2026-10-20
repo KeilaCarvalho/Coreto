@@ -27,7 +27,6 @@ const SECOES = [
   { id: "b-receber", nome: "A receber" },
   { id: "b-contas-mes", nome: "Contas do mês" },
   { id: "b-equipe", nome: "Equipe" },
-  { id: "b-recado", nome: "Recado" },
 ];
 
 function Linhas({ linhas, mudar, rotulo, rotuloValor = "Valor" }: {
@@ -82,7 +81,6 @@ export function JanelaLancamento({ inicial, novo, salvar }: { inicial: DadosFlux
   const [vendedoras, setVendedoras] = useState(texto(inicial.vendedoras));
   const [contasAPagar, setContasAPagar] = useState(campo(inicial.contasAPagar));
   const [contasPagas, setContasPagas] = useState(campo(inicial.contasPagas));
-  const [observacao, setObservacao] = useState(inicial.observacao);
   const [estado, enviar, salvando] = useActionState(salvar, null);
 
   useEffect(() => {
@@ -110,7 +108,7 @@ export function JanelaLancamento({ inicial, novo, salvar }: { inicial: DadosFlux
     vendasDia: vendasLimpas.filter((v) => v.dias.some((d) => d !== 0)).map((v) => ({ nome: v.nome, valor: r2(v.dias.reduce((t, n) => t + n, 0)), dias: v.dias })),
     vendasMes: vendasLimpas.filter((v) => v.mes !== 0).map((v) => ({ nome: v.nome, valor: v.mes })),
     saldos: limpa(saldos), aReceber: limpa(aReceber), vendedoras: limpa(vendedoras),
-    contasAPagar: r2(num(contasAPagar)), contasPagas: r2(num(contasPagas)), observacao,
+    contasAPagar: r2(num(contasAPagar)), contasPagas: r2(num(contasPagas)), observacao: inicial.observacao,
   });
   const colunas = `minmax(0,1fr) ${inicial.diasVenda.map(() => "minmax(92px,120px)").join(" ")} minmax(92px,120px) 34px`;
   const ir = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -194,11 +192,6 @@ export function JanelaLancamento({ inicial, novo, salvar }: { inicial: DadosFlux
             <Linhas linhas={vendedoras} mudar={setVendedoras} rotulo="Vendedora" rotuloValor="No mês" />
           </section>
 
-          <section className="fx-bloco" id="b-recado">
-            <h3>Recado para a Deborah</h3>
-            <p>Sai no fim do PDF.</p>
-            <textarea className="fx-in" rows={4} value={observacao} maxLength={2000} onChange={(e) => setObservacao(e.target.value)} placeholder="Ex.: boleto do aluguel vence dia 20." />
-          </section>
         </div>
 
         <div className="fx-janela-rodape">

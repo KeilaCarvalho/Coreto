@@ -156,24 +156,16 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
     mes: d.vendasMes.find((v) => v.nome === nome)?.valor ?? 0,
   })).sort((a, b) => b.mes - a.mes || b.periodo - a.periodo);
   const equipe = [...d.vendedoras].sort((a, b) => b.valor - a.valor);
-  const recado = d.observacao.trim();
   const meia = (W - 5) / 2;
-  const linhasRecado = (largura: number, tamanho: number) => {
-    if (!recado) return [];
-    fonte("normal", tamanho);
-    return doc.splitTextToSize(recado, largura - 9) as string[];
-  };
 
   // altura de cada bloco para uma altura de linha rh
   const hTabela = (n: number, rh: number) => 11 + 6 + Math.max(1, n) * rh + 3 + 7 + 4;
   const hLista = (n: number, rh: number) => 11 + Math.max(1, n) * rh + 3 + 7 + 4;
   const escala = (rh: number) => Math.max(0.78, Math.min(1, rh / 6.6));
-  const hRecado = (largura: number, rh: number) => 11 + linhasRecado(largura, 8.8 * escala(rh)).length * 8.8 * escala(rh) * 0.3528 * 1.35 + 6;
-  const larguraEquipe = recado ? meia : W;
   const alturas = (rh: number) => {
     const a = hTabela(formas.length, rh);
     const b = Math.max(hLista(d.saldos.length, rh), hLista(d.aReceber.length, rh));
-    const c = Math.max(hLista(equipe.length, rh * 1.15), recado ? hRecado(meia, rh) : 0);
+    const c = hLista(equipe.length, rh * 1.15);
     return { a, b, c, soma: a + 5 + b + 5 + c };
   };
   let rh = 8.4;
@@ -262,16 +254,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   lista(M + meia + 5, y, meia, H.b, "A receber", d.aReceber, "Total a receber", rh);
   y += H.b + 5;
 
-  lista(M, y, larguraEquipe, H.c, "Equipe no mês", equipe, "Total da equipe", rh * 1.15, true);
-  if (recado) {
-    const x = M + meia + 5;
-    cartao(x, y, meia, H.c, [251, 241, 227]);
-    fill(C.preto); doc.roundedRect(x + 4, y + 4.7, 3.2, 3.2, 0.7, 0.7, "F");
-    fonte("bold", 10); ink(C.preto); doc.text("Recado para a Deborah", x + 9.2, y + 7.6);
-    const texto = linhasRecado(meia, 8.8 * esc);
-    ink([90, 62, 16]);
-    doc.text(texto, x + 4.5, y + 13.5, { lineHeightFactor: 1.35 });
-  }
+  lista(M, y, W, H.c, "Equipe no mês", equipe, "Total da equipe", rh * 1.15, true);
 
   // ===================== Rodapé =====================
   fill(C.azul); doc.rect(0, 293.5, L, 3.5, "F");
