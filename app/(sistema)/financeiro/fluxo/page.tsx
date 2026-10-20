@@ -224,9 +224,9 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
               )}</p>
             </div>
             <div className="kpi">
-              <div className="kpi-topo"><span>Sobra prevista</span><span className="seta"><Icone nome="cifrao" tamanho={16} /></span></div>
+              <div className="kpi-topo"><span>Saldo após as contas</span><span className="seta"><Icone nome="cifrao" tamanho={16} /></span></div>
               <p className="kpi-valor"><Valor v={t.sobra} /></p>
-              <p className="kpi-nota">saldo + a receber − a pagar</p>
+              <p className="kpi-nota">saldo em conta − contas a pagar</p>
             </div>
           </section>
 

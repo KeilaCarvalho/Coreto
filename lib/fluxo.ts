@@ -67,7 +67,7 @@ export function totaisFluxo(d: DadosFluxo) {
     vendedoras: somar(d.vendedoras),
     contasAPagar: d.contasAPagar,
     contasPagas: d.contasPagas,
-    sobra: somar(d.saldos) + somar(d.aReceber) - d.contasAPagar,
+    sobra: somar(d.saldos) - d.contasAPagar, // o a receber fica de fora: não se sabe quando entra
   };
 }
 

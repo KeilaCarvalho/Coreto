@@ -124,7 +124,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
     { rotulo: "VENDAS NO MÊS", valor: t.vendasMes, nota: `acumulado de ${mesPorExtenso(d.data).split(" ")[0]}`, escuro: true },
     { rotulo: rotuloPeriodo(d.diasVenda).toUpperCase(), valor: t.vendasDia, nota: d.diasVenda.length > 1 ? vendasPorDia(d).map((v) => `${nomeDoDia(v.dia).slice(0, 3)} ${reais(v.valor)}`).join(" · ") : d.diasVenda[0] ? `${nomeDoDia(d.diasVenda[0])}, ${d.diasVenda[0].slice(8, 10)}/${d.diasVenda[0].slice(5, 7)}` : "" },
     { rotulo: "SALDO EM CONTA", valor: t.saldo, nota: `${d.saldos.length} ${d.saldos.length === 1 ? "conta" : "contas"}` },
-    { rotulo: "SOBRA PREVISTA", valor: sobra, nota: "saldo + a receber - a pagar", alerta: sobra < 0 },
+    { rotulo: "SALDO APÓS AS CONTAS", valor: sobra, nota: "saldo em conta - contas a pagar", alerta: sobra < 0 },
   ];
   kpis.forEach((k, i) => {
     const x = M + i * (kw + 4);
@@ -146,7 +146,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   titulo(M + 4, y + 8.4, "Contas do mês");
   fonte("normal", 7); ink(C.suave); doc.text("PAGAS", M + 46, y + 5.4); doc.text("A PAGAR", M + 82, y + 5.4);
   fonte("bold", 10.5); ink(C.preto); doc.text(reais(pagas), M + 46, y + 10.6);
-  ink(aPagar > t.saldo + t.aReceber ? C.alerta : C.preto); doc.text(reais(aPagar), M + 82, y + 10.6);
+  ink(aPagar > t.saldo ? C.alerta : C.preto); doc.text(reais(aPagar), M + 82, y + 10.6);
   const bx = M + 122, bw = W - 122 - 22;
   fill(C.azulClaro); doc.roundedRect(bx, y + 5.6, bw, 3.2, 1.6, 1.6, "F");
   if (somaContas > 0 && pagas > 0) { fill(C.preto); doc.roundedRect(bx, y + 5.6, Math.max(3.2, bw * (pagas / somaContas)), 3.2, 1.6, 1.6, "F"); }
