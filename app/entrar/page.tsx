@@ -15,7 +15,7 @@ export default async function PaginaEntrar({ searchParams }: { searchParams: Pro
     <main className="entrar">
       <section className="entrar-marca">
         <img className="flor-grande" src="/coreto-flor-branca.png" alt="" />
-        <img className="nome" src="/coreto-nome-branco.png" alt="Coreto" />
+        <img className="nome" src="/coreto-nome-escuro.png" alt="Coreto" />
         <div>
           <h2>A operação da Coreto em um só lugar</h2>
           <p>Produção, estoque, vendas e equipe, com cada pessoa vendo só o que precisa.</p>

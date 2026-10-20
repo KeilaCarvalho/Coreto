@@ -9,23 +9,23 @@
 
 :root {
   color-scheme: light;
-  --canvas: #e4ebe9;
+  --canvas: #cfe2e2;
   --superficie: #ffffff;
-  --superficie-2: #f6faf9;
-  --tinta: #2f322d;
+  --superficie-2: #f2f9f9;
+  --tinta: #161917;
   --suave: #6a706b;
   --tenue: #9da19b;
-  --linha: #dfe6e4;
-  --linha-forte: #c9d3d0;
+  --linha: #d6e4e4;
+  --linha-forte: #b9cece;
 
-  --verde-950: #1f211d;
-  --verde-900: #2f322d;
-  --verde-700: #00898b;
-  --verde-600: #00797c;
+  --verde-950: #000000;
+  --verde-900: #161917;
+  --verde-700: #007f82;
+  --verde-600: #00706f;
   --flor: #14b8a9;
   --marca: #00ced1;
-  --verde-100: #d7f4f4;
-  --verde-50: #eef9f9;
+  --verde-100: #c9f1f2;
+  --verde-50: #e3f7f7;
 
   --alerta: #9a5b07;
   --alerta-fundo: #fdf1de;
@@ -36,9 +36,9 @@
   --raio-cartao: 22px;
   --raio-campo: 12px;
   --raio-pilula: 999px;
-  --sombra: 0 0 0 1px rgba(47, 50, 45, 0.07), 0 1px 3px rgba(47, 50, 45, 0.08), 0 14px 32px -14px rgba(47, 50, 45, 0.22);
-  --fundo-pagina: #eef3f2;
-  --sombra-destaque: 0 18px 32px -16px rgba(31, 33, 29, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --sombra: 0 0 0 1px rgba(0, 40, 42, 0.08), 0 2px 5px rgba(0, 40, 42, 0.10), 0 22px 44px -18px rgba(0, 60, 62, 0.42);
+  --fundo-pagina: #e6f1f1;
+  --sombra-destaque: 0 22px 40px -16px rgba(0, 120, 122, 0.65), 0 2px 6px rgba(0, 60, 62, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   --menu-largura: 264px;
   --flor-marca: url("/coreto-flor-branca.png");
   --fonte: var(--fonte-carregada, "Plus Jakarta Sans"), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -605,3 +605,54 @@ details > summary::-webkit-details-marker { display: none; }
   .fx-janela-topo, .fx-passos, .fx-janela-rodape { padding-left: 16px; padding-right: 16px; }
 }
 @media (max-width: 600px) { .fx-linha { grid-template-columns: minmax(0,1fr) 116px 30px; } }
+
+
+/* =====================================================================
+   Tema v3 · azul da logo como base, detalhes em preto, mais sombra
+   ===================================================================== */
+:root { --azul: #00ced1; --azul-forte: #00b8bb; --gradiente-azul: radial-gradient(130% 120% at 100% 0%, #6eeaeb 0%, #00ced1 45%, #00adb0 100%); }
+.pagina { box-shadow: inset 0 0 0 1px rgba(0, 40, 42, 0.06), 0 2px 8px rgba(0, 60, 62, 0.08); }
+
+/* botões: azul com contorno e texto preto */
+.botao { background: var(--azul); color: var(--tinta); border-color: var(--tinta); box-shadow: 0 3px 0 var(--tinta), 0 10px 20px -10px rgba(0, 90, 92, 0.7); font-weight: 700; }
+.botao:hover { background: var(--azul-forte); color: var(--tinta); }
+.botao:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--tinta); }
+.botao.secundario { background: var(--superficie); color: var(--tinta); border-color: var(--tinta); box-shadow: 0 3px 0 var(--tinta); }
+.botao.secundario:hover { background: var(--verde-50); }
+.botao.leve { box-shadow: 0 2px 6px -2px rgba(0, 60, 62, 0.18); }
+.botao.whatsapp { color: #fff; border-color: var(--tinta); box-shadow: 0 3px 0 var(--tinta), 0 10px 20px -10px rgba(23, 131, 74, 0.7); }
+.botao.whatsapp:hover { color: #fff; }
+
+/* menu: item aberto em azul com marca preta */
+.menu-link[aria-current="page"] { background: var(--azul); color: var(--tinta); box-shadow: 0 6px 14px -8px rgba(0, 120, 122, 0.8); }
+.menu-link[aria-current="page"]::before { background: var(--tinta); }
+.menu-link[aria-current="page"] .icone { color: var(--tinta); }
+.menu-link .fase { color: var(--tinta); background: var(--verde-100); }
+
+/* cartões de destaque: azul com textos e detalhes pretos */
+.menu-promo, .roteiro, .entrar-marca, .calculo .destaque, .kpi.destaque, .fx-kpis .kpi.destaque {
+  background: var(--gradiente-azul); color: var(--tinta); box-shadow: var(--sombra-destaque);
+}
+.menu-promo strong, .roteiro h2, .roteiro .grande, .entrar-marca h2 { color: var(--tinta); }
+.menu-promo p, .roteiro p, .roteiro .fases, .entrar-marca p { color: #0d3a3b; }
+.menu-promo .selo { background: rgba(0, 0, 0, 0.12); }
+.menu-promo a { background: var(--tinta); color: var(--azul); }
+.trilho i { background: rgba(0, 0, 0, 0.14); }
+.trilho i.feito { background: var(--tinta); }
+.trilho i.agora { background: repeating-linear-gradient(135deg, var(--tinta) 0 4px, rgba(0,0,0,0.25) 4px 8px); }
+.calculo .destaque span, .calculo .destaque small { color: #0d3a3b; }
+.kpi.destaque .kpi-nota, .fx-kpis .kpi.destaque .kpi-nota { color: #0d3a3b; }
+.kpi.destaque .kpi-nota b, .fx-kpis .kpi.destaque .kpi-nota b { background: var(--tinta); color: var(--azul); border-color: var(--tinta); }
+.kpi.destaque .seta, .fx-kpis .kpi.destaque .seta { background: var(--tinta); color: var(--azul); border-color: var(--tinta); }
+.kpi .seta { box-shadow: 0 4px 10px -6px rgba(0, 60, 62, 0.5); }
+
+/* detalhes */
+.ficha input:checked + span { background: var(--azul); color: var(--tinta); border-color: var(--tinta); }
+.aviso.ok, .etiqueta.ok { color: var(--tinta); }
+.marcador { box-shadow: inset 0 0 0 1px rgba(0, 120, 122, 0.12); }
+.marcador.escuro { background: var(--tinta); color: var(--azul); }
+.fx-dia.atual { background: var(--azul); border-color: var(--tinta); color: var(--tinta); box-shadow: 0 3px 0 var(--tinta); }
+.fx-dia.atual small { color: #0d3a3b; }
+.fx-seta, .fx-editar { box-shadow: 0 3px 8px -4px rgba(0, 60, 62, 0.35); }
+.fx-bloco { box-shadow: var(--sombra); }
+.topo, .menu { box-shadow: var(--sombra); }

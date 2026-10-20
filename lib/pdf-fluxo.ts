@@ -3,32 +3,32 @@
 import { dataPorExtenso, mesPorExtenso, nomeDoDia, rotuloPeriodo, totaisFluxo, vendasPorDia, type DadosFluxo, type LinhaValor } from "@/lib/fluxo";
 
 /*
- * PDF do fluxo financeiro diário (A4 retrato), gerado no navegador.
- * Mesmo conteúdo do relatório do sistema antigo, com o visual novo da Coreto.
+ * PDF do fluxo financeiro diário: uma página A4 retrato, gerado no navegador.
+ * Azul da logo como base, detalhes em preto, cartões com sombra.
+ * Se tiver muita linha, as linhas encolhem um pouco para tudo caber na página.
  */
 
 type Cor = [number, number, number];
 const C = {
-  verde950: [31, 33, 29] as Cor,
-  verde900: [47, 50, 45] as Cor,
-  verde700: [0, 121, 124] as Cor,
-  marca: [0, 206, 209] as Cor,
-  flor: [20, 184, 169] as Cor,
-  verde100: [215, 244, 244] as Cor,
-  verde50: [238, 249, 249] as Cor,
-  tinta: [47, 50, 45] as Cor,
-  suave: [106, 112, 107] as Cor,
-  tenue: [157, 161, 155] as Cor,
-  linha: [223, 230, 228] as Cor,
-  fundo: [246, 250, 249] as Cor,
+  azul: [0, 206, 209] as Cor,
+  azulClaro: [226, 247, 247] as Cor,
+  azulMedio: [143, 227, 228] as Cor,
+  azulEscuro: [0, 112, 111] as Cor,
+  preto: [22, 25, 23] as Cor,
+  suave: [92, 102, 102] as Cor,
+  tenue: [150, 160, 160] as Cor,
+  linha: [214, 228, 228] as Cor,
+  fundo: [242, 249, 249] as Cor,
+  sombra: [0, 70, 72] as Cor,
   alerta: [154, 91, 7] as Cor,
   alertaFundo: [253, 241, 222] as Cor,
   branco: [255, 255, 255] as Cor,
 };
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const reais = (v: number) => moeda.format(v).replace(/ /g, " ");
-const pct = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+const reais = (v: number) => moeda.format(v).replace(/\s/g, " ");
+const pct = (parte: number, total: number) => (total ? `${Math.round((parte / total) * 100)}%` : "—");
+const curtoDia = (iso: string) => `${nomeDoDia(iso).slice(0, 3)} ${iso.slice(8, 10)}`;
 
 async function imagem(caminho: string): Promise<string | null> {
   try {
@@ -51,157 +51,233 @@ export function nomeDoPdf(data: string) {
 }
 
 export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
-  const { jsPDF } = await import("jspdf");
+  const { jsPDF, GState } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const [nomeBranco, flor] = await Promise.all([imagem("/coreto-nome-branco.png"), imagem("/coreto-flor-marca-dagua.png")]);
+  const [nomeEscuro, flor] = await Promise.all([imagem("/coreto-nome-escuro.png"), imagem("/coreto-flor-branca.png")]);
   const t = totaisFluxo(d);
-  const L = 210, M = 14, W = L - M * 2;
+  const L = 210, M = 12, W = L - M * 2, FIM = 284;
 
   const fill = (c: Cor) => doc.setFillColor(c[0], c[1], c[2]);
   const ink = (c: Cor) => doc.setTextColor(c[0], c[1], c[2]);
   const draw = (c: Cor) => doc.setDrawColor(c[0], c[1], c[2]);
   const fonte = (peso: "normal" | "bold", tamanho: number) => { doc.setFont("helvetica", peso); doc.setFontSize(tamanho); };
+  const opacidade = (o: number) => doc.setGState(new GState({ opacity: o }));
+  const corta = (texto: string, largura: number) => (doc.splitTextToSize(texto, largura) as string[])[0] ?? "";
 
-  // ---------- Cabeçalho ----------
-  fill(C.verde900);
-  doc.rect(0, 0, L, 44, "F");
-  fill(C.verde950);
-  doc.rect(0, 44, L, 1.2, "F");
-  if (flor) doc.addImage(flor, "PNG", L - 58, -12, 66, 66, undefined, "FAST");
-  if (nomeBranco) doc.addImage(nomeBranco, "PNG", M, 11, 40, 6.06, undefined, "FAST");
-  else { fonte("bold", 18); ink(C.branco); doc.text("Coreto", M, 17); }
-  fonte("bold", 20); ink(C.branco);
-  doc.text("Fluxo financeiro diário", M, 31);
-  fonte("normal", 9.5); ink([191, 195, 188]);
-  doc.text(dataPorExtenso(d.data), M, 38);
-  fonte("bold", 7.5); ink(C.marca);
-  doc.text("DATA DE REFERÊNCIA", L - M, 14, { align: "right" });
-  fonte("bold", 13); ink(C.branco);
-  doc.text(d.data.split("-").reverse().join("/"), L - M, 21, { align: "right" });
+  /** Cartão com sombra suave embaixo. */
+  function cartao(x: number, y: number, w: number, h: number, fundo: Cor = C.branco, raio = 3.2) {
+    fill(C.sombra);
+    opacidade(0.05); doc.roundedRect(x - 0.6, y + 1.6, w + 1.2, h + 0.8, raio + 0.6, raio + 0.6, "F");
+    opacidade(0.08); doc.roundedRect(x - 0.2, y + 0.9, w + 0.4, h + 0.2, raio, raio, "F");
+    opacidade(1);
+    fill(fundo);
+    doc.roundedRect(x, y, w, h, raio, raio, "F");
+    if (fundo === C.branco) { draw(C.linha); doc.setLineWidth(0.2); doc.roundedRect(x, y, w, h, raio, raio, "S"); }
+  }
 
-  // ---------- Cartões de resumo ----------
-  let y = 54;
-  fonte("bold", 11.5); ink(C.tinta);
-  doc.text("Resumo", M, y);
-  fonte("normal", 8.5); ink(C.suave);
-  doc.text(`Mês de ${mesPorExtenso(d.data)}`, L - M, y, { align: "right" });
-  y += 5;
+  /** Título de bloco: quadradinho azul com contorno preto + nome. */
+  function titulo(x: number, y: number, texto: string) {
+    fill(C.azul); doc.roundedRect(x, y - 2.9, 3.2, 3.2, 0.7, 0.7, "F");
+    draw(C.preto); doc.setLineWidth(0.35); doc.roundedRect(x, y - 2.9, 3.2, 3.2, 0.7, 0.7, "S");
+    fonte("bold", 10); ink(C.preto);
+    doc.text(texto, x + 5.2, y);
+  }
 
-  const cartoes: { titulo: string; valor: string; nota: string; destaque?: boolean; alerta?: boolean }[] = [
-    { titulo: "VENDAS DO MÊS", valor: reais(t.vendasMes), nota: "acumulado até hoje", destaque: true },
-    { titulo: rotuloPeriodo(d.diasVenda).toUpperCase(), valor: reais(t.vendasDia), nota: d.diasVenda.length > 1 ? vendasPorDia(d).map((v) => `${nomeDoDia(v.dia).slice(0, 3)} ${reais(v.valor)}`).join(" · ") : "fechamento do caixa" },
-    { titulo: "SALDO EM CONTA", valor: reais(t.saldo), nota: `${d.saldos.length} ${d.saldos.length === 1 ? "conta" : "contas"}` },
-    { titulo: "CONTAS PAGAS NO MÊS", valor: reais(t.contasPagas), nota: "já saíram do caixa" },
-    { titulo: "CONTAS A PAGAR", valor: reais(t.contasAPagar), nota: "ainda no mês", alerta: t.contasAPagar > t.saldo + t.aReceber },
-    { titulo: "CONTAS A RECEBER", valor: reais(t.aReceber), nota: `${d.aReceber.length} ${d.aReceber.length === 1 ? "referência" : "referências"}` },
+  /** Faixa preta de total no pé do bloco. */
+  function total(x: number, y: number, w: number, rotulo: string, valor: number) {
+    fill(C.preto); doc.roundedRect(x, y, w, 7, 2, 2, "F");
+    fonte("bold", 8.2); ink(C.branco); doc.text(rotulo, x + 3.5, y + 4.7);
+    ink(C.azul); doc.text(reais(valor), x + w - 3.5, y + 4.7, { align: "right" });
+  }
+
+  // ===================== Cabeçalho =====================
+  const HC = 34;
+  fill(C.azul); doc.rect(0, 0, L, HC, "F");
+  fill([0, 190, 193]); doc.circle(L - 20, -6, 46, "F");
+  if (flor) { opacidade(0.22); doc.addImage(flor, "PNG", L - 62, -16, 60, 60, undefined, "FAST"); opacidade(1); }
+  fill(C.preto); doc.rect(0, HC, L, 1.6, "F");
+  if (nomeEscuro) doc.addImage(nomeEscuro, "PNG", M, 8.5, 34, 5.15, undefined, "FAST");
+  else { fonte("bold", 16); ink(C.preto); doc.text("CORETO", M, 13); }
+  fonte("bold", 19); ink(C.preto);
+  doc.text("Fluxo financeiro diário", M, 24.5);
+  fonte("normal", 9); ink([10, 60, 61]);
+  doc.text(`${dataPorExtenso(d.data)} · ${rotuloPeriodo(d.diasVenda).toLowerCase()}`, M, 29.8);
+  // selo preto com a data
+  const sw = 44, sx = L - M - sw;
+  fill(C.sombra); opacidade(0.18); doc.roundedRect(sx, 10.4, sw, 17, 3.5, 3.5, "F"); opacidade(1);
+  fill(C.preto); doc.roundedRect(sx, 9.2, sw, 17, 3.5, 3.5, "F");
+  fonte("bold", 6.6); ink(C.azul); doc.text("DATA DE REFERÊNCIA", sx + sw / 2, 15, { align: "center" });
+  fonte("bold", 14); ink(C.branco); doc.text(d.data.split("-").reverse().join("/"), sx + sw / 2, 22.4, { align: "center" });
+
+  // ===================== Números principais =====================
+  let y = HC + 8;
+  const kw = (W - 3 * 4) / 4, kh = 23;
+  const sobra = t.sobra;
+  const kpis: { rotulo: string; valor: number; nota: string; escuro?: boolean; alerta?: boolean }[] = [
+    { rotulo: "VENDAS NO MÊS", valor: t.vendasMes, nota: `acumulado de ${mesPorExtenso(d.data).split(" ")[0]}`, escuro: true },
+    { rotulo: rotuloPeriodo(d.diasVenda).toUpperCase(), valor: t.vendasDia, nota: d.diasVenda.length > 1 ? vendasPorDia(d).map((v) => `${nomeDoDia(v.dia).slice(0, 3)} ${reais(v.valor)}`).join(" · ") : d.diasVenda[0] ? `${nomeDoDia(d.diasVenda[0])}, ${d.diasVenda[0].slice(8, 10)}/${d.diasVenda[0].slice(5, 7)}` : "" },
+    { rotulo: "SALDO EM CONTA", valor: t.saldo, nota: `${d.saldos.length} ${d.saldos.length === 1 ? "conta" : "contas"}` },
+    { rotulo: "SOBRA PREVISTA", valor: sobra, nota: "saldo + a receber - a pagar", alerta: sobra < 0 },
   ];
-  const cw = (W - 8) / 3, ch = 25;
-  cartoes.forEach((c, i) => {
-    const x = M + (i % 3) * (cw + 4), cy = y + Math.floor(i / 3) * (ch + 4);
-    fill(c.destaque ? C.verde900 : c.alerta ? C.alertaFundo : C.fundo);
-    doc.roundedRect(x, cy, cw, ch, 3.5, 3.5, "F");
-    if (!c.destaque) { draw(C.linha); doc.setLineWidth(0.25); doc.roundedRect(x, cy, cw, ch, 3.5, 3.5, "S"); }
-    fonte("bold", 6.8); ink(c.destaque ? C.marca : c.alerta ? C.alerta : C.suave);
-    doc.text(c.titulo, x + 5, cy + 7);
-    fonte("bold", 14.5); ink(c.destaque ? C.branco : c.alerta ? C.alerta : C.tinta);
-    doc.text(c.valor, x + 5, cy + 15.5);
-    fonte("normal", 7.5); ink(c.destaque ? [198, 202, 195] : C.suave);
-    doc.text(c.nota, x + 5, cy + 21);
+  kpis.forEach((k, i) => {
+    const x = M + i * (kw + 4);
+    cartao(x, y, kw, kh, k.escuro ? C.preto : k.alerta ? C.alertaFundo : C.branco);
+    fill(C.azul); doc.roundedRect(x + 4, y + 3.6, 6, 1.4, 0.7, 0.7, "F");
+    fonte("bold", 6.4); ink(k.escuro ? C.azul : k.alerta ? C.alerta : C.suave);
+    doc.text(corta(k.rotulo, kw - 8), x + 4, y + 9);
+    fonte("bold", 13.5); ink(k.escuro ? C.branco : k.alerta ? C.alerta : C.preto);
+    doc.text(reais(k.valor), x + 4, y + 16);
+    fonte("normal", 6.6); ink(k.escuro ? [190, 200, 200] : C.suave);
+    doc.text(corta(k.nota, kw - 8), x + 4, y + 20.4);
   });
-  y += ch * 2 + 4 + 10;
+  y += kh + 5;
 
-  // Situação do caixa: saldo + a receber − a pagar
-  const folga = t.saldo + t.aReceber - t.contasAPagar;
-  fill(folga >= 0 ? C.verde50 : C.alertaFundo);
-  doc.roundedRect(M, y - 5, W, 11, 3, 3, "F");
-  fonte("normal", 8.5); ink(C.suave);
-  doc.text("Saldo em conta + a receber − contas a pagar", M + 5, y + 1.8);
-  fonte("bold", 11); ink(folga >= 0 ? C.verde700 : C.alerta);
-  doc.text(reais(folga), L - M - 5, y + 2, { align: "right" });
-  y += 14;
+  // ===================== Contas do mês (faixa) =====================
+  const fh = 14;
+  cartao(M, y, W, fh);
+  const pagas = t.contasPagas, aPagar = t.contasAPagar, somaContas = pagas + aPagar;
+  titulo(M + 4, y + 8.4, "Contas do mês");
+  fonte("normal", 7); ink(C.suave); doc.text("PAGAS", M + 46, y + 5.4); doc.text("A PAGAR", M + 82, y + 5.4);
+  fonte("bold", 10.5); ink(C.preto); doc.text(reais(pagas), M + 46, y + 10.6);
+  ink(aPagar > t.saldo + t.aReceber ? C.alerta : C.preto); doc.text(reais(aPagar), M + 82, y + 10.6);
+  const bx = M + 122, bw = W - 122 - 22;
+  fill(C.azulClaro); doc.roundedRect(bx, y + 5.6, bw, 3.2, 1.6, 1.6, "F");
+  if (somaContas > 0 && pagas > 0) { fill(C.preto); doc.roundedRect(bx, y + 5.6, Math.max(3.2, bw * (pagas / somaContas)), 3.2, 1.6, 1.6, "F"); }
+  fonte("bold", 11); ink(C.preto); doc.text(pct(pagas, somaContas), M + W - 4, y + 8.6, { align: "right" });
+  fonte("normal", 6.2); ink(C.suave); doc.text("pago", M + W - 4, y + 11.6, { align: "right" });
+  y += fh + 6;
 
-  // ---------- Blocos de detalhe ----------
-  function bloco(x: number, yy: number, w: number, titulo: string, subtitulo: string, linhas: LinhaValor[], rotuloTotal: string, comBarras: boolean) {
-    const total = linhas.reduce((s, l) => s + l.valor, 0);
-    const alturaLinha = comBarras ? 9 : 7;
-    const altura = 18 + Math.max(1, linhas.length) * alturaLinha + 12;
-    draw(C.linha); doc.setLineWidth(0.25);
-    fill(C.branco);
-    doc.roundedRect(x, yy, w, altura, 3.5, 3.5, "FD");
-    fonte("bold", 7); ink(C.verde700);
-    doc.text(titulo.toUpperCase(), x + 5, yy + 7);
-    fonte("bold", 10); ink(C.tinta);
-    doc.text(subtitulo, x + 5, yy + 12.5);
-    let ly = yy + 20;
-    if (!linhas.length) {
-      fonte("normal", 8.5); ink(C.tenue);
-      doc.text("Nada informado.", x + 5, ly + 2);
-      ly += alturaLinha;
-    }
-    const maior = Math.max(...linhas.map((l) => l.valor), 1);
-    for (const l of linhas) {
-      fonte("normal", 8.5); ink(C.tinta);
-      const nome = doc.splitTextToSize(l.nome, w * 0.55)[0] as string;
-      doc.text(nome, x + 5, ly + 1.5);
-      fonte("bold", 8.5);
-      doc.text(reais(l.valor), x + w - 5, ly + 1.5, { align: "right" });
-      if (comBarras) {
-        fill(C.fundo); doc.roundedRect(x + 5, ly + 3.4, w - 10, 1.8, 0.9, 0.9, "F");
-        fill(C.flor); doc.roundedRect(x + 5, ly + 3.4, Math.max(1.8, (w - 10) * (l.valor / maior)), 1.8, 0.9, 0.9, "F");
-        if (total > 0) { fonte("normal", 6.8); ink(C.suave); doc.text(pct((l.valor / total) * 100), x + w - 5, ly + 7.6, { align: "right" }); }
-      } else {
-        draw(C.linha); doc.line(x + 5, ly + 3.6, x + w - 5, ly + 3.6);
-      }
-      ly += alturaLinha;
-    }
-    fill(C.verde100);
-    doc.roundedRect(x + 4, yy + altura - 11, w - 8, 7.5, 2, 2, "F");
-    fonte("bold", 8); ink(C.verde900);
-    doc.text(rotuloTotal, x + 7, yy + altura - 6);
-    doc.text(reais(total), x + w - 7, yy + altura - 6, { align: "right" });
-    return altura;
-  }
-
+  // ===================== Tamanho das linhas (cabe numa página) =====================
+  const nomesFormas = [...new Set([...d.vendasDia.map((v) => v.nome), ...d.vendasMes.map((v) => v.nome)])];
+  const formas = nomesFormas.map((nome) => ({
+    nome,
+    dias: d.diasVenda.map((_, k) => d.vendasDia.find((v) => v.nome === nome)?.dias[k] ?? 0),
+    periodo: d.vendasDia.find((v) => v.nome === nome)?.valor ?? 0,
+    mes: d.vendasMes.find((v) => v.nome === nome)?.valor ?? 0,
+  })).sort((a, b) => b.mes - a.mes || b.periodo - a.periodo);
+  const equipe = [...d.vendedoras].sort((a, b) => b.valor - a.valor);
+  const recado = d.observacao.trim();
   const meia = (W - 5) / 2;
-  const garantir = (altura: number) => {
-    if (y + altura > 282) { doc.addPage(); y = 18; }
+  const linhasRecado = (largura: number, tamanho: number) => {
+    if (!recado) return [];
+    fonte("normal", tamanho);
+    return doc.splitTextToSize(recado, largura - 9) as string[];
   };
-  const alturaPar = (a: LinhaValor[], b: LinhaValor[], barras: boolean) => 30 + Math.max(1, a.length, b.length) * (barras ? 9 : 7);
 
-  garantir(alturaPar(d.vendasDia, d.vendasMes, true));
-  const a1 = bloco(M, y, meia, rotuloPeriodo(d.diasVenda), "Vendas por forma de pagamento", d.vendasDia, "Total", true);
-  const a2 = bloco(M + meia + 5, y, meia, "Acumulado do mês", "Vendas por forma de pagamento", d.vendasMes, "Total do mês", true);
-  y += Math.max(a1, a2) + 6;
+  // altura de cada bloco para uma altura de linha rh
+  const hTabela = (n: number, rh: number) => 11 + 6 + Math.max(1, n) * rh + 3 + 7 + 4;
+  const hLista = (n: number, rh: number) => 11 + Math.max(1, n) * rh + 3 + 7 + 4;
+  const escala = (rh: number) => Math.max(0.78, Math.min(1, rh / 6.6));
+  const hRecado = (largura: number, rh: number) => 11 + linhasRecado(largura, 8.8 * escala(rh)).length * 8.8 * escala(rh) * 0.3528 * 1.35 + 6;
+  const larguraEquipe = recado ? meia : W;
+  const alturas = (rh: number) => {
+    const a = hTabela(formas.length, rh);
+    const b = Math.max(hLista(d.saldos.length, rh), hLista(d.aReceber.length, rh));
+    const c = Math.max(hLista(equipe.length, rh * 1.15), recado ? hRecado(meia, rh) : 0);
+    return { a, b, c, soma: a + 5 + b + 5 + c };
+  };
+  let rh = 8.4;
+  while (rh > 3.8 && y + alturas(rh).soma > FIM) rh -= 0.1;
+  const esc = escala(rh);
+  const tam = { linha: 8.6 * esc, valor: 8.8 * esc };
+  const H = alturas(rh);
 
-  garantir(alturaPar(d.saldos, d.aReceber, false));
-  const b1 = bloco(M, y, meia, "Saldos por conta", "Disponibilidade bancária", d.saldos, "Saldo total", false);
-  const b2 = bloco(M + meia + 5, y, meia, "Valores a receber", "Referências dos recebimentos", d.aReceber, "Total a receber", false);
-  y += Math.max(b1, b2) + 6;
+  // ===================== Vendas por forma de pagamento =====================
+  cartao(M, y, W, H.a);
+  titulo(M + 4, y + 7.6, "Vendas por forma de pagamento");
+  fonte("normal", 7.2); ink(C.suave);
+  doc.text(`${rotuloPeriodo(d.diasVenda)} e acumulado do mês`, M + W - 4, y + 7.6, { align: "right" });
+  // colunas: forma | dias... | período (se +1 dia) | no mês | barra % do mês
+  const colMes = M + W - 52, colBarra = M + W - 46, larguraBarra = 30;
+  const colsDias = d.diasVenda.length > 1
+    ? [...d.diasVenda.map((_, k) => colMes - 26 * (d.diasVenda.length + 1 - k)), colMes - 26]
+    : [colMes - 30];
+  let ty = y + 11;
+  fill(C.fundo); doc.roundedRect(M + 3, ty, W - 6, 6, 1.6, 1.6, "F");
+  fonte("bold", 6.4); ink(C.suave);
+  doc.text("FORMA", M + 6, ty + 4);
+  if (d.diasVenda.length > 1) {
+    d.diasVenda.forEach((dia, k) => doc.text(curtoDia(dia).toUpperCase(), colsDias[k], ty + 4, { align: "right" }));
+    doc.text("PERÍODO", colsDias[colsDias.length - 1], ty + 4, { align: "right" });
+  } else doc.text((d.diasVenda[0] ? curtoDia(d.diasVenda[0]) : "DIA").toUpperCase(), colsDias[0], ty + 4, { align: "right" });
+  doc.text("NO MÊS", colMes, ty + 4, { align: "right" });
+  doc.text("% DO MÊS", colBarra, ty + 4);
+  ty += 6;
+  if (!formas.length) { fonte("normal", tam.linha); ink(C.tenue); doc.text("Nada informado.", M + 6, ty + rh * 0.68); }
+  formas.forEach((f, i) => {
+    const base = ty + i * rh + rh * 0.68;
+    if (i > 0) { draw(C.linha); doc.setLineWidth(0.15); doc.line(M + 6, ty + i * rh, M + W - 6, ty + i * rh); }
+    fonte("normal", tam.linha); ink(C.preto); doc.text(corta(f.nome, colsDias[0] - (d.diasVenda.length > 1 ? 24 : 28) - (M + 6)), M + 6, base);
+    fonte("normal", tam.linha); ink(C.suave);
+    if (d.diasVenda.length > 1) f.dias.forEach((v, k) => doc.text(reais(v), colsDias[k], base, { align: "right" }));
+    fonte("bold", tam.valor); ink(C.preto);
+    doc.text(reais(f.periodo), colsDias[colsDias.length - 1], base, { align: "right" });
+    doc.text(reais(f.mes), colMes, base, { align: "right" });
+    const bh = Math.min(2.6, rh * 0.38), by = ty + i * rh + (rh - bh) / 2;
+    fill(C.azulClaro); doc.roundedRect(colBarra, by, larguraBarra, bh, bh / 2, bh / 2, "F");
+    if (t.vendasMes > 0 && f.mes > 0) { fill(i === 0 ? C.preto : C.azul); doc.roundedRect(colBarra, by, Math.max(bh, larguraBarra * (f.mes / t.vendasMes)), bh, bh / 2, bh / 2, "F"); }
+    fonte("bold", 7 * esc); ink(C.preto); doc.text(pct(f.mes, t.vendasMes), M + W - 6, base, { align: "right" });
+  });
+  {
+    const yt = y + H.a - 11;
+    fill(C.preto); doc.roundedRect(M + 3, yt, W - 6, 7, 2, 2, "F");
+    fonte("bold", 8.2); ink(C.branco); doc.text("Total", M + 6, yt + 4.7);
+    if (d.diasVenda.length > 1) { fonte("normal", 7.6); ink([200, 210, 210]); vendasPorDia(d).forEach((v, k) => doc.text(reais(v.valor), colsDias[k], yt + 4.7, { align: "right" })); }
+    fonte("bold", 8.2); ink(C.azul);
+    doc.text(reais(t.vendasDia), colsDias[colsDias.length - 1], yt + 4.7, { align: "right" });
+    doc.text(reais(t.vendasMes), colMes, yt + 4.7, { align: "right" });
+  }
+  y += H.a + 5;
 
-  garantir(30 + Math.max(1, d.vendedoras.length) * 9);
-  y += bloco(M, y, W, "Equipe comercial", "Vendas por vendedora no mês", [...d.vendedoras].sort((a, b) => b.valor - a.valor), "Total informado", true) + 6;
-
-  if (d.observacao.trim()) {
-    const texto = doc.splitTextToSize(d.observacao.trim(), W - 10) as string[];
-    garantir(16 + texto.length * 4.5);
-    fill(C.fundo);
-    doc.roundedRect(M, y, W, 12 + texto.length * 4.5, 3.5, 3.5, "F");
-    fonte("bold", 7); ink(C.verde700);
-    doc.text("OBSERVAÇÕES", M + 5, y + 7);
-    fonte("normal", 9); ink(C.tinta);
-    doc.text(texto, M + 5, y + 12.5);
+  // ===================== Listas =====================
+  function lista(x: number, yy: number, w: number, h: number, nome: string, linhas: LinhaValor[], rotuloTotal: string, alturaLinha: number, barras = false) {
+    cartao(x, yy, w, h);
+    titulo(x + 4, yy + 7.6, nome);
+    const y0 = yy + 11;
+    if (!linhas.length) { fonte("normal", tam.linha); ink(C.tenue); doc.text("Nada informado.", x + 6, y0 + alturaLinha * 0.68); }
+    const maior = Math.max(1, ...linhas.map((l) => l.valor));
+    const soma = linhas.reduce((s, l) => s + l.valor, 0);
+    linhas.forEach((l, i) => {
+      const topo = y0 + i * alturaLinha;
+      if (i > 0) { draw(C.linha); doc.setLineWidth(0.15); doc.line(x + 6, topo, x + w - 6, topo); }
+      const base = barras ? topo + alturaLinha * 0.5 : topo + alturaLinha * 0.68;
+      if (barras) {
+        fill(i === 0 ? C.preto : C.azulClaro); doc.circle(x + 7.6, topo + alturaLinha / 2, Math.min(2.5, alturaLinha * 0.32), "F");
+        fonte("bold", 6.4 * esc); ink(i === 0 ? C.azul : C.preto); doc.text(`${i + 1}`, x + 7.6, topo + alturaLinha / 2 + 0.9, { align: "center" });
+      }
+      const xNome = barras ? x + 11.5 : x + 6;
+      fonte("normal", tam.linha); ink(C.preto); doc.text(corta(l.nome, w * 0.55), xNome, base);
+      fonte("bold", tam.valor); doc.text(reais(l.valor), x + w - 6, base, { align: "right" });
+      if (barras) {
+        const larg = w - 6 - xNome - 14, bh = Math.min(1.8, alturaLinha * 0.22), by = topo + alturaLinha * 0.7;
+        fill(C.azulClaro); doc.roundedRect(xNome, by, larg, bh, bh / 2, bh / 2, "F");
+        fill(i === 0 ? C.preto : C.azul); doc.roundedRect(xNome, by, Math.max(bh, larg * (l.valor / maior)), bh, bh / 2, bh / 2, "F");
+        fonte("normal", 6.4 * esc); ink(C.suave); doc.text(pct(l.valor, soma), x + w - 6, by + bh, { align: "right" });
+      }
+    });
+    total(x + 3, yy + h - 11, w - 6, rotuloTotal, soma);
   }
 
-  // ---------- Rodapé ----------
-  const paginas = doc.getNumberOfPages();
-  for (let p = 1; p <= paginas; p++) {
-    doc.setPage(p);
-    draw(C.linha); doc.setLineWidth(0.25);
-    doc.line(M, 287, L - M, 287);
-    fonte("normal", 7.5); ink(C.tenue);
-    doc.text("Coreto Indústria e Comércio de Roupas · relatório gerado pelo sistema Coreto", M, 291.5);
-    doc.text(`Página ${p} de ${paginas}`, L - M, 291.5, { align: "right" });
+  lista(M, y, meia, H.b, "Saldo nos bancos", d.saldos, "Saldo total", rh);
+  lista(M + meia + 5, y, meia, H.b, "A receber", d.aReceber, "Total a receber", rh);
+  y += H.b + 5;
+
+  lista(M, y, larguraEquipe, H.c, "Equipe no mês", equipe, "Total da equipe", rh * 1.15, true);
+  if (recado) {
+    const x = M + meia + 5;
+    cartao(x, y, meia, H.c, [251, 241, 227]);
+    fill(C.preto); doc.roundedRect(x + 4, y + 4.7, 3.2, 3.2, 0.7, 0.7, "F");
+    fonte("bold", 10); ink(C.preto); doc.text("Recado para a Deborah", x + 9.2, y + 7.6);
+    const texto = linhasRecado(meia, 8.8 * esc);
+    ink([90, 62, 16]);
+    doc.text(texto, x + 4.5, y + 13.5, { lineHeightFactor: 1.35 });
   }
+
+  // ===================== Rodapé =====================
+  fill(C.azul); doc.rect(0, 293.5, L, 3.5, "F");
+  fonte("normal", 7); ink(C.tenue);
+  doc.text("Coreto Indústria e Comércio de Roupas · gerado pelo sistema Coreto", M, 290);
+  doc.text(new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }), L - M, 290, { align: "right" });
 
   return doc.output("blob");
 }
