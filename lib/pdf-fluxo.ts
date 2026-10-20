@@ -46,13 +46,20 @@ async function imagem(caminho: string): Promise<string | null> {
   }
 }
 
+/** "2026-10-20" → "Fluxo de caixa dia 20.10.26" */
+export function tituloDoPdf(data: string) {
+  const [ano, mes, dia] = data.split("-");
+  return `Fluxo de caixa dia ${dia}.${mes}.${ano.slice(2)}`;
+}
+
 export function nomeDoPdf(data: string) {
-  return `Fluxo financeiro Coreto ${data.split("-").reverse().join("-")}.pdf`;
+  return `${tituloDoPdf(data)}.pdf`;
 }
 
 export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   const { jsPDF, GState } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  doc.setProperties({ title: tituloDoPdf(d.data), subject: tituloDoPdf(d.data), author: "Coreto", creator: "Sistema Coreto" });
   const [nomeEscuro, flor] = await Promise.all([imagem("/coreto-nome-escuro.png"), imagem("/coreto-flor-branca.png")]);
   const t = totaisFluxo(d);
   const L = 210, M = 12, W = L - M * 2, FIM = 284;

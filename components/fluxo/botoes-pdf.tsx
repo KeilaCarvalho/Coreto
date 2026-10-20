@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Icone } from "@/components/icone";
-import { dataPorExtenso, type DadosFluxo } from "@/lib/fluxo";
+import type { DadosFluxo } from "@/lib/fluxo";
 
 /** Baixar o PDF do dia ou mandar para a Deborah pelo compartilhamento do celular (WhatsApp). */
 export function BotoesPdf({ dados }: { dados: DadosFluxo | null }) {
@@ -44,10 +44,11 @@ export function BotoesPdf({ dados }: { dados: DadosFluxo | null }) {
   async function enviarDeborah() {
     const arquivo = await gerar();
     if (!arquivo || !dados) return;
-    const texto = `Fluxo financeiro Coreto: ${dataPorExtenso(dados.data)}`;
+    const { tituloDoPdf } = await import("@/lib/pdf-fluxo");
+    const texto = tituloDoPdf(dados.data);
     if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [arquivo] })) {
       try {
-        await navigator.share({ files: [arquivo], title: "Fluxo financeiro Coreto", text: texto });
+        await navigator.share({ files: [arquivo], title: texto, text: texto });
         setAviso({ tipo: "ok", texto: "Pronto. Escolha o WhatsApp e a conversa da Deborah." });
         return;
       } catch (e) {
