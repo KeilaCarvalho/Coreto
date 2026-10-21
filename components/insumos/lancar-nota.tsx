@@ -11,15 +11,23 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 const dataBR = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "");
 const nova = (): Linha => ({ nome: "", tipo: "tecido", unidade: "m", quantidade: "", valor: "" });
 
-/** Campos da nota de compra: cabeçalho e itens. Vai para o servidor em JSON no campo "nota". */
-export function CamposNota({ insumos, hoje }: { insumos: InsumoSalvo[]; hoje: string }) {
-  const [semNota, setSemNota] = useState(false);
+export type NotaInicial = {
+  sem_nota: boolean; numero: string; fornecedor: string; data: string; observacao: string; temArquivo: boolean;
+  itens: { nome: string; tipo: InsumoSalvo["tipo"]; unidade: string; quantidade: number; valor_unitario: number }[];
+};
+const campo = (n: number) => String(n).replace(".", ",");
+
+/** Campos da nota de compra: cabeçalho e itens. Vai para o servidor em JSON no campo "nota". Com "inicial", edita uma nota lançada. */
+export function CamposNota({ insumos, hoje, inicial }: { insumos: InsumoSalvo[]; hoje: string; inicial?: NotaInicial }) {
+  const [semNota, setSemNota] = useState(inicial?.sem_nota ?? false);
   const [arquivo, setArquivo] = useState<string | null>(null);
-  const [numero, setNumero] = useState("");
-  const [fornecedor, setFornecedor] = useState("");
-  const [data, setData] = useState(hoje);
-  const [observacao, setObservacao] = useState("");
-  const [linhas, setLinhas] = useState<Linha[]>([nova()]);
+  const [numero, setNumero] = useState(inicial?.numero ?? "");
+  const [fornecedor, setFornecedor] = useState(inicial?.fornecedor ?? "");
+  const [data, setData] = useState(inicial?.data ?? hoje);
+  const [observacao, setObservacao] = useState(inicial?.observacao ?? "");
+  const [linhas, setLinhas] = useState<Linha[]>(inicial?.itens.length
+    ? inicial.itens.map((i) => ({ nome: i.nome, tipo: i.tipo, unidade: i.unidade, quantidade: inicial.sem_nota && i.quantidade === 1 ? "" : campo(i.quantidade), valor: campo(i.valor_unitario) }))
+    : [nova()]);
   const achar = (nome: string) => insumos.find((i) => i.nome.trim().toLowerCase() === nome.trim().toLowerCase());
 
   const mudar = (k: number, campo: keyof Linha, valor: string) => setLinhas((ls) => ls.map((l, j) => {
@@ -61,7 +69,7 @@ export function CamposNota({ insumos, hoje }: { insumos: InsumoSalvo[]; hoje: st
           <label className="anexo-nota">
             <input type="file" name="arquivo" accept="application/pdf,image/*" onChange={(e) => setArquivo(e.target.files?.[0]?.name ?? null)} />
             <Icone nome="arquivo" />
-            <span><b>{arquivo ?? "Anexar PDF ou foto da nota"}</b><small>{arquivo ? "Toque para trocar" : "No celular, dá para tirar a foto na hora"}</small></span>
+            <span><b>{arquivo ?? (inicial?.temArquivo ? "Trocar o PDF ou a foto da nota" : "Anexar PDF ou foto da nota")}</b><small>{arquivo ? "Toque para trocar" : inicial?.temArquivo ? "O arquivo atual continua se você não trocar" : "No celular, dá para tirar a foto na hora"}</small></span>
           </label>
         )}
       </div>

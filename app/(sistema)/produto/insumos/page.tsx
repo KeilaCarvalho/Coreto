@@ -7,24 +7,24 @@ import { Icone } from "@/components/icone";
 import { Kpi } from "@/components/painel";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
-import { CamposNota, type InsumoSalvo } from "@/components/insumos/lancar-nota";
+import { CamposNota, type InsumoSalvo, type NotaInicial } from "@/components/insumos/lancar-nota";
 import { dataCurta, numero, quando, reais } from "@/lib/formatos";
-import { excluirNota, registrarNota } from "./acoes";
+import { editarInsumo, editarNota, excluirNota, registrarNota } from "./acoes";
 
 export const metadata = { title: "Notas e insumos" };
 
 type Insumo = InsumoSalvo & { id: string; ultimo_fornecedor: string | null };
 type Nota = { id: string; numero: string | null; fornecedor: string | null; sem_nota: boolean; arquivo: string | null; emitida_em: string; valor_total: number; observacao: string | null; criado_em: string; nota_compra_itens: { count: number }[] };
-type ItemHist = { quantidade: number; unidade: string | null; valor_unitario: number; notas_compra: { numero: string | null; fornecedor: string | null; sem_nota: boolean; emitida_em: string } | null };
+type ItemHist = { quantidade: number; unidade: string | null; valor_unitario: number; notas_compra: { id: string; numero: string | null; fornecedor: string | null; sem_nota: boolean; emitida_em: string } | null };
 type ItemNota = { quantidade: number; unidade: string | null; valor_unitario: number; insumos: { nome: string } | null };
 
 const TIPO = { tecido: "Tecido", aviamento: "Aviamento", outro: "Outro" } as const;
 const hojeSP = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 const uuid = /^[0-9a-f-]{36}$/i;
 
-export default async function Insumos({ searchParams }: { searchParams: Promise<{ ver?: string; q?: string; lancar?: string; insumo?: string; nota?: string }> }) {
+export default async function Insumos({ searchParams }: { searchParams: Promise<{ ver?: string; q?: string; lancar?: string; insumo?: string; nota?: string; editar?: string }> }) {
   const sessao = await exigir("produto", "editar");
-  const { ver = "insumos", q = "", insumo: insumoId, nota: notaId } = await searchParams;
+  const { ver = "insumos", q = "", insumo: insumoId, nota: notaId, editar: editarId } = await searchParams;
   const supabase = await supabaseServidor();
 
   const [{ data: insR, error: erroTabela }, { data: notasR }] = await Promise.all([
@@ -44,7 +44,7 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
   let historico: ItemHist[] = [];
   if (insumoId && uuid.test(insumoId)) {
     insumoAberto = insumos.find((i) => i.id === insumoId);
-    const { data } = await supabase.from("nota_compra_itens").select("quantidade, unidade, valor_unitario, notas_compra(numero, fornecedor, sem_nota, emitida_em)").eq("insumo_id", insumoId).limit(100);
+    const { data } = await supabase.from("nota_compra_itens").select("quantidade, unidade, valor_unitario, notas_compra(id, numero, fornecedor, sem_nota, emitida_em)").eq("insumo_id", insumoId).limit(100);
     historico = ((data ?? []) as unknown as ItemHist[]).sort((a, b) => (b.notas_compra?.emitida_em ?? "").localeCompare(a.notas_compra?.emitida_em ?? ""));
   }
   // janela de uma nota: itens
@@ -59,6 +59,21 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
     }
     const { data } = await supabase.from("nota_compra_itens").select("quantidade, unidade, valor_unitario, insumos(nome)").eq("nota_id", notaId).order("ordem");
     itensNota = (data ?? []) as unknown as ItemNota[];
+  }
+  // janela de corrigir um lançamento
+  let notaEditar: Nota | undefined;
+  let inicialEditar: NotaInicial | undefined;
+  if (editarId && uuid.test(editarId)) {
+    notaEditar = notas.find((n) => n.id === editarId);
+    if (notaEditar) {
+      const { data } = await supabase.from("nota_compra_itens").select("quantidade, unidade, valor_unitario, insumos(nome, tipo, unidade)").eq("nota_id", editarId).order("ordem");
+      const itens = (data ?? []) as unknown as { quantidade: number; unidade: string | null; valor_unitario: number; insumos: { nome: string; tipo: InsumoSalvo["tipo"]; unidade: string } | null }[];
+      inicialEditar = {
+        sem_nota: notaEditar.sem_nota, numero: notaEditar.numero ?? "", fornecedor: notaEditar.fornecedor ?? "", data: notaEditar.emitida_em,
+        observacao: notaEditar.observacao ?? "", temArquivo: !!notaEditar.arquivo,
+        itens: itens.map((i) => ({ nome: i.insumos?.nome ?? "", tipo: i.insumos?.tipo ?? "aviamento", unidade: i.unidade ?? i.insumos?.unidade ?? "un", quantidade: Number(i.quantidade), valor_unitario: Number(i.valor_unitario) })),
+      };
+    }
   }
   const base = `/produto/insumos?ver=${ver}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
   const podeApagar = sessao.pode("produto", "editar");
@@ -146,6 +161,20 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
       {insumoAberto && (
         <Suspense>
           <JanelaLateral param="insumo" valor={insumoAberto.id} titulo={insumoAberto.nome} subtitulo={`${TIPO[insumoAberto.tipo]} · preço por ${insumoAberto.unidade}`}>
+            <details className="bloco-janela editar-item">
+              <summary><Icone nome="lapis" />Editar item<small>nome, tipo e unidade</small></summary>
+              <FormAcao acao={editarInsumo}>
+                <input type="hidden" name="id" value={insumoAberto.id} />
+                <div className="campos duas" style={{ marginTop: 12 }}>
+                  <div className="campo inteiro" style={{ gridColumn: "1 / -1" }}><label htmlFor="ed-nome">Nome</label><input id="ed-nome" name="nome" defaultValue={insumoAberto.nome} required /></div>
+                  <div className="campo"><label htmlFor="ed-tipo">Tipo</label>
+                    <select id="ed-tipo" name="tipo" defaultValue={insumoAberto.tipo}><option value="tecido">Tecido</option><option value="aviamento">Aviamento</option><option value="outro">Outro</option></select>
+                  </div>
+                  <div className="campo"><label htmlFor="ed-unidade">Unidade</label><input id="ed-unidade" name="unidade" defaultValue={insumoAberto.unidade} required placeholder="m, un, kg" /></div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}><BotaoEnviar>Salvar item</BotaoEnviar></div>
+              </FormAcao>
+            </details>
             <div className="bloco-janela">
               <h3>Último preço pago</h3>
               <p>{insumoAberto.ultimo_preco_em ? `Nota de ${dataCurta(insumoAberto.ultimo_preco_em)} · ${insumoAberto.ultimo_fornecedor}` : "Ainda sem nota"}</p>
@@ -157,7 +186,7 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
               <ul className="lista-simples">
                 {historico.map((h, k) => (
                   <li key={k}>
-                    <span>{dataCurta(h.notas_compra?.emitida_em)} · {h.notas_compra?.fornecedor ?? "Sem nota"}{h.notas_compra?.sem_nota && h.notas_compra.fornecedor ? " (sem nota)" : ""}{h.notas_compra?.numero ? ` · nº ${h.notas_compra.numero}` : ""}<br /><span className="mini">{String(h.quantidade).replace(".", ",")} {h.unidade ?? insumoAberto!.unidade}</span></span>
+                    <span>{h.notas_compra && <Link className="linha-link" href={`${base}&nota=${h.notas_compra.id}`} scroll={false}>{dataCurta(h.notas_compra.emitida_em)}</Link>}{!h.notas_compra && dataCurta(null)} · {h.notas_compra?.fornecedor ?? "Sem nota"}{h.notas_compra?.sem_nota && h.notas_compra.fornecedor ? " (sem nota)" : ""}{h.notas_compra?.numero ? ` · nº ${h.notas_compra.numero}` : ""}<br /><span className="mini">{String(h.quantidade).replace(".", ",")} {h.unidade ?? insumoAberto!.unidade}</span></span>
                     <strong>{reais(Number(h.valor_unitario))}</strong>
                   </li>
                 ))}
@@ -175,6 +204,7 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
                 <Icone nome="arquivo" /><span><b>Ver {notaAberta.arquivo?.endsWith(".pdf") ? "o PDF" : "a foto"} da nota</b><small>Abre em outra aba</small></span>
               </a>
             )}
+            <Link className="botao secundario" style={{ marginBottom: 14 }} href={`${base}&editar=${notaAberta.id}`} scroll={false}><Icone nome="lapis" />Corrigir lançamento</Link>
             <div className="bloco-janela">
               <h3>Itens</h3>
               <ul className="lista-simples">
@@ -197,6 +227,18 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
                 </div>
               </FormAcao>
             )}
+          </JanelaLateral>
+        </Suspense>
+      )}
+
+      {notaEditar && inicialEditar && (
+        <Suspense>
+          <JanelaLateral param="editar" valor={notaEditar.id} titulo="Corrigir lançamento" subtitulo="Mude o que precisar: fornecedor, data, itens e preços" larga>
+            <FormAcao acao={editarNota}>
+              <input type="hidden" name="id" value={notaEditar.id} />
+              <CamposNota insumos={insumos} hoje={hojeSP()} inicial={inicialEditar} />
+              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar enviando="Salvando…">Salvar correção</BotaoEnviar></div>
+            </FormAcao>
           </JanelaLateral>
         </Suspense>
       )}

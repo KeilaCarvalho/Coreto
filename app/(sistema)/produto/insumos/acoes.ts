@@ -73,3 +73,93 @@ export async function excluirNota(_: EstadoAcao, dados: FormData): Promise<Estad
   revalidatePath("/produto/insumos");
   return { ok: "Nota apagada. Os preços voltaram para os da nota anterior." };
 }
+
+const hojeSP = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+const uuid = /^[0-9a-f-]{36}$/i;
+
+/** Corrige uma nota lançada: dados da nota, itens e preços. Os preços dos itens afetados são recalculados. */
+export async function editarNota(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const id = String(dados.get("id") ?? "");
+  if (!uuid.test(id)) return { erro: "Nota inválida." };
+  let bruto: unknown;
+  try { bruto = JSON.parse(String(dados.get("nota") ?? "")); } catch { return { erro: "Não consegui ler a nota." }; }
+  const lido = Nota.safeParse(bruto);
+  if (!lido.success) return { erro: lido.error.issues[0].message };
+  const n = lido.data;
+  if (!n.sem_nota && !n.fornecedor) return { erro: "Informe o fornecedor da nota." };
+  if (n.data > hojeSP()) return { erro: "A data da nota não pode ser no futuro." };
+  const supabase = await supabaseServidor();
+
+  const { data: atual } = await supabase.from("notas_compra").select("arquivo").eq("id", id).maybeSingle();
+  if (!atual) return { erro: "Nota não encontrada." };
+
+  // Arquivo novo (opcional): troca o anterior.
+  let caminho: string | null = null;
+  const arquivo = dados.get("arquivo");
+  if (arquivo instanceof File && arquivo.size > 0) {
+    if (arquivo.size > 10 * 1024 * 1024) return { erro: "O arquivo passa de 10 MB." };
+    const tipo = arquivo.type || "application/octet-stream";
+    if (!/^(application\/pdf|image\/(jpeg|png|webp|heic))$/.test(tipo)) return { erro: "Mande a nota em PDF ou foto (JPG ou PNG)." };
+    caminho = `${n.data.slice(0, 7)}/${crypto.randomUUID()}.${tipo === "application/pdf" ? "pdf" : tipo.split("/")[1].replace("jpeg", "jpg")}`;
+    const { error } = await supabase.storage.from("notas").upload(caminho, arquivo, { contentType: tipo });
+    if (error) return { erro: "Não consegui guardar o arquivo da nota: " + error.message };
+  }
+
+  // Insumos: reaproveita pelo nome (sem diferenciar maiúsculas) ou cria.
+  const { data: existentes } = await supabase.from("insumos").select("id, nome").is("arquivado_em", null);
+  const porNome = new Map((existentes ?? []).map((i) => [i.nome.trim().toLowerCase(), i.id as string]));
+  const novosItens: { nota_id: string; ordem: number; insumo_id: string; quantidade: number; unidade: string | null; valor_unitario: number }[] = [];
+  for (const [k, item] of n.itens.entries()) {
+    let insumo = porNome.get(item.nome.toLowerCase());
+    if (!insumo) {
+      const { data: criado, error } = await supabase.from("insumos").insert({ nome: item.nome, tipo: item.tipo, unidade: item.unidade || "un" }).select("id").single();
+      if (error) return { erro: mensagem(error.message) };
+      insumo = criado.id as string;
+      porNome.set(item.nome.toLowerCase(), insumo);
+    }
+    novosItens.push({ nota_id: id, ordem: k + 1, insumo_id: insumo, quantidade: item.quantidade, unidade: item.unidade || null, valor_unitario: item.valor_unitario });
+  }
+
+  const { data: antigos } = await supabase.from("nota_compra_itens").select("id, insumo_id").eq("nota_id", id);
+  const { error: erroNota } = await supabase.from("notas_compra").update({
+    numero: n.sem_nota ? null : n.numero || null, fornecedor: n.fornecedor || null, emitida_em: n.data, observacao: n.observacao.trim() || null,
+    sem_nota: n.sem_nota, valor_total: Math.round(n.itens.reduce((t, i) => t + i.quantidade * i.valor_unitario, 0) * 100) / 100,
+    ...(caminho ? { arquivo: caminho } : {}),
+  }).eq("id", id);
+  if (erroNota) return { erro: mensagem(erroNota.message) };
+  const { error: erroInserir } = await supabase.from("nota_compra_itens").insert(novosItens);
+  if (erroInserir) return { erro: mensagem(erroInserir.message) };
+  const idsAntigos = (antigos ?? []).map((a) => a.id as string);
+  if (idsAntigos.length) {
+    const { error } = await supabase.from("nota_compra_itens").delete().in("id", idsAntigos);
+    if (error) return { erro: mensagem(error.message) };
+  }
+  const afetados = new Set([...(antigos ?? []).map((a) => a.insumo_id as string), ...novosItens.map((i) => i.insumo_id)]);
+  for (const ins of afetados) await supabase.rpc("recalcular_insumo", { p_insumo: ins });
+  if (caminho && atual.arquivo) await supabase.storage.from("notas").remove([atual.arquivo]);
+
+  revalidatePath("/produto/insumos");
+  revalidatePath("/produto/precificacao");
+  return { ok: "Lançamento corrigido. Os preços dos itens foram atualizados." };
+}
+
+const InsumoEdicao = z.object({
+  nome: z.string().trim().min(1, "Informe o nome do item.").max(120),
+  tipo: z.enum(["tecido", "aviamento", "outro"]),
+  unidade: z.string().trim().min(1, "Informe a unidade.").max(10),
+});
+
+/** Corrige nome, tipo ou unidade de um item. */
+export async function editarInsumo(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const id = String(dados.get("id") ?? "");
+  if (!uuid.test(id)) return { erro: "Item inválido." };
+  const lido = InsumoEdicao.safeParse({ nome: dados.get("nome"), tipo: dados.get("tipo"), unidade: dados.get("unidade") });
+  if (!lido.success) return { erro: lido.error.issues[0].message };
+  const supabase = await supabaseServidor();
+  const { data, error } = await supabase.from("insumos").update(lido.data).eq("id", id).select("id");
+  if (error) return { erro: error.message.includes("insumos_nome_unico") ? "Já existe outro item com esse nome." : mensagem(error.message) };
+  if (!data?.length) return { erro: "Seu perfil não pode editar itens." };
+  revalidatePath("/produto/insumos");
+  revalidatePath("/produto/precificacao");
+  return { ok: `Item “${lido.data.nome}” salvo.` };
+}

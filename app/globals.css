@@ -759,3 +759,7 @@ details > summary::-webkit-details-marker { display: none; }
 .escolha-liberar button b { font-size: 14px; color: var(--tinta); }
 .escolha-liberar button.marcada { border-color: var(--tinta); background: var(--verde-50); box-shadow: 0 3px 0 var(--tinta); }
 .nota-linha.sem-qtd > :nth-child(3), .nota-linha.sem-qtd > :nth-child(6) { visibility: hidden; }
+.editar-item summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; font-size: 14px; list-style: none; }
+.editar-item summary::-webkit-details-marker { display: none; }
+.editar-item summary small { font-weight: 500; color: var(--suave); font-size: 12px; margin-left: auto; }
+.editar-item[open] summary { margin-bottom: 4px; }
