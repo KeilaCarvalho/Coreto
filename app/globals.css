@@ -692,3 +692,43 @@ details > summary::-webkit-details-marker { display: none; }
 .escolha-liberar label:has(input:checked) { border-color: var(--tinta); background: var(--verde-50); box-shadow: 0 3px 0 var(--tinta); }
 .escolha-liberar input { position: absolute; opacity: 0; pointer-events: none; }
 @media (max-width: 600px) { .escolha-liberar { grid-template-columns: 1fr; } }
+
+/* precificação */
+.fx-janela.larga { width: min(860px, 100%); }
+.ficha-grupo { border: 1px solid var(--linha); border-radius: 14px; padding: 12px; margin-bottom: 10px; background: var(--superficie-2); }
+.ficha-grupo-topo { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.ficha-grupo-topo b { font-size: 13.5px; }
+.ficha-grupo-topo span { font-size: 12px; color: var(--suave); }
+.ficha-linha { display: grid; grid-template-columns: minmax(0, 1fr) 70px 64px 104px 96px 34px; gap: 6px; align-items: center; margin-bottom: 6px; }
+.ficha-linha.cab { font-size: 10.5px; font-weight: 700; color: var(--tenue); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+.ficha-linha.cab span:nth-child(n+2) { text-align: right; }
+.ficha-linha.cab span:nth-child(3) { text-align: left; }
+.ficha-linha .fx-in { min-height: 38px; background: var(--superficie); }
+.ficha-total { text-align: right; font-size: 13px; white-space: nowrap; }
+.ficha-grupo-pe { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-weight: 700; font-size: 13.5px; }
+.ficha-taxas { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.ficha-taxas label { display: grid; gap: 4px; font-size: 12.5px; font-weight: 600; }
+.ficha-taxas small { font-size: 11px; color: var(--suave); font-weight: 500; }
+.ficha-pct { position: relative; }
+.ficha-pct input { padding-right: 26px; }
+.ficha-pct i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--suave); font-weight: 600; }
+.ficha-sugestao { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 10px; margin-bottom: 14px; }
+.ficha-sugestao div { padding: 12px 14px; border-radius: 14px; background: var(--superficie-2); border: 1px solid var(--linha); display: grid; gap: 2px; }
+.ficha-sugestao span { font-size: 12px; color: var(--suave); font-weight: 600; }
+.ficha-sugestao b { font-size: 19px; letter-spacing: -.02em; }
+.ficha-sugestao .destaque { background: var(--gradiente-azul); border-color: var(--tinta); box-shadow: 0 3px 0 var(--tinta); }
+.ficha-sugestao .destaque span { color: #0d3a3b; }
+.ficha-preco { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
+.ficha-preco label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; align-content: start; }
+.ficha-preco .fx-in.grande { min-height: 52px; font-size: 22px; font-weight: 700; }
+.ficha-preco .botao-link { justify-self: start; font-size: 12.5px; }
+.ficha-resumo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 4px 22px 22px; }
+.ficha-resumo div { padding: 14px 16px; border-radius: 16px; background: var(--superficie-2); border: 1px solid var(--linha); display: grid; gap: 2px; }
+.ficha-resumo span { font-size: 12px; color: var(--suave); font-weight: 600; }
+.ficha-resumo b { font-size: 20px; letter-spacing: -.02em; }
+@media (max-width: 900px) {
+  .ficha-taxas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ficha-sugestao, .ficha-preco, .ficha-resumo { grid-template-columns: 1fr 1fr; }
+  .ficha-linha { grid-template-columns: minmax(0, 1fr) 60px 52px 86px 30px; }
+  .ficha-linha .ficha-total, .ficha-linha.cab span:nth-child(5) { display: none; }
+}

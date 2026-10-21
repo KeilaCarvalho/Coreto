@@ -12,8 +12,8 @@ export const useFecharJanela = () => useContext(FecharJanela);
  * Janela lateral de inclusão/edição. Abre quando a URL tem ?<param>=<valor>
  * (valor "*" abre com qualquer valor). Fechar tira o parâmetro da URL e volta para a tela normal.
  */
-export function JanelaLateral({ param, valor = "1", limpar = [], titulo, subtitulo, children }: {
-  param: string; valor?: string; limpar?: string[]; titulo: string; subtitulo?: string; children: React.ReactNode;
+export function JanelaLateral({ param, valor = "1", limpar = [], titulo, subtitulo, larga = false, children }: {
+  param: string; valor?: string; limpar?: string[]; titulo: string; subtitulo?: string; larga?: boolean; children: React.ReactNode;
 }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -42,7 +42,7 @@ export function JanelaLateral({ param, valor = "1", limpar = [], titulo, subtitu
   return (
     <FecharJanela.Provider value={fechar}>
       <div className="fx-janela-fundo" onMouseDown={(e) => { if (e.target === e.currentTarget) fechar(); }}>
-        <div className="fx-janela" role="dialog" aria-modal="true" aria-label={titulo}>
+        <div className={`fx-janela${larga ? " larga" : ""}`} role="dialog" aria-modal="true" aria-label={titulo}>
           <div className="fx-janela-topo">
             <div><h2>{titulo}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
             <button type="button" className="icone-botao" onClick={() => fechar()} aria-label="Fechar"><Icone nome="fechar" /></button>

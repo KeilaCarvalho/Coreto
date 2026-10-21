@@ -139,11 +139,12 @@ export async function salvarFicha(_: EstadoAcao, dados: FormData): Promise<Estad
   revalidatePath(`/produto/precificacao/${id}`);
   revalidatePath(`/produto/catalogo/${id}`);
   revalidatePath("/producao/recebimentos");
+  revalidatePath("/producao/recebimentos/[id]", "page");
   if (/^[0-9a-f-]{36}$/i.test(voltar) && preco != null) {
     revalidatePath(`/producao/recebimentos/${voltar}`);
     redirect(`/producao/recebimentos/${voltar}`);
   }
-  return { ok: preco != null ? "Ficha e preço salvos." : "Ficha salva. O preço de venda continua o mesmo." };
+  return { ok: preco != null ? "Preço salvo. Se tiver peças esperando, já dá para liberar." : "Ficha salva. O preço de venda continua o mesmo." };
 }
 
 export async function salvarPercentuaisPadrao(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {

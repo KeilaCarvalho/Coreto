@@ -4,7 +4,10 @@ import { supabaseServidor } from "@/lib/supabase/server";
 import { Cabecalho, Vazio } from "@/components/cabecalho";
 import { Icone } from "@/components/icone";
 import { Kpi } from "@/components/painel";
+import { Suspense } from "react";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
+import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
+import { JanelaFicha } from "@/components/precificacao/janela-ficha";
 import { numero, reais } from "@/lib/formatos";
 import { salvarPercentuaisPadrao } from "../acoes";
 
@@ -19,9 +22,9 @@ type Config = { simples: number; cartao: number; comissao: number; despesas_fixa
 const pct = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 const campo = (v: number) => String(v).replace(".", ",");
 
-export default async function Precificacao({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+export default async function Precificacao({ searchParams }: { searchParams: Promise<{ ver?: string; precificar?: string; padrao?: string }> }) {
   const sessao = await exigir("produto", "editar");
-  const { ver = "todos" } = await searchParams;
+  const { ver = "todos", precificar } = await searchParams;
   const supabase = await supabaseServidor();
   const [{ data }, { data: cfg }, { data: aguardando }] = await Promise.all([
     supabase.from("produtos").select("id, referencia, nome, preco_venda, custo_previsto, fichas_custo(simples, cartao, comissao, despesas_fixas, preco_sugerido)").is("arquivado_em", null).order("referencia"),
@@ -47,7 +50,9 @@ export default async function Precificacao({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <Cabecalho titulo="Precificação" descricao="Custo de cada peça e o preço que cobre impostos, taxas, despesas e o lucro que você quer." />
+      <Cabecalho titulo="Precificação" descricao="Custo de cada peça e o preço que cobre impostos, taxas, despesas e o lucro que você quer."
+        acoes={podePadrao && <Link className="botao leve" href={`/produto/precificacao?ver=${ver}&padrao=1`} scroll={false}><Icone nome="lapis" />Percentuais padrão</Link>} />
+      <Suspense><AvisoDaUrl /></Suspense>
       <div className="kpis">
         <Kpi destaque titulo="Sem preço" valor={numero(semPreco.length)} nota={esperando.size ? `${esperando.size} com peças esperando` : "modelos sem preço de venda"} href="/produto/precificacao?ver=sem_preco" />
         <Kpi titulo="Sem ficha de custo" valor={numero(semFicha.length)} nota="custo ainda não calculado" href="/produto/precificacao?ver=sem_ficha" />
@@ -72,7 +77,7 @@ export default async function Precificacao({ searchParams }: { searchParams: Pro
                   {lista.map((p) => (
                     <tr key={p.id}>
                       <td>
-                        <Link className="linha-link" href={`/produto/precificacao/${p.id}`}>{p.nome}</Link>
+                        <Link className="linha-link" href={`/produto/precificacao?ver=${ver}&precificar=${p.id}`} scroll={false}>{p.nome}</Link>
                         <div className="mini">{p.referencia}{p.esperando ? ` · ${numero(p.esperando)} peças esperando preço` : ""}</div>
                       </td>
                       <td className="num">{p.fichas_custo ? reais(p.custo_previsto) : <span className="etiqueta neutra">sem ficha</span>}</td>
@@ -90,29 +95,38 @@ export default async function Precificacao({ searchParams }: { searchParams: Pro
         <section className="painel">
           <div className="painel-topo"><div><h2>Percentuais padrão</h2><p>Usados em toda ficha nova. Cada ficha pode ter os seus.</p></div></div>
           <div className="painel-corpo">
-            {podePadrao ? (
-              <FormAcao acao={salvarPercentuaisPadrao} className="campos">
-                {([["simples", "Simples Nacional"], ["cartao", "Taxa do cartão"], ["comissao", "Comissão"], ["despesas_fixas", "Despesas fixas"], ["lucro_desejado", "Lucro desejado"]] as const).map(([k, r]) => (
-                  <div className="campo" key={k}>
-                    <label htmlFor={`padrao-${k}`}>{r} (%)</label>
-                    <input id={`padrao-${k}`} name={k} inputMode="decimal" defaultValue={campo(config[k])} />
-                  </div>
-                ))}
-                <BotaoEnviar>Salvar percentuais</BotaoEnviar>
-              </FormAcao>
-            ) : (
-              <ul className="lista-simples">
-                <li>Simples <strong>{pct(config.simples)}</strong></li>
-                <li>Cartão <strong>{pct(config.cartao)}</strong></li>
-                <li>Comissão <strong>{pct(config.comissao)}</strong></li>
-                <li>Despesas fixas <strong>{pct(config.despesas_fixas)}</strong></li>
-                <li>Lucro desejado <strong>{pct(config.lucro_desejado)}</strong></li>
-              </ul>
-            )}
+            <ul className="lista-simples">
+              <li>Simples Nacional <strong>{pct(config.simples)}</strong></li>
+              <li>Taxa do cartão <strong>{pct(config.cartao)}</strong></li>
+              <li>Comissão <strong>{pct(config.comissao)}</strong></li>
+              <li>Despesas fixas <strong>{pct(config.despesas_fixas)}</strong></li>
+              <li>Lucro desejado <strong>{pct(config.lucro_desejado)}</strong></li>
+            </ul>
             <p className="mini" style={{ marginTop: 14 }}><Icone nome="alerta" tamanho={14} /> Confirme a alíquota do Simples e o percentual de despesas fixas com a contabilidade.</p>
           </div>
         </section>
       </div>
+
+      {precificar && /^[0-9a-f-]{36}$/i.test(precificar) && (
+        <Suspense><JanelaFicha produtoId={precificar} param="precificar" valor={precificar} /></Suspense>
+      )}
+      {podePadrao && (
+        <Suspense>
+          <JanelaLateral param="padrao" titulo="Percentuais padrão" subtitulo="Vêm preenchidos em toda precificação nova. Cada modelo pode ter os seus.">
+            <FormAcao acao={salvarPercentuaisPadrao}>
+              <div className="bloco-janela">
+                <div className="ficha-taxas" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                  {([["simples", "Simples Nacional"], ["cartao", "Taxa do cartão"], ["comissao", "Comissão"], ["despesas_fixas", "Despesas fixas"], ["lucro_desejado", "Lucro desejado"]] as const).map(([k, r]) => (
+                    <label key={k}><span>{r}</span><div className="ficha-pct"><input className="fx-in valor" name={k} inputMode="decimal" defaultValue={campo(config[k])} /><i>%</i></div></label>
+                  ))}
+                </div>
+                <p className="mini" style={{ marginTop: 12 }}>Confirme a alíquota do Simples e o percentual de despesas fixas com a contabilidade.</p>
+              </div>
+              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar>Salvar percentuais</BotaoEnviar></div>
+            </FormAcao>
+          </JanelaLateral>
+        </Suspense>
+      )}
     </>
   );
 }

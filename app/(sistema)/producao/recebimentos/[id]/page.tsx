@@ -10,6 +10,7 @@ import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { GradeQuantidades, type CelulaGrade } from "@/components/grade-quantidades";
 import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
 import { EscolhaLiberar } from "@/components/recebimento/campos";
+import { JanelaFicha } from "@/components/precificacao/janela-ficha";
 import { montarGrade, ordenarTamanhos, SITUACAO, type VarianteGrade } from "@/lib/grade";
 import { ROTULO_TIPO } from "@/lib/estoque";
 import { dataCurta, numero, quando, reais } from "@/lib/formatos";
@@ -29,10 +30,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: data ? `Lote nº ${data.numero}` : "Lote" };
 }
 
-export default async function Lote({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ registrado?: string }> }) {
+export default async function Lote({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ registrado?: string; acao?: string }> }) {
   const sessao = await exigir("producao");
   const { id } = await params;
-  const { registrado } = await searchParams;
+  const { registrado, acao } = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const supabase = await supabaseServidor();
   const { data } = await supabase.from("recebimentos_resumo").select("*").eq("id", id).maybeSingle();
@@ -64,7 +65,7 @@ export default async function Lote({ params, searchParams }: { params: Promise<{
   const podeLiberar = sessao.pode("producao", "aprovar");
   const podeEditar = sessao.pode("producao", "editar") || sessao.pode("estoque", "criar");
   const podePrecificar = sessao.pode("produto", "editar");
-  const linkPrecificar = `/produto/precificacao/${lote.produto_id}?voltar=${lote.id}`;
+  const linkPrecificar = `/producao/recebimentos/${lote.id}?acao=precificar`;
   const base = `/producao/recebimentos/${lote.id}`;
   const semPreco = lote.preco_venda == null;
   const pLib = lote.recebido ? (lote.liberado / lote.recebido) * 100 : 0;
@@ -80,7 +81,7 @@ export default async function Lote({ params, searchParams }: { params: Promise<{
           {podeEditar && <Link className="botao leve" href={`${base}?acao=complemento`} scroll={false}><Icone nome="entrada" />Chegou o que faltava</Link>}
           {podeEditar && lote.aguardando > 0 && !lote.pendente && <Link className="botao secundario" href={`${base}?acao=pendencia`} scroll={false}><Icone nome="alerta" />Segurar o lote</Link>}
           {podeLiberar && lote.aguardando > 0 && !semPreco && <Link className="botao" href={`${base}?acao=liberar`} scroll={false}><Icone nome="certo" />Liberar peças</Link>}
-          {semPreco && lote.aguardando > 0 && podePrecificar && <Link className="botao" href={linkPrecificar}><Icone nome="cifrao" />Precificar</Link>}
+          {semPreco && lote.aguardando > 0 && podePrecificar && <Link className="botao" href={linkPrecificar} scroll={false}><Icone nome="cifrao" />Precificar</Link>}
         </>}
       />
       <Suspense><AvisoDaUrl /></Suspense>
@@ -95,7 +96,7 @@ export default async function Lote({ params, searchParams }: { params: Promise<{
       {semPreco && lote.aguardando > 0 && (
         <div className="lote-alerta" role="status">
           <div><strong>{lote.produto_nome} ainda não tem preço de venda</strong>{podePrecificar ? "Precifique o modelo para poder liberar as peças." : "Peça para quem precifica definir o preço."}</div>
-          {podePrecificar && <Link className="botao pequeno" href={linkPrecificar}><Icone nome="cifrao" />Precificar agora</Link>}
+          {podePrecificar && <Link className="botao pequeno" href={linkPrecificar} scroll={false}><Icone nome="cifrao" />Precificar agora</Link>}
         </div>
       )}
 
@@ -159,6 +160,9 @@ export default async function Lote({ params, searchParams }: { params: Promise<{
       </section>
 
       {/* ---------- janelas ---------- */}
+      {podePrecificar && acao === "precificar" && (
+        <Suspense><JanelaFicha produtoId={lote.produto_id} param="acao" valor="precificar" /></Suspense>
+      )}
       {podeLiberar && lote.aguardando > 0 && !semPreco && (
         <Suspense>
           <JanelaLateral param="acao" valor="liberar" titulo="Liberar peças" subtitulo={`Lote nº ${lote.numero} · ${lote.produto_nome} · ${reais(lote.preco_venda)}`}>
