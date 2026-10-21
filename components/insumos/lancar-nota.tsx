@@ -44,8 +44,8 @@ export function CamposNota({ insumos, hoje }: { insumos: InsumoSalvo[]; hoje: st
       <datalist id="insumos-salvos">{insumos.map((i) => <option key={i.nome} value={i.nome} />)}</datalist>
 
       <div className="escolha-liberar" role="radiogroup" aria-label="Tipo de lançamento">
-        <label><input type="radio" name="modo-nota" checked={!semNota} onChange={() => setSemNota(false)} /><b>Tenho a nota</b>Nota fiscal ou notinha da compra. Dá para anexar o PDF ou tirar foto.</label>
-        <label><input type="radio" name="modo-nota" checked={semNota} onChange={() => setSemNota(true)} /><b>Sem nota</b>Compra antiga: lance só o item e o preço que você sabe.</label>
+        <button type="button" role="radio" aria-checked={!semNota} className={!semNota ? "marcada" : ""} onClick={() => setSemNota(false)}><b>Tenho a nota</b>Nota fiscal ou notinha da compra. Dá para anexar o PDF ou tirar foto.</button>
+        <button type="button" role="radio" aria-checked={semNota} className={semNota ? "marcada" : ""} onClick={() => setSemNota(true)}><b>Sem nota</b>Compra antiga: lance só o item e o preço que você sabe.</button>
       </div>
 
       <div className="bloco-janela">
@@ -69,12 +69,12 @@ export function CamposNota({ insumos, hoje }: { insumos: InsumoSalvo[]; hoje: st
       <div className="bloco-janela">
         <h3>{semNota ? "Itens e preços" : "Itens da nota"}</h3>
         <p>{semNota ? "Coloque o preço por metro ou por unidade. A quantidade pode ficar em branco." : "Comece a digitar: o que já foi comprado antes aparece na lista, com o último preço pago."}</p>
-        <div className="nota-linha cab"><span>Item</span><span>Tipo</span><span>Qtd.</span><span>Unid.</span><span>Valor unit. (R$)</span><span>Total</span><i /></div>
+        <div className={`nota-linha cab${semNota ? " sem-qtd" : ""}`}><span>Item</span><span>Tipo</span><span>Qtd.</span><span>Unid.</span><span>{semNota ? "Preço (R$)" : "Valor unit. (R$)"}</span><span>Total</span><i /></div>
         {linhas.map((l, k) => {
           const salvo = achar(l.nome);
           return (
             <div key={k} className="nota-item">
-              <div className="nota-linha">
+              <div className={`nota-linha${semNota ? " sem-qtd" : ""}`}>
                 <input className="fx-in" list="insumos-salvos" value={l.nome} onChange={(e) => mudar(k, "nome", e.target.value)} placeholder="Ex.: Tule preto, zíper invisível 40cm" aria-label="Item" />
                 <select className="fx-in" value={l.tipo} onChange={(e) => mudar(k, "tipo", e.target.value)} aria-label="Tipo">
                   <option value="tecido">Tecido</option><option value="aviamento">Aviamento</option><option value="outro">Outro</option>

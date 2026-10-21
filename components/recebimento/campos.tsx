@@ -31,8 +31,8 @@ export function EscolhaLiberar({ linhas, tamanhos, celulas, aguardando }: {
   return (
     <>
       <div className="escolha-liberar" role="radiogroup" aria-label="Quanto liberar">
-        <label><input type="radio" name="modo" checked={modo === "tudo"} onChange={() => setModo("tudo")} /><b>Liberar o lote todo</b>As {aguardando} peças que estão aguardando vão para venda.</label>
-        <label><input type="radio" name="modo" checked={modo === "parte"} onChange={() => setModo("parte")} /><b>Liberar só uma parte</b>Digite quantas de cada cor e tamanho. O resto fica seguro com você.</label>
+        <button type="button" role="radio" aria-checked={modo === "tudo"} className={modo === "tudo" ? "marcada" : ""} onClick={() => setModo("tudo")}><b>Liberar o lote todo</b>As {aguardando} peças que estão aguardando vão para venda.</button>
+        <button type="button" role="radio" aria-checked={modo === "parte"} className={modo === "parte" ? "marcada" : ""} onClick={() => setModo("parte")}><b>Liberar só uma parte</b>Digite quantas de cada cor e tamanho. O resto fica seguro com você.</button>
       </div>
       <GradeQuantidades key={modo} linhas={linhas} tamanhos={tamanhos} celulas={cheias} comBotoes={modo === "parte"} />
     </>
