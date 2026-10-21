@@ -15,8 +15,6 @@ const Produto = z.object({
   grade_id: z.string().uuid("Escolha a grade de tamanhos."),
   categoria_id: z.string().uuid().nullable(),
   colecao_id: z.string().uuid().nullable(),
-  preco_venda: z.number().nonnegative("O preço não pode ser negativo.").nullable(),
-  custo_previsto: z.number().nonnegative("O custo não pode ser negativo.").nullable(),
   ncm: z.string().regex(/^\d{8}$/, "O NCM tem 8 números.").nullable(),
   descricao: z.string().nullable(),
 });
@@ -28,8 +26,6 @@ function lerProduto(dados: FormData) {
     grade_id: String(dados.get("grade_id") ?? ""),
     categoria_id: opcional(dados.get("categoria_id")),
     colecao_id: opcional(dados.get("colecao_id")),
-    preco_venda: lerValor(dados.get("preco_venda")),
-    custo_previsto: lerValor(dados.get("custo_previsto")),
     ncm: opcional(dados.get("ncm"))?.replace(/\D/g, "") || null,
     descricao: opcional(dados.get("descricao")),
   });

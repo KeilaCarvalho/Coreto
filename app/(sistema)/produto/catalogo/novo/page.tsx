@@ -15,7 +15,7 @@ export default async function NovoProduto({ searchParams }: { searchParams: Prom
   return (
     <>
       <Cabecalho titulo="Novo produto" trilha={[{ rotulo: "Catálogo", href: "/produto/catalogo" }]}
-        descricao="Ao salvar, o sistema cria uma variante para cada cor e tamanho, com SKU e código de barras próprios." />
+        descricao="Ao salvar, o sistema cria uma variante para cada cor e tamanho, com SKU e código de barras próprios. O preço você define depois, na Precificação, quando a peça chegar da facção." />
       <section className="painel">
         <div className="painel-corpo">
           <FormAcao acao={criarProduto}>

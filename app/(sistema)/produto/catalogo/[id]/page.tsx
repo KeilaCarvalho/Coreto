@@ -81,7 +81,7 @@ export default async function DetalheProduto({ params, searchParams }: { params:
 
       <div className="kpis">
         <Kpi destaque titulo="Em estoque" valor={veEstoque ? numero(total) : "—"} nota="peças somando todos os locais" />
-        <Kpi titulo="Preço de venda" valor={reais(produto.preco_venda)} nota={produto.custo_previsto != null ? `custo previsto ${reais(produto.custo_previsto)}` : "custo ainda não informado"} />
+        <Kpi titulo="Preço de venda" valor={reais(produto.preco_venda)} nota={produto.preco_venda == null ? "falta precificar" : produto.custo_previsto != null ? `custo ${reais(produto.custo_previsto)}` : "sem ficha de custo"} href={`/produto/precificacao/${produto.id}${produto.preco_venda == null ? "?precificar=1" : ""}`} />
         <Kpi titulo="Margem prevista" valor={margem != null ? `${Math.round(margem * 100)}%` : "—"} nota="antes de impostos e taxas" />
         <Kpi titulo="Variantes" valor={numero(produto.variantes.filter((v) => v.ativa).length)} nota={`${linhas.filter(([, c]) => c.ativa).length} cores × ${tamanhos.length} tamanhos`} />
       </div>

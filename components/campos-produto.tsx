@@ -2,7 +2,6 @@ export type Opcao = { id: string; nome: string };
 export type Cor = { id: string; nome: string; hex: string | null };
 type Valores = Partial<{ referencia: string; nome: string; grade_id: string; categoria_id: string | null; colecao_id: string | null; preco_venda: number | null; custo_previsto: number | null; ncm: string | null; descricao: string | null }>;
 
-const paraCampo = (n: number | null | undefined) => (n == null ? "" : n.toFixed(2).replace(".", ","));
 
 export function CamposProduto({ grades, categorias, colecoes, valores = {}, gradeFixa = false }: {
   grades: Opcao[]; categorias: Opcao[]; colecoes: Opcao[]; valores?: Valores; gradeFixa?: boolean;
@@ -40,15 +39,6 @@ export function CamposProduto({ grades, categorias, colecoes, valores = {}, grad
           <option value="">Sem coleção</option>
           {colecoes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
-      </div>
-      <div className="campo">
-        <label htmlFor="preco_venda">Preço de venda (R$)</label>
-        <input id="preco_venda" name="preco_venda" inputMode="decimal" defaultValue={paraCampo(valores.preco_venda)} placeholder="289,90" />
-      </div>
-      <div className="campo">
-        <label htmlFor="custo_previsto">Custo previsto (R$)</label>
-        <input id="custo_previsto" name="custo_previsto" inputMode="decimal" defaultValue={paraCampo(valores.custo_previsto)} placeholder="96,50" />
-        <span className="ajuda">Vem da ficha técnica quando ela existir.</span>
       </div>
       <div className="campo">
         <label htmlFor="ncm">NCM</label>
