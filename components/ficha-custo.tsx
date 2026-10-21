@@ -131,11 +131,11 @@ export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual, insumos =
 
       <div className="bloco-janela" id="b-preco">
         <h3>3. Preço de venda</h3>
-        <p>O sistema sugere o preço que cobre o custo e as porcentagens. Você decide o preço final.</p>
+        <p>O preço sugerido paga o custo da peça, os impostos e as taxas, e ainda deixa o lucro que você quer. Você decide o preço final.</p>
         <div className="ficha-sugestao">
           <div><span>Custo da peça</span><b>{brl(custo)}</b></div>
-          <div><span>Sai do preço</span><b>{pct(soma)}</b></div>
-          <div className="destaque"><span>Preço sugerido</span><b>{sugerido != null ? brl(sugerido) : "—"}</b></div>
+          <div><span>Impostos, taxas e lucro</span><b>{pct(soma)}</b><small>do preço de venda</small></div>
+          <div className="destaque"><span>Preço sugerido</span><b>{sugerido != null ? brl(sugerido) : "—"}</b><small>com {pct(num(taxas.lucro_desejado))} de lucro</small></div>
         </div>
         <div className="ficha-preco">
           <label>
@@ -144,11 +144,24 @@ export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual, insumos =
             {sugerido != null && <button type="button" className="botao-link" onClick={() => setPreco(sugerido.toFixed(2).replace(".", ","))}>Usar o sugerido ({brl(sugerido)})</button>}
           </label>
           <div className={`resultado ${margem != null && margem < num(taxas.lucro_desejado) ? (margem < 0 ? "ruim" : "atencao") : "bom"}`}>
-            <span>Lucro real com esse preço</span>
-            <strong>{margem != null ? pct(Math.round(margem * 100) / 100) : "—"}</strong>
-            <small>{margem != null ? `${brl(precoNum * (1 - somaTaxas / 100) - custo)} por peça${markup ? ` · ${markup.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}× o custo` : ""}` : "informe o preço"}</small>
+            <span>Sobra limpa por peça vendida</span>
+            <strong>{margem != null ? brl(precoNum * (1 - somaTaxas / 100) - custo) : "—"}</strong>
+            <small>{margem != null ? `${pct(Math.round(margem * 10) / 10)} do preço · é o seu lucro de verdade` : "informe o preço"}</small>
           </div>
         </div>
+        {precoNum > 0 && (
+          <div className="conta-preco">
+            <b>A conta de uma peça vendida por {brl(precoNum)}</b>
+            <ul>
+              <li><span>Preço de venda</span><span>{brl(precoNum)}</span></li>
+              {ROTULO_TAXA.filter(([k]) => k !== "lucro_desejado" && num(taxas[k]) > 0).map(([k, rotulo]) => (
+                <li key={k} className="menos"><span>− {rotulo} ({pct(num(taxas[k]))})</span><span>{brl(precoNum * num(taxas[k]) / 100)}</span></li>
+              ))}
+              <li className="menos"><span>− Custo da peça</span><span>{brl(custo)}</span></li>
+              <li className="sobra"><span>= Sobra limpa (lucro)</span><span>{brl(precoNum * (1 - somaTaxas / 100) - custo)}</span></li>
+            </ul>
+          </div>
+        )}
       </div>
     </>
   );
