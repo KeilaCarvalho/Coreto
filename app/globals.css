@@ -732,3 +732,19 @@ details > summary::-webkit-details-marker { display: none; }
   .ficha-linha { grid-template-columns: minmax(0, 1fr) 60px 52px 86px 30px; }
   .ficha-linha .ficha-total, .ficha-linha.cab span:nth-child(5) { display: none; }
 }
+
+/* notas e insumos */
+.nota-linha { display: grid; grid-template-columns: minmax(0, 1fr) 112px 70px 60px 104px 92px 34px; gap: 6px; align-items: center; }
+.nota-linha.cab { font-size: 10.5px; font-weight: 700; color: var(--tenue); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.nota-linha.cab span:nth-child(3), .nota-linha.cab span:nth-child(5), .nota-linha.cab span:nth-child(6) { text-align: right; }
+.nota-item { margin-bottom: 8px; }
+.nota-item .fx-in { min-height: 38px; }
+.nota-dica { display: block; font-size: 11.5px; color: var(--suave); margin: 3px 0 6px 4px; }
+.nota-dica .sobe { color: #1d7a4e; } .nota-dica .desce { color: var(--erro); }
+.nota-dica .botao-link { font-size: 11.5px; }
+@media (max-width: 900px) {
+  .nota-linha { grid-template-columns: minmax(0, 1fr) 1fr 60px; }
+  .nota-linha.cab { display: none; }
+  .nota-linha > :first-child { grid-column: 1 / -1; }
+  .nota-linha .ficha-total { display: none; }
+}

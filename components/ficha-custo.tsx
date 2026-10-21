@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Icone } from "@/components/icone";
+import type { InsumoSalvo } from "@/components/insumos/lancar-nota";
 
 export type ItemFicha = { tipo: "material" | "mao_de_obra" | "outro"; descricao: string; quantidade: string; unidade: string; valor_unitario: string };
 export type Taxas = { simples: string; cartao: string; comissao: string; despesas_fixas: string; lucro_desejado: string };
@@ -35,12 +36,24 @@ const novoItem = (tipo: ItemFicha["tipo"]): ItemFicha => ({ tipo, descricao: "",
  * Precificação de um modelo em três passos: custo da peça (ficha da facção + notas fiscais),
  * impostos/taxas/lucro, e o preço de venda. Os itens vão para o servidor em JSON no campo "itens".
  */
-export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual }: { itensIniciais: ItemFicha[]; taxasIniciais: Taxas; precoAtual: number | null }) {
+export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual, insumos = [] }: { itensIniciais: ItemFicha[]; taxasIniciais: Taxas; precoAtual: number | null; insumos?: InsumoSalvo[] }) {
   const [itens, setItens] = useState<ItemFicha[]>(itensIniciais.length ? itensIniciais : [novoItem("material"), novoItem("mao_de_obra")]);
   const [taxas, setTaxas] = useState<Taxas>(taxasIniciais);
   const [preco, setPreco] = useState(precoAtual != null ? precoAtual.toFixed(2).replace(".", ",") : "");
 
-  const mudar = (i: number, campo: keyof ItemFicha, valor: string) => setItens((lista) => lista.map((it, j) => (j === i ? { ...it, [campo]: valor } : it)));
+  const achar = (nome: string) => insumos.find((s) => s.nome.trim().toLowerCase() === nome.trim().toLowerCase());
+  const mudar = (i: number, campo: keyof ItemFicha, valor: string) => setItens((lista) => lista.map((it, j) => {
+    if (j !== i) return it;
+    const novo = { ...it, [campo]: valor };
+    // Item que já veio numa nota: traz a unidade e o último preço pago.
+    const s = campo === "descricao" ? achar(valor) : undefined;
+    if (s) {
+      novo.unidade = s.unidade;
+      if (s.ultimo_preco != null) novo.valor_unitario = String(Number(s.ultimo_preco)).replace(".", ",");
+      if (it.tipo === "mao_de_obra") novo.tipo = "material";
+    }
+    return novo;
+  }));
   const totalItem = (i: ItemFicha) => num(i.quantidade) * num(i.valor_unitario);
   const custoDe = (tipo: ItemFicha["tipo"]) => itens.filter((i) => i.tipo === tipo).reduce((t, i) => t + totalItem(i), 0);
   const custo = itens.reduce((t, i) => t + totalItem(i), 0);
@@ -56,10 +69,11 @@ export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual }: { itens
   return (
     <>
       <input type="hidden" name="itens" value={JSON.stringify(validos)} />
+      <datalist id="insumos-ficha">{insumos.map((s) => <option key={s.nome} value={s.nome} />)}</datalist>
 
       <div className="bloco-janela" id="b-custo">
         <h3>1. Custo da peça</h3>
-        <p>O que foi gasto em uma peça, pela ficha que a facção mandou, com o preço que você pagou em cada nota fiscal.</p>
+        <p>O que foi gasto em uma peça, pela ficha que a facção mandou. {insumos.length ? "Digite o nome do tecido ou aviamento: o último preço das notas lançadas vem sozinho." : "Lançando as notas em “Notas e insumos”, o preço de cada item passa a vir sozinho."}</p>
         {GRUPOS.map((g) => {
           const linhas = itens.map((it, i) => ({ it, i })).filter(({ it }) => it.tipo === g.tipo);
           return (
@@ -68,16 +82,26 @@ export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual }: { itens
               {linhas.length > 0 && (
                 <div className="ficha-linha cab"><span>Descrição</span><span>Qtd.</span><span>Unid.</span><span>Valor (R$)</span><span>Total</span><i /></div>
               )}
-              {linhas.map(({ it, i }) => (
-                <div className="ficha-linha" key={i}>
-                  <input className="fx-in" value={it.descricao} onChange={(e) => mudar(i, "descricao", e.target.value)} placeholder={g.exemplo} aria-label="Descrição" />
+              {linhas.map(({ it, i }) => {
+                const s = achar(it.descricao);
+                return (
+                <div key={i}>
+                <div className="ficha-linha">
+                  <input className="fx-in" list={g.tipo === "mao_de_obra" ? undefined : "insumos-ficha"} value={it.descricao} onChange={(e) => mudar(i, "descricao", e.target.value)} placeholder={g.exemplo} aria-label="Descrição" />
                   <input className="fx-in valor" inputMode="decimal" value={it.quantidade} onChange={(e) => mudar(i, "quantidade", e.target.value)} aria-label="Quantidade" />
                   <input className="fx-in" value={it.unidade} onChange={(e) => mudar(i, "unidade", e.target.value)} aria-label="Unidade" />
                   <input className="fx-in valor" inputMode="decimal" value={it.valor_unitario} onChange={(e) => mudar(i, "valor_unitario", e.target.value)} placeholder="0,00" aria-label="Valor unitário" />
                   <b className="ficha-total">{brl(totalItem(it))}</b>
                   <button type="button" className="fx-tirar" onClick={() => setItens((l) => l.filter((_, j) => j !== i))} aria-label="Tirar item"><Icone nome="fechar" tamanho={16} /></button>
                 </div>
-              ))}
+                {s?.ultimo_preco != null && (
+                  <small className="nota-dica">Última nota: {brl(Number(s.ultimo_preco))} por {s.unidade}{s.ultimo_preco_em ? ` em ${s.ultimo_preco_em.split("-").reverse().join("/")}` : ""}
+                    {num(it.valor_unitario) !== Number(s.ultimo_preco) && <> · <button type="button" className="botao-link" onClick={() => mudar(i, "valor_unitario", String(Number(s.ultimo_preco)).replace(".", ","))}>usar esse preço</button></>}
+                  </small>
+                )}
+                </div>
+                );
+              })}
               <div className="ficha-grupo-pe">
                 <button type="button" className="botao leve pequeno" onClick={() => setItens((l) => [...l, novoItem(g.tipo)])}><Icone nome="mais" />Adicionar</button>
                 <span>{brl(custoDe(g.tipo))}</span>

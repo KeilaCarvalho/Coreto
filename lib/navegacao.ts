@@ -14,6 +14,7 @@ export const MENU: GrupoMenu[] = [
   { rotulo: "Produto", itens: [
     { rotulo: "Catálogo", href: "/produto/catalogo", modulo: "produto", icone: "catalogo" },
     { rotulo: "Precificação", href: "/produto/precificacao", modulo: "produto", acao: "editar", icone: "ficha" },
+    { rotulo: "Notas e insumos", href: "/produto/insumos", modulo: "produto", acao: "editar", icone: "arquivo" },
   ] },
   { rotulo: "Produção", itens: [
     { rotulo: "Chegada da facção", href: "/producao/recebimentos", modulo: "producao", icone: "entrada" },
