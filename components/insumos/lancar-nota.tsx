@@ -13,6 +13,8 @@ const nova = (): Linha => ({ nome: "", tipo: "tecido", unidade: "m", quantidade:
 
 /** Campos da nota de compra: cabeçalho e itens. Vai para o servidor em JSON no campo "nota". */
 export function CamposNota({ insumos, hoje }: { insumos: InsumoSalvo[]; hoje: string }) {
+  const [semNota, setSemNota] = useState(false);
+  const [arquivo, setArquivo] = useState<string | null>(null);
   const [numero, setNumero] = useState("");
   const [fornecedor, setFornecedor] = useState("");
   const [data, setData] = useState(hoje);
@@ -32,8 +34,8 @@ export function CamposNota({ insumos, hoje }: { insumos: InsumoSalvo[]; hoje: st
   }));
   const total = linhas.reduce((t, l) => t + num(l.quantidade) * num(l.valor), 0);
   const pacote = JSON.stringify({
-    numero, fornecedor, data, observacao,
-    itens: linhas.filter((l) => l.nome.trim()).map((l) => ({ nome: l.nome.trim(), tipo: l.tipo, unidade: l.unidade.trim(), quantidade: num(l.quantidade), valor_unitario: num(l.valor) })),
+    sem_nota: semNota, numero: semNota ? "" : numero, fornecedor, data, observacao,
+    itens: linhas.filter((l) => l.nome.trim()).map((l) => ({ nome: l.nome.trim(), tipo: l.tipo, unidade: l.unidade.trim(), quantidade: num(l.quantidade) || (semNota ? 1 : 0), valor_unitario: num(l.valor) })),
   });
 
   return (
@@ -41,20 +43,32 @@ export function CamposNota({ insumos, hoje }: { insumos: InsumoSalvo[]; hoje: st
       <input type="hidden" name="nota" value={pacote} />
       <datalist id="insumos-salvos">{insumos.map((i) => <option key={i.nome} value={i.nome} />)}</datalist>
 
-      <div className="bloco-janela">
-        <h3>Dados da nota</h3>
-        <p>Confira na nota fiscal.</p>
-        <div className="campos duas">
-          <div className="campo"><label htmlFor="fornecedor">Fornecedor</label><input id="fornecedor" value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} placeholder="Ex.: Tecidos Goiás" required /></div>
-          <div className="campo"><label htmlFor="numero">Número da nota</label><input id="numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Opcional" /></div>
-          <div className="campo"><label htmlFor="data">Data da nota</label><input id="data" type="date" value={data} max={hoje} onChange={(e) => setData(e.target.value)} required /></div>
-          <div className="campo"><label htmlFor="obs">Observação</label><input id="obs" value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Opcional" /></div>
-        </div>
+      <div className="escolha-liberar" role="radiogroup" aria-label="Tipo de lançamento">
+        <label><input type="radio" name="modo-nota" checked={!semNota} onChange={() => setSemNota(false)} /><b>Tenho a nota</b>Nota fiscal ou notinha da compra. Dá para anexar o PDF ou tirar foto.</label>
+        <label><input type="radio" name="modo-nota" checked={semNota} onChange={() => setSemNota(true)} /><b>Sem nota</b>Compra antiga: lance só o item e o preço que você sabe.</label>
       </div>
 
       <div className="bloco-janela">
-        <h3>Itens da nota</h3>
-        <p>Comece a digitar: o que já foi comprado antes aparece na lista, com o último preço pago.</p>
+        <h3>{semNota ? "Da compra" : "Dados da nota"}</h3>
+        <p>{semNota ? "Tudo opcional, menos os itens. Se não lembrar a data certa, coloque uma aproximada." : "Confira na nota fiscal."}</p>
+        <div className="campos duas">
+          <div className="campo"><label htmlFor="fornecedor">{semNota ? "Onde comprou (opcional)" : "Fornecedor"}</label><input id="fornecedor" value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} placeholder="Ex.: Tecidos Goiás" required={!semNota} /></div>
+          {!semNota && <div className="campo"><label htmlFor="numero">Número da nota</label><input id="numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Opcional" /></div>}
+          <div className="campo"><label htmlFor="data">{semNota ? "Quando comprou" : "Data da nota"}</label><input id="data" type="date" value={data} max={hoje} onChange={(e) => setData(e.target.value)} required /></div>
+          <div className="campo"><label htmlFor="obs">Observação</label><input id="obs" value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Opcional" /></div>
+        </div>
+        {!semNota && (
+          <label className="anexo-nota">
+            <input type="file" name="arquivo" accept="application/pdf,image/*" onChange={(e) => setArquivo(e.target.files?.[0]?.name ?? null)} />
+            <Icone nome="arquivo" />
+            <span><b>{arquivo ?? "Anexar PDF ou foto da nota"}</b><small>{arquivo ? "Toque para trocar" : "No celular, dá para tirar a foto na hora"}</small></span>
+          </label>
+        )}
+      </div>
+
+      <div className="bloco-janela">
+        <h3>{semNota ? "Itens e preços" : "Itens da nota"}</h3>
+        <p>{semNota ? "Coloque o preço por metro ou por unidade. A quantidade pode ficar em branco." : "Comece a digitar: o que já foi comprado antes aparece na lista, com o último preço pago."}</p>
         <div className="nota-linha cab"><span>Item</span><span>Tipo</span><span>Qtd.</span><span>Unid.</span><span>Valor unit. (R$)</span><span>Total</span><i /></div>
         {linhas.map((l, k) => {
           const salvo = achar(l.nome);
@@ -82,7 +96,7 @@ export function CamposNota({ insumos, hoje }: { insumos: InsumoSalvo[]; hoje: st
           );
         })}
         <button type="button" className="botao leve pequeno" style={{ marginTop: 6 }} onClick={() => setLinhas((ls) => [...ls, nova()])}><Icone nome="mais" />Adicionar item</button>
-        <div className="fx-subtotal"><span>Total da nota</span><span>{brl(total)}</span></div>
+        {!semNota && <div className="fx-subtotal"><span>Total da nota</span><span>{brl(total)}</span></div>}
       </div>
     </>
   );

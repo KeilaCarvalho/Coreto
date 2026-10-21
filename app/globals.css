@@ -748,3 +748,10 @@ details > summary::-webkit-details-marker { display: none; }
   .nota-linha > :first-child { grid-column: 1 / -1; }
   .nota-linha .ficha-total { display: none; }
 }
+.anexo-nota { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 14px 16px; border-radius: 14px; border: 1.5px dashed var(--linha-forte); background: var(--superficie-2); cursor: pointer; color: var(--tinta); position: relative; }
+.anexo-nota:hover { border-color: var(--tinta); color: var(--tinta); }
+.anexo-nota input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.anexo-nota .icone { width: 24px; height: 24px; color: var(--verde-700); }
+.anexo-nota span { display: grid; }
+.anexo-nota small { font-size: 12px; color: var(--suave); }
+.janela-generica > .anexo-nota { margin: 0 0 14px; background: var(--superficie); box-shadow: var(--sombra); border-style: solid; }

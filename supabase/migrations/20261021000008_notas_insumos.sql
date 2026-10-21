@@ -2,6 +2,8 @@
 -- Entrada de notas de compra (tecidos, aviamentos e outros insumos).
 -- Cada item lançado guarda o preço pago; o insumo fica com o último preço
 -- (pela data da nota) para aparecer sozinho na precificação.
+-- Também aceita "sem nota" (preço que a Keila sabe, de compras antigas)
+-- e guarda o PDF ou a foto da nota no Storage (bucket privado "notas").
 -- =====================================================================
 
 create table public.insumos (
@@ -23,7 +25,9 @@ create trigger insumos_atualizado before update on public.insumos
 create table public.notas_compra (
   id            uuid primary key default gen_random_uuid(),
   numero        text,
-  fornecedor    text not null check (length(trim(fornecedor)) > 0),
+  fornecedor    text check (fornecedor is null or length(trim(fornecedor)) > 0),
+  sem_nota      boolean not null default false,
+  arquivo       text,          -- caminho no Storage (bucket "notas"): PDF ou foto da nota
   emitida_em    date not null default public.hoje_sp(),
   valor_total   numeric(12,2) not null default 0,
   observacao    text,
@@ -49,7 +53,7 @@ create index nota_compra_itens_insumo on public.nota_compra_itens (insumo_id);
 create or replace function public.recalcular_insumo(p_insumo uuid)
 returns void language sql security invoker set search_path = public as $$
   update public.insumos i set
-    ultimo_preco = u.valor_unitario, ultimo_preco_em = u.emitida_em, ultimo_fornecedor = u.fornecedor,
+    ultimo_preco = u.valor_unitario, ultimo_preco_em = u.emitida_em, ultimo_fornecedor = coalesce(u.fornecedor, 'Sem nota'),
     unidade = coalesce(nullif(trim(u.unidade), ''), i.unidade)
   from (select 1) _
   left join lateral (
@@ -61,10 +65,11 @@ returns void language sql security invoker set search_path = public as $$
   where i.id = p_insumo;
 $$;
 
--- Lança uma nota com os itens. Itens: [{nome, tipo, unidade, quantidade, valor_unitario}].
+-- Lança uma nota (ou um registro "sem nota") com os itens.
+-- p_nota: {numero, fornecedor, data, observacao, sem_nota, arquivo}
+-- p_itens: [{nome, tipo, unidade, quantidade, valor_unitario}]
 -- Insumo novo é criado pelo nome; insumo existente é reaproveitado (sem diferenciar maiúsculas).
-create or replace function public.registrar_nota_compra(
-  p_numero text, p_fornecedor text, p_data date, p_observacao text, p_itens jsonb)
+create or replace function public.registrar_nota_compra(p_nota jsonb, p_itens jsonb)
 returns uuid language plpgsql security invoker set search_path = public as $$
 declare
   nota uuid;
@@ -73,12 +78,17 @@ declare
   ins uuid;
   nome_item text;
   total numeric := 0;
+  v_data date := coalesce(nullif(p_nota ->> 'data', '')::date, public.hoje_sp());
+  v_sem_nota boolean := coalesce((p_nota ->> 'sem_nota')::boolean, false);
+  v_fornecedor text := nullif(trim(p_nota ->> 'fornecedor'), '');
 begin
-  if p_data > public.hoje_sp() then raise exception 'A data da nota não pode ser no futuro.'; end if;
-  if jsonb_array_length(coalesce(p_itens, '[]'::jsonb)) = 0 then raise exception 'Informe pelo menos um item da nota.'; end if;
+  if v_data > public.hoje_sp() then raise exception 'A data da nota não pode ser no futuro.'; end if;
+  if not v_sem_nota and v_fornecedor is null then raise exception 'Informe o fornecedor da nota.'; end if;
+  if jsonb_array_length(coalesce(p_itens, '[]'::jsonb)) = 0 then raise exception 'Informe pelo menos um item.'; end if;
 
-  insert into public.notas_compra (numero, fornecedor, emitida_em, observacao)
-  values (nullif(trim(p_numero), ''), trim(p_fornecedor), coalesce(p_data, public.hoje_sp()), nullif(trim(p_observacao), ''))
+  insert into public.notas_compra (numero, fornecedor, emitida_em, observacao, sem_nota, arquivo)
+  values (case when v_sem_nota then null else nullif(trim(p_nota ->> 'numero'), '') end, v_fornecedor, v_data,
+          nullif(trim(p_nota ->> 'observacao'), ''), v_sem_nota, nullif(trim(p_nota ->> 'arquivo'), ''))
   returning id into nota;
 
   for e, ord in select x.e, x.ord from jsonb_array_elements(p_itens) with ordinality as x(e, ord) loop
@@ -91,8 +101,8 @@ begin
       returning id into ins;
     end if;
     insert into public.nota_compra_itens (nota_id, ordem, insumo_id, quantidade, unidade, valor_unitario)
-    values (nota, ord::int, ins, (e ->> 'quantidade')::numeric, nullif(trim(e ->> 'unidade'), ''), (e ->> 'valor_unitario')::numeric);
-    total := total + (e ->> 'quantidade')::numeric * (e ->> 'valor_unitario')::numeric;
+    values (nota, ord::int, ins, coalesce((e ->> 'quantidade')::numeric, 1), nullif(trim(e ->> 'unidade'), ''), (e ->> 'valor_unitario')::numeric);
+    total := total + coalesce((e ->> 'quantidade')::numeric, 1) * (e ->> 'valor_unitario')::numeric;
     perform public.recalcular_insumo(ins);
   end loop;
 
@@ -140,7 +150,22 @@ end $$;
 
 grant select, insert, update, delete on public.insumos, public.notas_compra, public.nota_compra_itens to authenticated;
 
-revoke execute on function public.recalcular_insumo(uuid), public.registrar_nota_compra(text, text, date, text, jsonb),
+revoke execute on function public.recalcular_insumo(uuid), public.registrar_nota_compra(jsonb, jsonb),
   public.excluir_nota_compra(uuid) from anon, public;
-grant execute on function public.recalcular_insumo(uuid), public.registrar_nota_compra(text, text, date, text, jsonb),
+grant execute on function public.recalcular_insumo(uuid), public.registrar_nota_compra(jsonb, jsonb),
   public.excluir_nota_compra(uuid) to authenticated;
+
+-- Arquivos das notas (PDF ou foto) num bucket privado. Só quem vê custos acessa.
+do $$
+begin
+  if to_regclass('storage.buckets') is null then return; end if;
+  insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('notas', 'notas', false, 10485760, array['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic'])
+  on conflict (id) do nothing;
+  execute $p$create policy notas_ver on storage.objects for select to authenticated using (
+    bucket_id = 'notas' and (public.tem_permissao('produto', 'editar') or public.tem_permissao('financeiro', 'ver')))$p$;
+  execute $p$create policy notas_enviar on storage.objects for insert to authenticated with check (
+    bucket_id = 'notas' and (public.tem_permissao('produto', 'editar') or public.tem_permissao('financeiro', 'criar')))$p$;
+  execute $p$create policy notas_apagar on storage.objects for delete to authenticated using (
+    bucket_id = 'notas' and (public.tem_permissao('produto', 'editar') or public.tem_permissao('financeiro', 'editar')))$p$;
+end $$;

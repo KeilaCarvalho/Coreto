@@ -338,26 +338,30 @@ select teste.ok(not exists (select 1 from pg_proc p where p.pronamespace = 'publ
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
-select public.registrar_nota_compra('123', 'Tecidos Goiás', '2026-10-01', null,
+select public.registrar_nota_compra('{"numero":"123","fornecedor":"Tecidos Goiás","data":"2026-10-01"}',
   '[{"nome":"Tule preto","tipo":"tecido","unidade":"m","quantidade":10,"valor_unitario":18.5},
     {"nome":"Zíper invisível","tipo":"aviamento","unidade":"un","quantidade":50,"valor_unitario":1.2}]');
 select teste.ok((select ultimo_preco = 18.5 and unidade = 'm' and ultimo_fornecedor = 'Tecidos Goiás' from public.insumos where nome = 'Tule preto'),
                 'nota cria o insumo com o preço pago');
 select teste.ok((select valor_total = 245 from public.notas_compra where numero = '123'), 'nota guarda o valor total');
-select public.registrar_nota_compra('130', 'Armarinho Central', '2026-10-15', null, '[{"nome":"tule PRETO","quantidade":5,"valor_unitario":21}]');
+select public.registrar_nota_compra('{"numero":"130","fornecedor":"Armarinho Central","data":"2026-10-15"}', '[{"nome":"tule PRETO","quantidade":5,"valor_unitario":21}]');
 select teste.ok((select count(*) = 1 and max(ultimo_preco) = 21 from public.insumos where lower(nome) = 'tule preto'),
                 'mesmo insumo com outra escrita é reaproveitado e fica com o preço novo');
-select public.registrar_nota_compra('110', 'Tecidos Goiás', '2026-09-20', null, '[{"nome":"Tule preto","quantidade":5,"valor_unitario":15}]');
+select public.registrar_nota_compra('{"numero":"110","fornecedor":"Tecidos Goiás","data":"2026-09-20"}', '[{"nome":"Tule preto","quantidade":5,"valor_unitario":15}]');
 select teste.ok((select ultimo_preco = 21 from public.insumos where nome = 'Tule preto'), 'nota mais antiga não troca o último preço');
 select public.excluir_nota_compra((select id from public.notas_compra where numero = '130'));
 select teste.ok((select ultimo_preco = 18.5 and ultimo_preco_em = '2026-10-01' from public.insumos where nome = 'Tule preto'),
                 'apagar a nota volta o preço da nota anterior');
-select teste.erro($$select public.registrar_nota_compra('1', 'X', '2999-01-01', null, '[{"nome":"a","quantidade":1,"valor_unitario":1}]')$$, 'futuro', 'nota com data futura é recusada');
+select teste.erro($$select public.registrar_nota_compra('{"fornecedor":"X","data":"2999-01-01"}', '[{"nome":"a","quantidade":1,"valor_unitario":1}]')$$, 'futuro', 'nota com data futura é recusada');
+select teste.erro($$select public.registrar_nota_compra('{"data":"2026-10-01"}', '[{"nome":"a","quantidade":1,"valor_unitario":1}]')$$, 'fornecedor', 'nota sem fornecedor é recusada');
+select public.registrar_nota_compra('{"sem_nota":true,"data":"2025-03-10"}', '[{"nome":"Crepe amarelo","tipo":"tecido","unidade":"m","valor_unitario":32}]');
+select teste.ok((select ultimo_preco = 32 and ultimo_fornecedor = 'Sem nota' from public.insumos where nome = 'Crepe amarelo'),
+                'preço sem nota (compra antiga) também fica salvo');
 commit;
 
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'carla'), true);
 select teste.ok((select count(*) from public.insumos) = 0, 'vendedora não vê preços de insumos');
-select teste.erro($$select public.registrar_nota_compra('9', 'X', null, null, '[{"nome":"a","quantidade":1,"valor_unitario":1}]')$$, 'row-level security', 'vendedora não lança nota');
+select teste.erro($$select public.registrar_nota_compra('{"fornecedor":"X"}', '[{"nome":"a","quantidade":1,"valor_unitario":1}]')$$, 'row-level security', 'vendedora não lança nota');
 commit;
