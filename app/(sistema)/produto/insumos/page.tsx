@@ -4,6 +4,7 @@ import { exigir } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { Cabecalho, Vazio } from "@/components/cabecalho";
 import { Icone } from "@/components/icone";
+import { LinhaClicavel } from "@/components/linha-clicavel";
 import { Kpi } from "@/components/painel";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
@@ -115,13 +116,13 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
                 <thead><tr><th>Data</th><th>Fornecedor</th><th>Nota</th><th className="num">Itens</th><th className="num">Total</th></tr></thead>
                 <tbody>
                   {notasVisiveis.map((n) => (
-                    <tr key={n.id}>
+                    <LinhaClicavel key={n.id} href={`${base}&nota=${n.id}`}>
                       <td>{dataCurta(n.emitida_em)}</td>
                       <td><Link className="linha-link" href={`${base}&nota=${n.id}`} scroll={false}>{n.fornecedor ?? "Sem nota"}</Link>{n.observacao && <div className="mini">{n.observacao}</div>}</td>
                       <td>{n.sem_nota ? <span className="etiqueta neutra">sem nota</span> : n.numero ? `nº ${n.numero}` : <span className="mini">sem número</span>}{n.arquivo && <span className="etiqueta info" style={{ marginLeft: 6 }}>anexo</span>}</td>
                       <td className="num">{numero(n.nota_compra_itens?.[0]?.count ?? 0)}</td>
                       <td className="num"><strong>{reais(Number(n.valor_total))}</strong></td>
-                    </tr>
+                    </LinhaClicavel>
                   ))}
                 </tbody>
               </table>
@@ -133,13 +134,13 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
               <thead><tr><th>Item</th><th>Tipo</th><th className="num">Último preço</th><th>Comprado em</th><th>Fornecedor</th></tr></thead>
               <tbody>
                 {insumosVisiveis.map((i) => (
-                  <tr key={i.id}>
+                  <LinhaClicavel key={i.id} href={`${base}&insumo=${i.id}`}>
                     <td><Link className="linha-link" href={`${base}&insumo=${i.id}`} scroll={false}>{i.nome}</Link></td>
                     <td><span className="etiqueta neutra">{TIPO[i.tipo]}</span></td>
                     <td className="num"><strong>{i.ultimo_preco != null ? reais(Number(i.ultimo_preco)) : "—"}</strong> <span className="mini">/ {i.unidade}</span></td>
                     <td>{dataCurta(i.ultimo_preco_em)}</td>
                     <td>{i.ultimo_fornecedor ?? "—"}</td>
-                  </tr>
+                  </LinhaClicavel>
                 ))}
               </tbody>
             </table>

@@ -4,6 +4,7 @@ import { exigir } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { Cabecalho, Vazio } from "@/components/cabecalho";
 import { Icone } from "@/components/icone";
+import { LinhaClicavel } from "@/components/linha-clicavel";
 import { Kpi } from "@/components/painel";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { GradeQuantidades } from "@/components/grade-quantidades";
@@ -40,6 +41,7 @@ export default async function Recebimentos({ searchParams }: { searchParams: Pro
   const { ver = "abertos", registrar, produto: produtoId } = await searchParams;
   const supabase = await supabaseServidor();
   const podeRegistrar = sessao.pode("producao", "criar") || sessao.pode("estoque", "criar");
+  const podePrecificar = sessao.pode("produto", "editar");
 
   const { data } = await supabase.from("recebimentos_resumo")
     .select("id, numero, recebido_em, referencia, produto_nome, faccao_nome, recebido, liberado, aguardando, situacao, pendente, pendencia")
@@ -112,13 +114,13 @@ export default async function Recebimentos({ searchParams }: { searchParams: Pro
         {lista.length ? (
           <div className="tabela-rolagem">
             <table className="tabela">
-              <thead><tr><th>Lote</th><th>Modelo</th><th>Facção</th><th>Andamento</th><th className="num">Aguardando</th><th>Situação</th></tr></thead>
+              <thead><tr><th>Lote</th><th>Modelo</th><th>Facção</th><th>Andamento</th><th className="num">Aguardando</th><th>Situação</th><th /></tr></thead>
               <tbody>
                 {lista.map((l) => {
                   const s = SITUACAO[l.situacao] ?? SITUACAO.vazio;
                   const p = l.recebido ? Math.round((l.liberado / l.recebido) * 100) : 0;
                   return (
-                    <tr key={l.id}>
+                    <LinhaClicavel key={l.id} href={`/producao/recebimentos/${l.id}`}>
                       <td><Link className="linha-link" href={`/producao/recebimentos/${l.id}`}>nº {l.numero}</Link><div className="mini">{dataCurta(l.recebido_em)}</div></td>
                       <td><strong>{l.produto_nome}</strong><div className="mini">{l.referencia}</div></td>
                       <td>{l.faccao_nome ?? <span className="mini">Não informada</span>}</td>
@@ -133,7 +135,12 @@ export default async function Recebimentos({ searchParams }: { searchParams: Pro
                         <span className={`etiqueta ${s.classe}`}>{s.rotulo}</span>
                         {l.pendente && l.pendencia && <div className="mini" style={{ marginTop: 4 }}>{l.pendencia}</div>}
                       </td>
-                    </tr>
+                      <td className="num">
+                        {l.situacao === "sem_preco" && podePrecificar
+                          ? <Link className="botao pequeno" href={`/producao/recebimentos/${l.id}?acao=precificar`}><Icone nome="cifrao" />Precificar</Link>
+                          : <Link className="botao leve pequeno" href={`/producao/recebimentos/${l.id}`}>Abrir</Link>}
+                      </td>
+                    </LinhaClicavel>
                   );
                 })}
               </tbody>

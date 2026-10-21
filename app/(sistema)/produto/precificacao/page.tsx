@@ -3,6 +3,7 @@ import { exigir } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { Cabecalho, Vazio } from "@/components/cabecalho";
 import { Icone } from "@/components/icone";
+import { LinhaClicavel } from "@/components/linha-clicavel";
 import { Kpi } from "@/components/painel";
 import { Suspense } from "react";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
@@ -72,10 +73,10 @@ export default async function Precificacao({ searchParams }: { searchParams: Pro
           {lista.length ? (
             <div className="tabela-rolagem">
               <table className="tabela">
-                <thead><tr><th>Produto</th><th className="num">Custo</th><th className="num">Sugerido</th><th className="num">Preço</th><th className="num">Lucro real</th></tr></thead>
+                <thead><tr><th>Produto</th><th className="num">Custo</th><th className="num">Sugerido</th><th className="num">Preço</th><th className="num">Lucro real</th><th /></tr></thead>
                 <tbody>
                   {lista.map((p) => (
-                    <tr key={p.id}>
+                    <LinhaClicavel key={p.id} href={`/produto/precificacao?ver=${ver}&precificar=${p.id}`}>
                       <td>
                         <Link className="linha-link" href={`/produto/precificacao?ver=${ver}&precificar=${p.id}`} scroll={false}>{p.nome}</Link>
                         <div className="mini">{p.referencia}{p.esperando ? ` · ${numero(p.esperando)} peças esperando preço` : ""}</div>
@@ -84,7 +85,8 @@ export default async function Precificacao({ searchParams }: { searchParams: Pro
                       <td className="num mini">{reais(p.fichas_custo?.preco_sugerido)}</td>
                       <td className="num">{p.preco_venda != null ? <strong>{reais(p.preco_venda)}</strong> : <span className="etiqueta alerta">sem preço</span>}</td>
                       <td className="num">{p.margem != null ? <span className={`etiqueta ${p.margem < 0 ? "erro" : p.margem < config.lucro_desejado ? "alerta" : "ok"}`}>{pct(p.margem)}</span> : "—"}</td>
-                    </tr>
+                      <td className="num"><Link className={`botao pequeno${p.preco_venda != null ? " leve" : ""}`} href={`/produto/precificacao?ver=${ver}&precificar=${p.id}`} scroll={false}><Icone nome={p.preco_venda != null ? "lapis" : "cifrao"} />{p.preco_venda != null ? "Editar" : "Precificar"}</Link></td>
+                    </LinhaClicavel>
                   ))}
                 </tbody>
               </table>

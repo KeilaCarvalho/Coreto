@@ -763,3 +763,8 @@ details > summary::-webkit-details-marker { display: none; }
 .editar-item summary::-webkit-details-marker { display: none; }
 .editar-item summary small { font-weight: 500; color: var(--suave); font-size: 12px; margin-left: auto; }
 .editar-item[open] summary { margin-bottom: 4px; }
+.linha-clicavel { cursor: pointer; transition: background .12s ease; }
+.linha-clicavel:hover td { background: var(--verde-50); }
+.linha-clicavel:focus-visible { outline: 2px solid var(--azul); outline-offset: -2px; }
+.linha-clicavel.abrindo td { background: var(--verde-50); opacity: .7; }
+.linha-clicavel.abrindo td:first-child { box-shadow: inset 4px 0 0 var(--azul); }
