@@ -365,3 +365,28 @@ select set_config('request.jwt.claim.sub', (select id::text from teste.ids where
 select teste.ok((select count(*) from public.insumos) = 0, 'vendedora não vê preços de insumos');
 select teste.erro($$select public.registrar_nota_compra('{"fornecedor":"X"}', '[{"nome":"a","quantidade":1,"valor_unitario":1}]')$$, 'row-level security', 'vendedora não lança nota');
 commit;
+
+-- ---------------------------------------------------------------------
+-- 11. Relatórios de vendas: reimportar o mês substitui; vendedora não vê.
+-- ---------------------------------------------------------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+select teste.ok(public.importar_vendas('evolucao', null, '[{"mes":"2026-07","pecas":400,"valor_total":180000},{"mes":"2026-08","pecas":395,"valor_total":183505.2}]', 'resumo.pdf') = 2,
+                'resumo do ano grava um registro por mês');
+select public.importar_vendas('evolucao', null, '[{"mes":"2026-08","pecas":396,"valor_total":183600}]', 'resumo.pdf');
+select teste.ok((select pecas = 396 and valor_total = 183600 from public.vendas_mensais where mes = '2026-08-01'), 'reimportar o resumo atualiza o mês');
+select public.importar_vendas('comissao', '2026-08', '[{"codigo":"11173","vendedora":"MILLENA","vendas":101853.82,"comissao":3055.61},{"codigo":"8748","vendedora":"VALQUIRIA","vendas":53277}]', 'c.pdf');
+select public.importar_vendas('comissao', '2026-08', '[{"codigo":"11173","vendedora":"MILLENA","vendas":100000,"comissao":3000}]', 'c2.pdf');
+select teste.ok((select count(*) = 1 and sum(vendas) = 100000 from public.comissoes_mensais where mes = '2026-08-01'), 'reimportar a comissão do mês substitui a anterior');
+select public.importar_vendas('vendas_dia', '2026-08', '[{"data":"2026-08-01","venda":"024773","codigo":"001632","produto":"BLUSA SOLINEA","quantidade":1,"valor_produto":470,"variacao_valor":-26.6,"valor_total":443.4}]', 'v.pdf');
+select teste.ok((select count(*) = 1 from public.vendas_itens), 'vendas peça a peça entram no mês');
+select teste.erro($$select public.importar_vendas('curva_abc', null, '[{"codigo":"1","descricao":"X"}]', 'x.pdf')$$, 'mês', 'relatório sem mês é recusado');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'carla'), true);
+select teste.ok((select count(*) from public.comissoes_mensais) = 0 and (select count(*) from public.vendas_mensais) = 0, 'vendedora não vê vendas nem comissões');
+select teste.erro($$select public.importar_vendas('evolucao', null, '[{"mes":"2026-01"}]', 'x.pdf')$$, 'gestão comercial', 'vendedora não importa relatórios de vendas');
+commit;

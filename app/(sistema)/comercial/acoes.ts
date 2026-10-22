@@ -106,7 +106,7 @@ export async function importarClientes(_: EstadoAcao, dados: FormData): Promise<
   if (error) return { erro: mensagemBanco(error.message) };
   const r = resultado as { importados: number; ignorados: number };
   atualizar();
-  revalidatePath("/comercial/clientes/importar");
+  revalidatePath("/comercial/relatorios");
   return { ok: `${r.importados} ${r.importados === 1 ? "linha importada" : "linhas importadas"}${r.ignorados ? `, ${r.ignorados} ignoradas (sem nome, código ou data)` : ""}.` };
 }
 
@@ -116,7 +116,7 @@ export async function desfazerImportacao(dados: FormData) {
   const supabase = await supabaseServidor();
   await supabase.rpc("desfazer_importacao_clientes", { p_id: id });
   atualizar();
-  revalidatePath("/comercial/clientes/importar");
+  revalidatePath("/comercial/relatorios");
 }
 
 export async function salvarNomeVendas(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
@@ -129,4 +129,24 @@ export async function salvarNomeVendas(_: EstadoAcao, dados: FormData): Promise<
   revalidatePath("/pessoas/equipe");
   atualizar();
   return { ok: nome ? `Carteira ligada a “${nome}”.` : "Nome nos relatórios removido." };
+}
+
+const TIPOS_VENDAS = ["evolucao", "comissao", "curva_abc", "vendas_dia"];
+
+/** Importa qualquer relatório lido: os de clientes vão para a carteira; os de vendas, para a tela de Vendas. */
+export async function importarRelatorio(estado: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const tipo = texto(dados, "tipo");
+  if ((TIPOS as readonly string[]).includes(tipo)) return importarClientes(estado, dados);
+  if (!TIPOS_VENDAS.includes(tipo)) return { erro: "Tipo de relatório inválido." };
+  let linhas: unknown;
+  try { linhas = JSON.parse(String(dados.get("linhas") ?? "[]")); } catch { return { erro: "Não consegui ler as linhas do relatório." }; }
+  if (!Array.isArray(linhas) || !linhas.length) return { erro: "O relatório não tem linhas para importar." };
+  const supabase = await supabaseServidor();
+  const { data: n, error } = await supabase.rpc("importar_vendas", {
+    p_tipo: tipo, p_mes: texto(dados, "mes") || null, p_linhas: linhas, p_arquivo: texto(dados, "arquivo"),
+  });
+  if (error) return { erro: mensagemBanco(error.message) };
+  revalidatePath("/comercial/vendas");
+  revalidatePath("/comercial/relatorios");
+  return { ok: `${n} ${n === 1 ? "linha importada" : "linhas importadas"}. Se já tinha esse mês, os dados foram substituídos.` };
 }
