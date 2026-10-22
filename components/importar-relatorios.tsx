@@ -85,7 +85,7 @@ export function ImportarRelatorios({ importar }: { importar: (e: EstadoAcao, d: 
                   {l.status === "lendo" && "Lendo o PDF…"}
                   {l.status === "erro" && l.erro}
                   {(l.status === "pronto" || l.status === "importando") && `${l.arquivo} · ${l.linhas.length} ${l.linhas.length === 1 ? "linha" : "linhas"}${l.mes ? ` · ${mesBR(l.mes)}` : ""} · vai para: ${NOMES[l.tipo]?.vai}`}
-                  {l.status === "feito" && l.resultado}
+                  {l.status === "feito" && <>{l.resultado} <a className="botao-link" href={`${NOMES[l.tipo]?.href}${l.mes && NOMES[l.tipo]?.href === "/comercial/vendas" ? `?mes=${l.mes}` : ""}`}>Ver em {NOMES[l.tipo]?.onde} →</a></>}
                 </small>
               </div>
               {l.status === "pronto" && <button type="button" className="botao leve pequeno" disabled={rodando} onClick={() => importarUm(l).then(() => router.refresh())}>Importar</button>}

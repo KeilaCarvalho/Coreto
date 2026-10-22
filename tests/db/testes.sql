@@ -390,3 +390,16 @@ select set_config('request.jwt.claim.sub', (select id::text from teste.ids where
 select teste.ok((select count(*) from public.comissoes_mensais) = 0 and (select count(*) from public.vendas_mensais) = 0, 'vendedora não vê vendas nem comissões');
 select teste.erro($$select public.importar_vendas('evolucao', null, '[{"mes":"2026-01"}]', 'x.pdf')$$, 'gestão comercial', 'vendedora não importa relatórios de vendas');
 commit;
+
+-- ---------------------------------------------------------------------
+-- 12. Vendas importadas antes das clientes são ligadas depois.
+-- ---------------------------------------------------------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+select public.importar_clientes('vendas_vendedora', '[{"codigo_venda":"777001","data":"2026-10-05","nome":"JOANA ANTES","vendedora":"CARLA V","valor":250}]', 'out.pdf', '2026-10');
+select teste.ok((select cliente_id is null from public.cliente_compras where codigo_venda = '777001'), 'venda de cliente ainda não cadastrada fica solta');
+select public.importar_clientes('primeira_compra', '[{"codigo":"777","nome":"Joana Antes","telefone":"62911112222","vendedora":"CARLA V","primeira_compra":"2026-10-05"}]', 'pc.pdf', '2026-10');
+select teste.ok((select qtd_compras = 1 and total_gasto = 250 from public.clientes where codigo_externo = '777'),
+                'ao cadastrar a cliente, a venda solta é ligada a ela');
+commit;

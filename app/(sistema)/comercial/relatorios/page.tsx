@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { exigir } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { Cabecalho } from "@/components/cabecalho";
@@ -13,13 +14,13 @@ type ImpVenda = { id: string; arquivo: string | null; tipo: string; mes: string 
 type Linha = { id: string; arquivo: string; tipo: string; mes: string | null; linhas: number; ignorados: number; quando: string; quem: string | null; desfazer: boolean };
 
 const LISTA = [
-  ["Clientes – primeira compra", "cria as clientes novas na carteira de cada vendedora"],
-  ["Relatório de clientes (aniversariantes)", "completa nascimento, CPF, telefone e cidade"],
-  ["Desconto/acréscimo de vendas por vendedor", "soma as compras de cada cliente"],
-  ["Resumo de comissão vendedor", "comissão, vendas e ticket de cada vendedora"],
-  ["Curva ABC de produtos", "os modelos que mais venderam no mês"],
-  ["Evolução de vendas por mês", "o gráfico das vendas do ano"],
-  ["Venda de produtos por data", "cada peça vendida, com desconto"],
+  ["Clientes – primeira compra", "cria as clientes novas na carteira de cada vendedora", "Clientes"],
+  ["Relatório de clientes (aniversariantes)", "completa nascimento, CPF, telefone e cidade", "Clientes"],
+  ["Desconto/acréscimo de vendas por vendedor", "compras de cada cliente e ranking das vendedoras", "Vendas"],
+  ["Resumo de comissão vendedor", "comissão, vendas e ticket de cada vendedora", "Vendas"],
+  ["Curva ABC de produtos", "os modelos que mais venderam no mês", "Vendas"],
+  ["Evolução de vendas por mês", "o gráfico das vendas do ano", "Vendas"],
+  ["Venda de produtos por data", "cada peça vendida, com desconto", "Vendas"],
 ];
 
 export default async function Relatorios() {
@@ -57,8 +58,8 @@ export default async function Relatorios() {
         <section className="painel">
           <div className="painel-topo"><div><h2>Relatórios que o sistema lê</h2><p>Gere no sistema de vendas, salve em PDF e envie aqui.</p></div></div>
           <ul className="lista-simples">
-            {LISTA.map(([nome, faz]) => <li key={nome}><span><b>{nome}</b><br /><span className="mini">{faz}</span></span></li>)}
-            <li><span><b>Carteira do sistema antigo (CSV)</b><br /><span className="mini">uma vez só, para trazer etapas e retornos</span></span></li>
+            {LISTA.map(([nome, faz, onde]) => <li key={nome}><span><b>{nome}</b><br /><span className="mini">{faz}</span></span><span className="etiqueta neutra">{onde}</span></li>)}
+            <li><span><b>Carteira do sistema antigo (CSV)</b><br /><span className="mini">uma vez só, para trazer etapas e retornos</span></span><span className="etiqueta neutra">Clientes</span></li>
           </ul>
         </section>
       </div>
@@ -68,7 +69,7 @@ export default async function Relatorios() {
         {historico.length ? (
           <div className="tabela-rolagem">
             <table className="tabela">
-              <thead><tr><th>Relatório</th><th>Mês</th><th className="num">Linhas</th><th>Quando</th><th /></tr></thead>
+              <thead><tr><th>Relatório</th><th>Mês</th><th className="num">Linhas</th><th>Quando</th><th>Onde ver</th><th /></tr></thead>
               <tbody>
                 {historico.map((i) => (
                   <tr key={i.tipo + i.id}>
@@ -76,6 +77,7 @@ export default async function Relatorios() {
                     <td>{i.mes ? i.mes.split("-").reverse().join("/") : "—"}</td>
                     <td className="num">{numero(i.linhas)}{i.ignorados ? <div className="mini">{numero(i.ignorados)} ignoradas</div> : null}</td>
                     <td className="mini">{quando(i.quando)}{i.quem ? `, ${i.quem}` : ""}</td>
+                    <td>{NOMES[i.tipo] && <Link className="botao leve pequeno" href={`${NOMES[i.tipo].href}${i.mes && NOMES[i.tipo].href === "/comercial/vendas" ? `?mes=${i.mes.slice(0, 7)}` : ""}`}>{NOMES[i.tipo].onde} →</Link>}</td>
                     <td className="num">
                       {i.desfazer && (
                         <form action={desfazerImportacao}>

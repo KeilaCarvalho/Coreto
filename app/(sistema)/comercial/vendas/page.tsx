@@ -11,6 +11,7 @@ type Mensal = { mes: string; pecas: number; devolucoes: number; faturadas: numbe
 type Comissao = { codigo: string; vendedora: string; vendas: number; comissao: number; percentual: number; qtd_vendas: number; qtd_pecas: number; ticket_medio: number; valor_pagar: number };
 type Produto = { codigo: string; referencia: string | null; descricao: string; classe: string | null; quantidade: number; custo: number; venda: number; percentual: number };
 type Item = { data: string; quantidade: number; valor_produto: number; variacao_valor: number; valor_total: number };
+type Compra = { data: string; vendedora_nome: string | null; valor: number; valor_produtos: number; valor_variacao: number };
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const nomeMes = (m: string) => `${MESES[Number(m.slice(5, 7)) - 1]}/${m.slice(2, 4)}`;
@@ -24,14 +25,15 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
   const { mes: pedido } = await searchParams;
   const supabase = await supabaseServidor();
 
-  const [{ data: mR }, { data: mesesC }, { data: mesesP }, { data: mesesI }] = await Promise.all([
+  const [{ data: mR }, { data: mesesC }, { data: mesesP }, { data: mesesI }, { data: mesesV }] = await Promise.all([
     supabase.from("vendas_mensais").select("mes, pecas, devolucoes, faturadas, qtd_vendas, valor_total, preco_medio").order("mes"),
     supabase.from("comissoes_mensais").select("mes").limit(1000),
     supabase.from("produtos_vendidos_mes").select("mes").limit(5000),
     supabase.from("relatorios_importados").select("mes").eq("tipo", "vendas_dia").not("mes", "is", null),
+    supabase.from("importacoes_clientes").select("mes").eq("tipo", "vendas_vendedora").not("mes", "is", null),
   ]);
   const mensais = ((mR ?? []) as Mensal[]).map((m) => ({ ...m, mes: m.mes.slice(0, 7), valor_total: n(m.valor_total), preco_medio: n(m.preco_medio) }));
-  const disponiveis = [...new Set([...mensais.map((m) => m.mes), ...[...(mesesC ?? []), ...(mesesP ?? []), ...(mesesI ?? [])].map((x) => String(x.mes).slice(0, 7))])].sort();
+  const disponiveis = [...new Set([...mensais.map((m) => m.mes), ...[...(mesesC ?? []), ...(mesesP ?? []), ...(mesesI ?? []), ...(mesesV ?? [])].map((x) => String(x.mes).slice(0, 7))])].sort();
   const mes = pedido && disponiveis.includes(pedido) ? pedido : disponiveis[disponiveis.length - 1];
   const podeImportar = sessao.pode("comercial", "aprovar") || sessao.pode("financeiro", "editar");
 
@@ -49,12 +51,26 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
   }
 
   const inicio = `${mes}-01`;
-  const [{ data: cR }, { data: pR }, { data: iR }] = await Promise.all([
+  const fim = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).toISOString().slice(0, 10);
+  const [{ data: cR }, { data: pR }, { data: iR }, { data: vR }] = await Promise.all([
     supabase.from("comissoes_mensais").select("codigo, vendedora, vendas, comissao, percentual, qtd_vendas, qtd_pecas, ticket_medio, valor_pagar").eq("mes", inicio).order("vendas", { ascending: false }),
     supabase.from("produtos_vendidos_mes").select("codigo, referencia, descricao, classe, quantidade, custo, venda, percentual").eq("mes", inicio).order("quantidade", { ascending: false }).limit(20),
     supabase.from("vendas_itens").select("data, quantidade, valor_produto, variacao_valor, valor_total").eq("mes", inicio).limit(10000),
+    supabase.from("cliente_compras").select("data, vendedora_nome, valor, valor_produtos, valor_variacao").gte("data", inicio).lte("data", fim).limit(10000),
   ]);
-  const comissoes = (cR ?? []) as Comissao[];
+  const compras = (vR ?? []) as Compra[];
+  // Sem o relatório de comissão, o ranking sai das vendas por vendedora.
+  const porVendedora = new Map<string, { vendas: number; qtd: number }>();
+  for (const c of compras) {
+    const nome = c.vendedora_nome || "Sem vendedora";
+    const a = porVendedora.get(nome) ?? { vendas: 0, qtd: 0 };
+    porVendedora.set(nome, { vendas: a.vendas + n(c.valor), qtd: a.qtd + 1 });
+  }
+  const comissoesRel = (cR ?? []) as Comissao[];
+  const comissoes: Comissao[] = comissoesRel.length ? comissoesRel : [...porVendedora.entries()].sort((a, b) => b[1].vendas - a[1].vendas).map(([nome, v]) => ({
+    codigo: nome, vendedora: nome, vendas: v.vendas, comissao: 0, percentual: 0, qtd_vendas: v.qtd, qtd_pecas: 0, ticket_medio: v.qtd ? v.vendas / v.qtd : 0, valor_pagar: 0,
+  }));
+  const semComissao = !comissoesRel.length && comissoes.length > 0;
   const produtos = (pR ?? []) as Produto[];
   const itens = (iR ?? []) as Item[];
   const doMes = mensais.find((m) => m.mes === mes);
@@ -63,8 +79,9 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
   // Números do mês: o resumo mensal manda; sem ele, usa a comissão ou as vendas peça a peça.
   const totalComissoes = comissoes.reduce((t, c) => t + n(c.vendas), 0);
   const totalItens = itens.reduce((t, i) => t + n(i.valor_total), 0);
-  const valorMes = doMes?.valor_total ?? (totalComissoes || totalItens);
-  const qtdVendas = doMes?.qtd_vendas ?? comissoes.reduce((t, c) => t + n(c.qtd_vendas), 0);
+  const totalCompras = compras.reduce((t, c) => t + n(c.valor), 0);
+  const valorMes = doMes?.valor_total ?? (totalComissoes || totalCompras || totalItens);
+  const qtdVendas = doMes?.qtd_vendas ?? (comissoes.reduce((t, c) => t + n(c.qtd_vendas), 0) || compras.length);
   const pecas = doMes?.faturadas ?? (comissoes.reduce((t, c) => t + n(c.qtd_pecas), 0) || itens.reduce((t, i) => t + n(i.quantidade), 0));
   const ticket = qtdVendas ? valorMes / qtdVendas : 0;
   const variacao = anterior && anterior.valor_total ? ((valorMes - anterior.valor_total) / anterior.valor_total) * 100 : null;
@@ -75,12 +92,14 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
 
   // Dia a dia e descontos (vendas peça a peça)
   const porDia = new Map<string, number>();
-  for (const i of itens) porDia.set(i.data, (porDia.get(i.data) ?? 0) + n(i.valor_total));
+  if (itens.length) for (const i of itens) porDia.set(i.data, (porDia.get(i.data) ?? 0) + n(i.valor_total));
+  else for (const c of compras) porDia.set(c.data, (porDia.get(c.data) ?? 0) + n(c.valor));
   const dias = [...porDia.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   const maiorDia = Math.max(0, ...dias.map((d) => d[1]));
-  const bruto = itens.reduce((t, i) => t + n(i.valor_produto) * n(i.quantidade), 0);
-  const descontos = itens.reduce((t, i) => t + Math.min(0, n(i.variacao_valor)), 0);
-  const comDesconto = itens.filter((i) => n(i.variacao_valor) < 0).length;
+  const bruto = itens.length ? itens.reduce((t, i) => t + n(i.valor_produto) * n(i.quantidade), 0) : compras.reduce((t, c) => t + n(c.valor_produtos), 0);
+  const descontos = itens.length ? itens.reduce((t, i) => t + Math.min(0, n(i.variacao_valor)), 0) : compras.reduce((t, c) => t + Math.min(0, n(c.valor_variacao)), 0);
+  const comDesconto = itens.length ? itens.filter((i) => n(i.variacao_valor) < 0).length : compras.filter((c) => n(c.valor_variacao) < 0).length;
+  const unidade = itens.length ? ["peça", "peças"] : ["venda", "vendas"];
   const maiorVendedora = Math.max(1, ...comissoes.map((c) => n(c.vendas)));
   const totalComissao = comissoes.reduce((t, c) => t + n(c.valor_pagar), 0);
 
@@ -137,7 +156,7 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
         </section>
 
         <section className="painel c5">
-          <div className="painel-topo"><div><h2>Vendedoras</h2><p>Vendas e comissão no mês</p></div>{totalComissao > 0 && <div className="fx-total"><strong>{reais(totalComissao)}</strong><span>de comissão a pagar</span></div>}</div>
+          <div className="painel-topo"><div><h2>Vendedoras</h2><p>{semComissao ? "Vendas no mês (sem o relatório de comissão)" : "Vendas e comissão no mês"}</p></div>{totalComissao > 0 && <div className="fx-total"><strong>{reais(totalComissao)}</strong><span>de comissão a pagar</span></div>}</div>
           {comissoes.length ? (
             <ul className="fx-lista">
               {comissoes.map((c, i) => (
@@ -148,7 +167,7 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
                       <span style={{ minWidth: 0 }}><b style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.vendedora}</b><span className="mini">{numero(c.qtd_vendas)} vendas · ticket {reais(n(c.ticket_medio))}</span></span>
                     </span>
                     <span className={`fx-trilho ${i === 0 ? "primeira" : ""}`}><i style={{ width: `${Math.max(2, (n(c.vendas) / maiorVendedora) * 100)}%` }} /></span>
-                    <span className="fx-valor">{reais(n(c.vendas))}<small style={{ color: "var(--suave)" }}>comissão {reais(n(c.valor_pagar))}</small></span>
+                    <span className="fx-valor">{reais(n(c.vendas))}{!semComissao && <small style={{ color: "var(--suave)" }}>comissão {reais(n(c.valor_pagar))}</small>}</span>
                   </div>
                 </li>
               ))}
@@ -159,7 +178,7 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
         <section className="painel c12">
           <div className="painel-topo">
             <div><h2>Vendas dia a dia</h2><p>{dias.length ? `${dias.length} dias com venda em ${mesExtenso(mes)}` : "Importe o relatório de vendas por data"}</p></div>
-            {itens.length > 0 && <div className="fx-total"><strong>{reais(descontos)}</strong><span>de descontos em {numero(comDesconto)} {comDesconto === 1 ? "peça" : "peças"}{bruto ? ` (${Math.abs(Math.round((descontos / bruto) * 1000) / 10).toLocaleString("pt-BR")}%)` : ""}</span></div>}
+            {(itens.length > 0 || compras.length > 0) && <div className="fx-total"><strong>{reais(descontos)}</strong><span>de descontos em {numero(comDesconto)} {comDesconto === 1 ? unidade[0] : unidade[1]}{bruto ? ` (${Math.abs(Math.round((descontos / bruto) * 1000) / 10).toLocaleString("pt-BR")}%)` : ""}</span></div>}
           </div>
           {dias.length ? (
             <>
