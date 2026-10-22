@@ -22,7 +22,7 @@ function atualizar(id?: string) {
 
 export async function registrarRecebimento(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
   const produto = String(dados.get("produto_id") ?? "");
-  const parceiro = String(dados.get("parceiro_id") ?? "") || null;
+  let parceiro = String(dados.get("parceiro_id") ?? "") || null;
   const data = String(dados.get("recebido_em") ?? "") || null;
   const observacao = String(dados.get("observacao") ?? "").trim() || null;
   if (!uuid.test(produto)) return { erro: "Escolha o modelo." };
@@ -31,6 +31,13 @@ export async function registrarRecebimento(_: EstadoAcao, dados: FormData): Prom
   if (!grade.itens.length) return { erro: "Informe a quantidade de pelo menos uma cor e tamanho." };
 
   const supabase = await supabaseServidor();
+  if (parceiro === "nova") {
+    const nome = String(dados.get("faccao_nova") ?? "").trim();
+    if (!nome) return { erro: "Digite o nome da facção nova." };
+    const { data: criada, error: erroFaccao } = await supabase.from("parceiros").insert({ tipo: "faccao", nome }).select("id").single();
+    if (erroFaccao) return { erro: erroFaccao.message.includes("row-level security") ? "Seu perfil não pode cadastrar facções. Peça para quem cuida dos cadastros." : mensagemBanco(erroFaccao.message) };
+    parceiro = criada.id as string;
+  } else if (parceiro && !uuid.test(parceiro)) return { erro: "Facção inválida." };
   const { data: id, error } = await supabase.rpc("registrar_recebimento", {
     p_recebimento: null, p_produto: produto, p_parceiro: parceiro, p_data: data, p_observacao: observacao, p_itens: grade.itens,
   });

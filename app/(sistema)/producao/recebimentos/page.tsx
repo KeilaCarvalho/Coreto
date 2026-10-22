@@ -9,7 +9,7 @@ import { Kpi } from "@/components/painel";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { GradeQuantidades } from "@/components/grade-quantidades";
 import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
-import { EscolherModelo } from "@/components/recebimento/campos";
+import { CampoFaccao, EscolherModelo } from "@/components/recebimento/campos";
 import { montarGrade, ordenarTamanhos, SITUACAO, type VarianteGrade } from "@/lib/grade";
 import { dataCurta, numero, reais } from "@/lib/formatos";
 import { registrarRecebimento } from "../acoes";
@@ -177,13 +177,7 @@ export default async function Recebimentos({ searchParams }: { searchParams: Pro
                     <h3>Dados da chegada</h3>
                     <p>{produto.preco_venda == null ? "Este modelo ainda não tem preço: o lote vai aguardar a precificação." : `Preço atual do modelo: ${reais(produto.preco_venda)}.`}</p>
                     <div className="campos">
-                      <div className="campo">
-                        <label htmlFor="parceiro_id">Facção</label>
-                        <select id="parceiro_id" name="parceiro_id" defaultValue="">
-                          <option value="">Não informar</option>
-                          {faccoes.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
-                        </select>
-                      </div>
+                      <CampoFaccao faccoes={faccoes} />
                       <div className="campo">
                         <label htmlFor="recebido_em">Data da chegada</label>
                         <input id="recebido_em" name="recebido_em" type="date" defaultValue={hojeSP()} max={hojeSP()} required />

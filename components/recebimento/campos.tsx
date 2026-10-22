@@ -38,3 +38,21 @@ export function EscolhaLiberar({ linhas, tamanhos, celulas, aguardando }: {
     </>
   );
 }
+
+/** Qual facção costurou o lote. Dá para cadastrar uma facção nova aqui mesmo. */
+export function CampoFaccao({ faccoes }: { faccoes: { id: string; nome: string }[] }) {
+  const [escolha, setEscolha] = useState(faccoes.length === 1 ? faccoes[0].id : "");
+  return (
+    <div className="campo">
+      <label htmlFor="parceiro_id">Facção que costurou</label>
+      <select id="parceiro_id" name="parceiro_id" value={escolha} onChange={(e) => setEscolha(e.target.value)}>
+        <option value="">{faccoes.length ? "Escolha a facção" : "Nenhuma facção cadastrada"}</option>
+        {faccoes.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+        <option value="nova">+ Cadastrar facção nova</option>
+      </select>
+      {escolha === "nova"
+        ? <input name="faccao_nova" placeholder="Nome da facção" required autoFocus style={{ marginTop: 8 }} />
+        : <span className="ajuda">Opcional. Serve para saber de quem veio cada lote e cobrar o que faltou.</span>}
+    </div>
+  );
+}
