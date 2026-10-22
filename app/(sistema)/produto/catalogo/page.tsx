@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icone } from "@/components/icone";
+import { LinhaClicavel } from "@/components/linha-clicavel";
 import { exigir } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { Cabecalho, Vazio } from "@/components/cabecalho";
@@ -60,7 +61,7 @@ export default async function Catalogo({ searchParams }: { searchParams: Promise
                   const ativas = p.variantes.filter((v) => v.ativa);
                   const estoque = p.variantes.reduce((t, v) => t + (saldoPorVariante.get(v.id) ?? 0), 0);
                   return (
-                    <tr key={p.id}>
+                    <LinhaClicavel key={p.id} href={`/produto/catalogo/${p.id}`}>
                       <td><Link className="linha-link" href={`/produto/catalogo/${p.id}`}>{p.referencia}</Link></td>
                       <td><div className="item"><span className="marcador"><Icone nome="catalogo" /></span><div><strong>{p.nome}</strong><span>{[p.categorias?.nome, p.colecoes?.nome].filter(Boolean).join(", ") || "Sem categoria"}</span></div></div></td>
                       <td>
@@ -71,7 +72,7 @@ export default async function Catalogo({ searchParams }: { searchParams: Promise
                       <td className="num">{numero(ativas.length)}</td>
                       {sessao.pode("estoque") && <td className="num">{numero(estoque)}</td>}
                       <td className="num"><strong>{reais(p.preco_venda)}</strong></td>
-                    </tr>
+                    </LinhaClicavel>
                   );
                 })}
               </tbody>

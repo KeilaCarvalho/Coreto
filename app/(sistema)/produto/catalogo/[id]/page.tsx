@@ -7,7 +7,9 @@ import { supabaseServidor } from "@/lib/supabase/server";
 import { listasDoProduto } from "@/lib/consultas";
 import { Cabecalho } from "@/components/cabecalho";
 import { CamposProduto, EscolhaCores } from "@/components/campos-produto";
+import { Suspense } from "react";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
+import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
 import { numero, reais } from "@/lib/formatos";
 import { arquivarProduto, salvarCoresDoProduto, salvarProduto } from "../../acoes";
 
@@ -73,9 +75,11 @@ export default async function DetalheProduto({ params, searchParams }: { params:
               <button className="botao leve" type="submit">{produto.arquivado_em ? "Reativar" : "Arquivar"}</button>
             </form>
           )}
-          {sessao.pode("estoque", "criar") && <Link className="botao" href="/estoque/movimentacoes"><Icone nome="entrada" />Registrar entrada</Link>}
+          {sessao.pode("estoque", "criar") && <Link className="botao leve" href="/estoque/movimentacoes"><Icone nome="entrada" />Registrar entrada</Link>}
+          {podeEditar && <Link className="botao" href={`/produto/catalogo/${produto.id}?editar=1`} scroll={false}><Icone nome="lapis" />Editar modelo</Link>}
         </>}
       />
+      <Suspense><AvisoDaUrl /></Suspense>
       {criado && <p className="aviso ok" role="status"><Icone nome="certo" />Produto criado com {numero(produto.variantes.length)} variantes. Cada uma já tem SKU e código de barras.</p>}
       {produto.arquivado_em && <p className="aviso alerta">Este produto está arquivado e não aparece no catálogo nem no caixa.</p>}
 
@@ -118,28 +122,29 @@ export default async function DetalheProduto({ params, searchParams }: { params:
       </section>
 
       {podeEditar && (
-        <div className="grade-lateral" style={{ marginTop: 16 }}>
-          <section className="painel">
-            <div className="painel-topo"><div><h2>Dados do produto</h2></div></div>
-            <div className="painel-corpo">
-              <FormAcao acao={salvarProduto}>
-                <input type="hidden" name="id" value={produto.id} />
+        <Suspense>
+          <JanelaLateral param="editar" titulo={`Editar ${produto.nome}`} subtitulo={`Referência ${produto.referencia}`} larga>
+            <FormAcao acao={salvarProduto}>
+              <input type="hidden" name="id" value={produto.id} />
+              <div className="bloco-janela">
+                <h3>Dados do modelo</h3>
+                <p>Nome, categoria, coleção, NCM e descrição. A grade de tamanhos não muda depois de criada.</p>
                 <CamposProduto grades={listas.grades} categorias={listas.categorias} colecoes={listas.colecoes} valores={produto} gradeFixa />
-                <div className="formulario-rodape"><BotaoEnviar>Salvar alterações</BotaoEnviar></div>
-              </FormAcao>
-            </div>
-          </section>
-          <section className="painel">
-            <div className="painel-topo"><div><h2>Cores</h2><p>Cor nova cria variantes; cor retirada é desativada, sem perder o histórico.</p></div></div>
-            <div className="painel-corpo">
-              <FormAcao acao={salvarCoresDoProduto}>
-                <input type="hidden" name="id" value={produto.id} />
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}><BotaoEnviar>Salvar dados</BotaoEnviar></div>
+              </div>
+            </FormAcao>
+            <FormAcao acao={salvarCoresDoProduto}>
+              <input type="hidden" name="id" value={produto.id} />
+              <div className="bloco-janela">
+                <h3>Cores</h3>
+                <p>Cor nova cria as variantes com SKU e código de barras. Cor retirada fica desativada, sem perder o histórico.</p>
                 <EscolhaCores cores={listas.cores} marcadas={produto.produto_cores.map((c) => c.cor_id)} />
-                <div className="formulario-rodape"><BotaoEnviar>Atualizar grade</BotaoEnviar></div>
-              </FormAcao>
-            </div>
-          </section>
-        </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}><BotaoEnviar>Atualizar cores</BotaoEnviar></div>
+              </div>
+            </FormAcao>
+            <div className="formulario-rodape"><CancelarJanela /></div>
+          </JanelaLateral>
+        </Suspense>
       )}
     </>
   );
