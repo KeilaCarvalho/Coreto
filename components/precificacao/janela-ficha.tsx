@@ -19,7 +19,7 @@ export async function JanelaFicha({ produtoId, param, valor, limpar }: { produto
   const [{ data }, { data: itensR }, { data: cfg }, { data: insR }] = await Promise.all([
     supabase.from("produtos").select("id, referencia, nome, preco_venda, fichas_custo(simples, cartao, comissao, despesas_fixas, lucro_desejado, observacao, atualizado_em)").eq("id", produtoId).maybeSingle(),
     supabase.from("ficha_custo_itens").select("tipo, descricao, quantidade, unidade, valor_unitario").eq("produto_id", produtoId).order("ordem"),
-    supabase.from("config_precificacao").select("simples, cartao, comissao, despesas_fixas, lucro_desejado").eq("id", 1).maybeSingle(),
+    supabase.from("config_precificacao").select("simples, cartao, comissao, despesas_fixas, lucro_desejado, itens_padrao").eq("id", 1).maybeSingle(),
     supabase.from("insumos").select("nome, tipo, unidade, ultimo_preco, ultimo_preco_em").is("arquivado_em", null).order("nome"),
   ]);
   if (!data) return null;
@@ -29,16 +29,20 @@ export async function JanelaFicha({ produtoId, param, valor, limpar }: { produto
     simples: campo(base.simples), cartao: campo(base.cartao), comissao: campo(base.comissao),
     despesas_fixas: campo(base.despesas_fixas), lucro_desejado: campo(base.lucro_desejado),
   };
-  const itens: ItemFicha[] = ((itensR ?? []) as Item[]).map((i) => ({
+  const paraCampo = (i: Item): ItemFicha => ({
     tipo: i.tipo, descricao: i.descricao, quantidade: campo(Number(i.quantidade)), unidade: i.unidade ?? "", valor_unitario: campo(Number(i.valor_unitario)),
-  }));
+  });
+  // Itens padrão (mão de obra e outros custos que se repetem): já vêm preenchidos na primeira precificação do modelo.
+  const padrao = (Array.isArray((cfg as { itens_padrao?: unknown } | null)?.itens_padrao) ? (cfg as { itens_padrao: Item[] }).itens_padrao : []).map(paraCampo);
+  const salvos = ((itensR ?? []) as Item[]).map(paraCampo);
+  const itens: ItemFicha[] = salvos.length ? salvos : padrao.length ? [{ tipo: "material", descricao: "", quantidade: "1", unidade: "m", valor_unitario: "" }, ...padrao] : [];
   const sub = `${produto.referencia} · ${produto.fichas_custo ? `ficha atualizada em ${quando(produto.fichas_custo.atualizado_em)}` : "primeira precificação"}`;
 
   return (
     <JanelaLateral param={param} valor={valor} limpar={limpar} larga titulo={`Precificar ${produto.nome}`} subtitulo={sub}>
       <FormAcao acao={salvarFicha}>
         <input type="hidden" name="produto_id" value={produto.id} />
-        <FichaCusto itensIniciais={itens} taxasIniciais={taxas} precoAtual={produto.preco_venda} insumos={(insR ?? []) as InsumoSalvo[]} />
+        <FichaCusto itensIniciais={itens} taxasIniciais={taxas} precoAtual={produto.preco_venda} insumos={(insR ?? []) as InsumoSalvo[]} temPadrao={padrao.length > 0} veioDoPadrao={!salvos.length && padrao.length > 0} />
         <div className="bloco-janela">
           <div className="campo">
             <label htmlFor="observacao">Observação</label>

@@ -36,7 +36,7 @@ const novoItem = (tipo: ItemFicha["tipo"]): ItemFicha => ({ tipo, descricao: "",
  * Precificação de um modelo em três passos: custo da peça (ficha da facção + notas fiscais),
  * impostos/taxas/lucro, e o preço de venda. Os itens vão para o servidor em JSON no campo "itens".
  */
-export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual, insumos = [] }: { itensIniciais: ItemFicha[]; taxasIniciais: Taxas; precoAtual: number | null; insumos?: InsumoSalvo[] }) {
+export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual, insumos = [], temPadrao = false, veioDoPadrao = false }: { itensIniciais: ItemFicha[]; taxasIniciais: Taxas; precoAtual: number | null; insumos?: InsumoSalvo[]; temPadrao?: boolean; veioDoPadrao?: boolean }) {
   const [itens, setItens] = useState<ItemFicha[]>(itensIniciais.length ? itensIniciais : [novoItem("material"), novoItem("mao_de_obra")]);
   const [taxas, setTaxas] = useState<Taxas>(taxasIniciais);
   const [preco, setPreco] = useState(precoAtual != null ? precoAtual.toFixed(2).replace(".", ",") : "");
@@ -110,6 +110,11 @@ export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual, insumos =
           );
         })}
         <div className="fx-subtotal"><span>Custo de uma peça</span><span>{brl(custo)}</span></div>
+        {veioDoPadrao && <p className="nota-dica" style={{ marginTop: 10 }}>Mão de obra e outros custos vieram do seu padrão. Mude o que for diferente neste modelo.</p>}
+        <label className="guardar-padrao">
+          <input type="checkbox" name="salvar_padrao" value="1" defaultChecked={!temPadrao} />
+          <span><b>{temPadrao ? "Atualizar o padrão" : "Guardar como padrão"}</b> com a mão de obra e os outros custos desta ficha. Eles vão vir preenchidos em toda precificação nova (dá para mudar em cada uma).</span>
+        </label>
       </div>
 
       <div className="bloco-janela" id="b-percentuais">

@@ -136,6 +136,12 @@ export async function salvarFicha(_: EstadoAcao, dados: FormData): Promise<Estad
     p_produto: id, p_taxas: taxas.data, p_itens: itens.data, p_observacao: observacao, p_preco: preco,
   });
   if (error) return { erro: mensagemBanco(error.message) };
+  let avisoPadrao = "";
+  if (dados.get("salvar_padrao") === "1") {
+    const padrao = itens.data.filter((i) => i.tipo !== "material");
+    const { data: ok } = await supabase.from("config_precificacao").update({ itens_padrao: padrao }).eq("id", 1).select("id");
+    avisoPadrao = ok?.length ? ` Padrão atualizado com ${padrao.length} ${padrao.length === 1 ? "item" : "itens"} de mão de obra e outros custos.` : " (Seu perfil não pode mudar o padrão.)";
+  }
   revalidatePath("/produto/precificacao");
   revalidatePath(`/produto/precificacao/${id}`);
   revalidatePath(`/produto/catalogo/${id}`);
@@ -145,7 +151,7 @@ export async function salvarFicha(_: EstadoAcao, dados: FormData): Promise<Estad
     revalidatePath(`/producao/recebimentos/${voltar}`);
     redirect(`/producao/recebimentos/${voltar}`);
   }
-  return { ok: preco != null ? "Preço salvo. Se tiver peças esperando, já dá para liberar." : "Ficha salva. O preço de venda continua o mesmo." };
+  return { ok: (preco != null ? "Preço salvo. Se tiver peças esperando, já dá para liberar." : "Ficha salva. O preço de venda continua o mesmo.") + avisoPadrao };
 }
 
 export async function salvarPercentuaisPadrao(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {

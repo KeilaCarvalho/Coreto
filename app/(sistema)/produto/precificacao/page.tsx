@@ -18,7 +18,7 @@ type Linha = {
   id: string; referencia: string; nome: string; preco_venda: number | null; custo_previsto: number | null;
   fichas_custo: { simples: number; cartao: number; comissao: number; despesas_fixas: number; preco_sugerido: number | null } | null;
 };
-type Config = { simples: number; cartao: number; comissao: number; despesas_fixas: number; lucro_desejado: number };
+type Config = { simples: number; cartao: number; comissao: number; despesas_fixas: number; lucro_desejado: number; itens_padrao?: { descricao: string; quantidade: number; valor_unitario: number }[] };
 
 const pct = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 const campo = (v: number) => String(v).replace(".", ",");
@@ -29,7 +29,7 @@ export default async function Precificacao({ searchParams }: { searchParams: Pro
   const supabase = await supabaseServidor();
   const [{ data }, { data: cfg }, { data: aguardando }] = await Promise.all([
     supabase.from("produtos").select("id, referencia, nome, preco_venda, custo_previsto, fichas_custo(simples, cartao, comissao, despesas_fixas, preco_sugerido)").is("arquivado_em", null).order("referencia"),
-    supabase.from("config_precificacao").select("simples, cartao, comissao, despesas_fixas, lucro_desejado").eq("id", 1).maybeSingle(),
+    supabase.from("config_precificacao").select("simples, cartao, comissao, despesas_fixas, lucro_desejado, itens_padrao").eq("id", 1).maybeSingle(),
     supabase.from("recebimentos_resumo").select("produto_id, aguardando").eq("situacao", "sem_preco"),
   ]);
   const config = (cfg ?? { simples: 0, cartao: 0, comissao: 0, despesas_fixas: 0, lucro_desejado: 30 }) as Config;
@@ -104,6 +104,13 @@ export default async function Precificacao({ searchParams }: { searchParams: Pro
               <li>Despesas fixas <strong>{pct(config.despesas_fixas)}</strong></li>
               <li>Lucro desejado <strong>{pct(config.lucro_desejado)}</strong></li>
             </ul>
+            <h3 className="subtitulo" style={{ marginTop: 16 }}>Mão de obra e outros custos padrão</h3>
+            {config.itens_padrao?.length ? (
+              <ul className="lista-simples">
+                {config.itens_padrao.map((i, k) => <li key={k}>{i.descricao} <strong>{reais(Number(i.quantidade) * Number(i.valor_unitario))}</strong></li>)}
+              </ul>
+            ) : <p className="mini">Ainda não tem. Ao precificar um modelo, marque “Guardar como padrão”.</p>}
+            <p className="mini" style={{ marginTop: 8 }}>Para mudar, precifique um modelo e marque “Atualizar o padrão”.</p>
             <p className="mini" style={{ marginTop: 14 }}><Icone nome="alerta" tamanho={14} /> Confirme a alíquota do Simples e o percentual de despesas fixas com a contabilidade.</p>
           </div>
         </section>
