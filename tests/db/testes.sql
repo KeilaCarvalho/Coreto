@@ -403,3 +403,20 @@ select public.importar_clientes('primeira_compra', '[{"codigo":"777","nome":"Joa
 select teste.ok((select qtd_compras = 1 and total_gasto = 250 from public.clientes where codigo_externo = '777'),
                 'ao cadastrar a cliente, a venda solta é ligada a ela');
 commit;
+
+-- ---------------------------------------------------------------------
+-- 13. Trocar a grade: tamanhos novos são criados, os que saem ficam desativados.
+-- ---------------------------------------------------------------------
+begin;
+insert into public.grades (nome) values ('Teste PMG');
+insert into public.grade_tamanhos (grade_id, tamanho, ordem) select id, t, o from public.grades, (values ('P',1),('M',2),('G',3)) x(t,o) where nome = 'Teste PMG';
+insert into public.grades (nome) values ('Teste MGGG');
+insert into public.grade_tamanhos (grade_id, tamanho, ordem) select id, t, o from public.grades, (values ('M',1),('G',2),('GG',3)) x(t,o) where nome = 'Teste MGGG';
+insert into public.produtos (referencia, nome, grade_id) select 'TG1', 'Teste grade', id from public.grades where nome = 'Teste PMG';
+insert into public.produto_cores (produto_id, cor_id) select p.id, (select id from public.cores order by nome limit 1) from public.produtos p where referencia = 'TG1';
+select public.gerar_variantes((select id from public.produtos where referencia = 'TG1'));
+update public.produtos set grade_id = (select id from public.grades where nome = 'Teste MGGG') where referencia = 'TG1';
+select public.gerar_variantes((select id from public.produtos where referencia = 'TG1'));
+select teste.ok((select string_agg(tamanho || ':' || ativa, ',' order by tamanho) from public.variantes v join public.produtos p on p.id = v.produto_id where p.referencia = 'TG1')
+                = 'G:true,GG:true,M:true,P:false', 'trocar a grade cria GG e desativa P sem apagar');
+rollback;

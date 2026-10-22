@@ -19,12 +19,11 @@ export function CamposProduto({ grades, categorias, colecoes, valores = {}, grad
       </div>
       <div className="campo">
         <label htmlFor="grade_id">Grade de tamanhos</label>
-        <select id="grade_id" name="grade_id" defaultValue={valores.grade_id ?? ""} required disabled={gradeFixa}>
+        <select id="grade_id" name="grade_id" defaultValue={valores.grade_id ?? ""} required>
           <option value="" disabled>Escolha</option>
           {grades.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
         </select>
-        {gradeFixa && <input type="hidden" name="grade_id" value={valores.grade_id} />}
-        {gradeFixa && <span className="ajuda">A grade não muda depois que as variantes existem.</span>}
+        {gradeFixa && <span className="ajuda">Trocando, os tamanhos novos são criados e os que saírem ficam desativados (o estoque e o histórico continuam).</span>}
       </div>
       <div className="campo">
         <label htmlFor="categoria_id">Categoria</label>

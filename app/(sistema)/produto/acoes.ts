@@ -62,12 +62,17 @@ export async function salvarProduto(_: EstadoAcao, dados: FormData): Promise<Est
   const lido = lerProduto(dados);
   if (!lido.success) return { erro: lido.error.issues[0].message };
   const supabase = await supabaseServidor();
-  // A grade não muda depois de criada: as variantes já existem com aqueles tamanhos.
-  const { grade_id: _grade, ...campos } = lido.data;
-  const { error } = await supabase.from("produtos").update(campos).eq("id", id);
+  const { data: antes } = await supabase.from("produtos").select("grade_id").eq("id", id).maybeSingle();
+  const { error } = await supabase.from("produtos").update(lido.data).eq("id", id);
   if (error) return { erro: mensagemBanco(error.message) };
   revalidatePath(`/produto/catalogo/${id}`);
-  return { ok: "Produto salvo." };
+  // Grade trocada: cria os tamanhos novos e desativa os que saíram (sem apagar estoque nem histórico).
+  if (antes && antes.grade_id !== lido.data.grade_id) {
+    const { data: criadas, error: e } = await supabase.rpc("gerar_variantes", { p_produto_id: id });
+    if (e) return { erro: mensagemBanco(e.message) };
+    return { ok: `Modelo salvo com a grade nova${criadas ? `: ${criadas} variantes criadas` : ""}. Tamanhos que saíram da grade ficaram desativados.` };
+  }
+  return { ok: "Modelo salvo." };
 }
 
 export async function salvarCoresDoProduto(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {

@@ -128,7 +128,7 @@ export default async function DetalheProduto({ params, searchParams }: { params:
               <input type="hidden" name="id" value={produto.id} />
               <div className="bloco-janela">
                 <h3>Dados do modelo</h3>
-                <p>Nome, categoria, coleção, NCM e descrição. A grade de tamanhos não muda depois de criada.</p>
+                <p>Referência, nome, grade de tamanhos, categoria, coleção, NCM e descrição.</p>
                 <CamposProduto grades={listas.grades} categorias={listas.categorias} colecoes={listas.colecoes} valores={produto} gradeFixa />
                 <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}><BotaoEnviar>Salvar dados</BotaoEnviar></div>
               </div>
