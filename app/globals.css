@@ -791,3 +791,7 @@ details > summary::-webkit-details-marker { display: none; }
 .lido.erro small { color: var(--erro); }
 .lido.feito { background: var(--verde-50); }
 .lido.lendo, .lido.importando { opacity: .75; }
+.ligar-vendedoras li { flex-wrap: wrap; }
+.ligar-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ligar-form select { min-height: 36px; border: 1px solid var(--linha-forte); border-radius: 10px; padding: 6px 10px; background: var(--superficie); max-width: 340px; }
+.ligar-form .aviso { flex-basis: 100%; margin: 0; }

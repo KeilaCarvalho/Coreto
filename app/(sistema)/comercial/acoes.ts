@@ -150,3 +150,27 @@ export async function importarRelatorio(estado: EstadoAcao, dados: FormData): Pr
   revalidatePath("/comercial/relatorios");
   return { ok: `${n} ${n === 1 ? "linha importada" : "linhas importadas"}. Se já tinha esse mês, os dados foram substituídos.` };
 }
+
+const tituloNome = (nome: string) => nome.toLowerCase().replace(/(^|\s)(\p{L})/gu, (_, e, l) => e + l.toUpperCase()).replace(/\s(De|Da|Do|Dos|Das|E)\s/g, (m) => m.toLowerCase());
+
+/** Liga um nome que aparece nos relatórios a uma pessoa da equipe (ou cria a vendedora). As clientes desse nome passam para a carteira dela. */
+export async function ligarVendedoraDoRelatorio(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const nomeRelatorio = texto(dados, "nome_relatorio");
+  const escolha = texto(dados, "pessoa");
+  if (!nomeRelatorio) return { erro: "Nome do relatório faltando." };
+  if (!escolha) return { erro: `Escolha quem é “${nomeRelatorio}”.` };
+  const supabase = await supabaseServidor();
+  let id = escolha;
+  if (escolha === "nova") {
+    const { data: criada, error } = await supabase.from("pessoas").insert({ nome: tituloNome(nomeRelatorio), e_vendedora: true, e_funcionaria: !/shop|site|online|loja/i.test(nomeRelatorio) }).select("id").single();
+    if (error) return { erro: mensagemBanco(error.message) };
+    id = criada.id as string;
+  } else if (!uuid.test(escolha)) return { erro: "Escolha inválida." };
+  const { data: linhas, error } = await supabase.from("pessoas").update({ nome_vendas: nomeRelatorio, e_vendedora: true }).eq("id", id).select("id, nome");
+  if (error) return { erro: error.message.includes("pessoas_nome_vendas_unico") ? "Outra pessoa já usa esse nome nos relatórios." : mensagemBanco(error.message) };
+  if (!linhas?.length) return { erro: "Seu perfil não pode alterar a equipe." };
+  revalidatePath("/pessoas/equipe");
+  revalidatePath("/comercial/relatorios");
+  atualizar();
+  return { ok: `“${nomeRelatorio}” ligada a ${linhas[0].nome}. As clientes dela já estão na carteira.` };
+}

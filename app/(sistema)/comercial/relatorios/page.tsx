@@ -5,7 +5,8 @@ import { Cabecalho } from "@/components/cabecalho";
 import { ImportarRelatorios } from "@/components/importar-relatorios";
 import { NOMES } from "@/lib/relatorios-nomes";
 import { numero, quando } from "@/lib/formatos";
-import { desfazerImportacao, importarRelatorio } from "../acoes";
+import { BotaoEnviar, FormAcao } from "@/components/form-acao";
+import { desfazerImportacao, importarRelatorio, ligarVendedoraDoRelatorio } from "../acoes";
 
 export const metadata = { title: "Importar relatórios" };
 
@@ -27,17 +28,22 @@ export default async function Relatorios() {
   const sessao = await exigir("comercial");
   if (!sessao.pode("comercial", "aprovar") && !sessao.pode("financeiro", "editar")) await exigir("comercial", "aprovar");
   const supabase = await supabaseServidor();
-  const [{ data: cli }, { data: ven }, { count: semVendedora }, { data: nomesSoltos }] = await Promise.all([
+  const [{ data: cli }, { data: ven }, { count: semVendedora }, { data: nomesSoltos }, { data: equipeR }] = await Promise.all([
     supabase.from("importacoes_clientes").select("id, arquivo, tipo, mes, registros, ignorados, criado_em, quem:pessoas!criado_por(nome)").order("criado_em", { ascending: false }).limit(60),
     supabase.from("relatorios_importados").select("id, arquivo, tipo, mes, linhas, importado_em, quem:pessoas!importado_por(nome)").order("importado_em", { ascending: false }).limit(60),
     supabase.from("clientes").select("id", { count: "exact", head: true }).is("vendedora_id", null).is("arquivado_em", null),
-    supabase.from("clientes").select("vendedora_nome").is("vendedora_id", null).not("vendedora_nome", "is", null).limit(1000),
+    supabase.from("clientes").select("vendedora_nome").is("vendedora_id", null).not("vendedora_nome", "is", null).is("arquivado_em", null).limit(5000),
+    supabase.from("pessoas").select("id, nome, nome_vendas").is("arquivado_em", null).order("nome"),
   ]);
+  const equipe = (equipeR ?? []) as { id: string; nome: string; nome_vendas: string | null }[];
   const historico: Linha[] = [
     ...((cli ?? []) as unknown as ImpCliente[]).map((i) => ({ id: i.id, arquivo: i.arquivo, tipo: i.tipo, mes: i.mes, linhas: i.registros, ignorados: i.ignorados, quando: i.criado_em, quem: i.quem?.nome ?? null, desfazer: i.tipo === "vendas_vendedora" })),
     ...((ven ?? []) as unknown as ImpVenda[]).map((i) => ({ id: i.id, arquivo: i.arquivo ?? "", tipo: i.tipo, mes: i.mes?.slice(0, 7) ?? null, linhas: i.linhas, ignorados: 0, quando: i.importado_em, quem: i.quem?.nome ?? null, desfazer: false })),
   ].sort((a, b) => b.quando.localeCompare(a.quando)).slice(0, 60);
-  const soltos = [...new Set((nomesSoltos ?? []).map((n) => n.vendedora_nome as string))].sort();
+  const contagem = new Map<string, number>();
+  for (const n of nomesSoltos ?? []) contagem.set(n.vendedora_nome as string, (contagem.get(n.vendedora_nome as string) ?? 0) + 1);
+  const soltos = [...contagem.keys()].sort();
+  const titulo = (nome: string) => nome.toLowerCase().replace(/(^|\s)(\p{L})/gu, (_, e, l) => e + l.toUpperCase()).replace(/\s(De|Da|Do|Dos|Das|E)\s/g, (m) => m.toLowerCase());
 
   return (
     <>
@@ -45,9 +51,29 @@ export default async function Relatorios() {
         descricao="Todo mês, jogue aqui os PDFs do sistema de vendas da loja. O sistema reconhece cada relatório sozinho e manda os dados para o lugar certo." />
 
       {soltos.length > 0 && (
-        <p className="aviso alerta">
-          {numero(semVendedora ?? 0)} clientes estão sem vendedora porque estes nomes dos relatórios ainda não foram ligados a ninguém da equipe: {soltos.join(", ")}. Ligue em Equipe, no campo “Nome nos relatórios”.
-        </p>
+        <section className="painel" style={{ marginBottom: 16 }}>
+          <div className="painel-topo">
+            <div>
+              <h2>Quem é cada vendedora dos relatórios?</h2>
+              <p>{numero(semVendedora ?? 0)} clientes estão esperando: nos relatórios as vendedoras aparecem com o nome do sistema antigo. Diga quem é cada uma e as clientes entram na carteira dela.</p>
+            </div>
+          </div>
+          <ul className="lista-simples ligar-vendedoras">
+            {soltos.map((nome) => (
+              <li key={nome}>
+                <span><b>{nome}</b><br /><span className="mini">{numero(contagem.get(nome) ?? 0)} {contagem.get(nome) === 1 ? "cliente" : "clientes"} esperando</span></span>
+                <FormAcao acao={ligarVendedoraDoRelatorio} className="ligar-form">
+                  <input type="hidden" name="nome_relatorio" value={nome} />
+                  <select name="pessoa" defaultValue="nova" aria-label={`Quem é ${nome}`}>
+                    <option value="nova">Cadastrar como vendedora nova: {titulo(nome)}</option>
+                    {equipe.filter((p) => !p.nome_vendas).map((p) => <option key={p.id} value={p.id}>É a {p.nome} (já está na equipe)</option>)}
+                  </select>
+                  <BotaoEnviar className="botao pequeno" enviando="Ligando…">Ligar</BotaoEnviar>
+                </FormAcao>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <div className="grade-lateral">

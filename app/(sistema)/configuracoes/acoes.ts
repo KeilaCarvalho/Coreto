@@ -107,12 +107,17 @@ export async function criarPessoa(_: EstadoAcao, dados: FormData): Promise<Estad
   const nome = texto(dados, "nome");
   if (!nome) return { erro: "Informe o nome." };
   const supabase = await supabaseServidor();
-  const { error } = await supabase.from("pessoas").insert({
+  const { data: criada, error } = await supabase.from("pessoas").insert({
     nome, apelido: ouNulo(texto(dados, "apelido")), cargo: ouNulo(texto(dados, "cargo")),
     telefone: ouNulo(texto(dados, "telefone")), e_vendedora: dados.get("e_vendedora") === "on", e_funcionaria: true,
-    nome_vendas: dados.get("e_vendedora") === "on" ? ouNulo(texto(dados, "nome_vendas")) : null,
-  });
+  }).select("id").single();
   if (error) return { erro: mensagemBanco(error.message) };
+  // O nome nos relatórios entra num segundo passo: é a alteração que liga a carteira de clientes a ela.
+  const nomeVendas = dados.get("e_vendedora") === "on" ? ouNulo(texto(dados, "nome_vendas")) : null;
+  if (nomeVendas) {
+    const { error: e } = await supabase.from("pessoas").update({ nome_vendas: nomeVendas }).eq("id", criada.id);
+    if (e) return { erro: e.message.includes("pessoas_nome_vendas_unico") ? "Outra pessoa já usa esse nome nos relatórios." : mensagemBanco(e.message) };
+  }
   revalidatePath("/pessoas/equipe");
   return { ok: `${nome} adicionada à equipe.` };
 }
