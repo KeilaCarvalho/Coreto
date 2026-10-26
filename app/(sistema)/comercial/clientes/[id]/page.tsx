@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { exigir } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
@@ -6,7 +8,9 @@ import { Icone } from "@/components/icone";
 import { Kpi } from "@/components/painel";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { CamposCliente } from "@/components/campos-cliente";
-import { ETAPAS, etapa, linkWhats, primeiroNome, telefoneBonito } from "@/lib/clientes";
+import { CamposContato } from "@/components/clientes/form-contato";
+import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
+import { etapa, linkWhats, primeiroNome, telefoneBonito } from "@/lib/clientes";
 import { dataCurta, numero, reais } from "@/lib/formatos";
 import { editarCliente, registrarContato } from "../../acoes";
 
@@ -20,10 +24,6 @@ type Contato = { id: number; etapa: string; nota: string; contatado_em: string; 
 type Compra = { id: number; codigo_venda: string; data: string; valor: number; valor_trocas: number; vendedora_nome: string | null };
 
 const hojeSP = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-const somarDias = (iso: string, dias: number) => {
-  const d = new Date(`${iso}T12:00:00-03:00`); d.setDate(d.getDate() + dias);
-  return d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-};
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await supabaseServidor();
@@ -58,6 +58,8 @@ export default async function PaginaCliente({ params }: { params: Promise<{ id: 
   ];
   const vendedoraNome = c.vendedora ? (c.vendedora.apelido || c.vendedora.nome) : c.vendedora_nome;
   const ticket = c.qtd_compras ? c.total_gasto / c.qtd_compras : null;
+  const podeContato = sessao.pode("comercial", "criar");
+  const podeEditar = gestao || podeContato;
 
   return (
     <>
@@ -65,8 +67,13 @@ export default async function PaginaCliente({ params }: { params: Promise<{ id: 
         trilha={[{ rotulo: "Clientes", href: "/comercial/clientes" }]}
         titulo={c.nome}
         descricao={[telefoneBonito(c.telefone), [c.cidade, c.uf].filter(Boolean).join("/") || null, vendedoraNome ? `carteira de ${vendedoraNome}` : "sem vendedora"].filter(Boolean).join(" · ")}
-        acoes={<span className={`etiqueta ${e.classe}`} style={{ fontSize: 13, padding: "6px 14px" }}>{e.rotulo}</span>}
+        acoes={<div className="cliente-acoes">
+          <span className={`etiqueta ${e.classe}`} style={{ fontSize: 13, padding: "6px 14px" }}>{e.rotulo}</span>
+          {podeEditar && <Link className="botao secundario" href="?acao=editar" scroll={false}><Icone nome="lapis" />Editar dados</Link>}
+          {podeContato && <Link className="botao" href="?acao=contato" scroll={false}><Icone nome="mais" />Registrar contato</Link>}
+        </div>}
       />
+      <Suspense><AvisoDaUrl /></Suspense>
       {c.proximo_contato && c.proximo_contato <= hoje && (
         <p className="aviso alerta"><Icone nome="relogio" />Retorno marcado para {c.proximo_contato === hoje ? "hoje" : dataCurta(c.proximo_contato)}.</p>
       )}
@@ -82,7 +89,7 @@ export default async function PaginaCliente({ params }: { params: Promise<{ id: 
       <div className="grade-lateral">
         <div style={{ display: "grid", gap: 16 }}>
           <section className="painel">
-            <div className="painel-topo"><div><h2>Chamar no WhatsApp</h2><p>Abre a conversa com a mensagem pronta. Depois, registre o contato ao lado.</p></div></div>
+            <div className="painel-topo"><div><h2>Chamar no WhatsApp</h2><p>Abre a conversa com a mensagem pronta. Depois, toque em “Registrar contato” lá em cima.</p></div></div>
             <div className="painel-corpo">
               <div className="contatos-rapidos">
                 {mensagens.map((m) => {
@@ -135,33 +142,6 @@ export default async function PaginaCliente({ params }: { params: Promise<{ id: 
         </div>
 
         <div style={{ display: "grid", gap: 16 }}>
-          {sessao.pode("comercial", "criar") && (
-            <section className="painel">
-              <div className="painel-topo"><div><h2>Registrar contato</h2></div></div>
-              <div className="painel-corpo">
-                <FormAcao acao={registrarContato} className="campos" limparAoSalvar>
-                  <input type="hidden" name="cliente_id" value={c.id} />
-                  <div className="campo">
-                    <label htmlFor="etapa">Etapa agora</label>
-                    <select id="etapa" name="etapa" defaultValue={c.etapa === "nao_contatada" ? "primeiro_contato" : c.etapa}>
-                      {ETAPAS.filter((x) => x.valor !== "nao_contatada").map((x) => <option key={x.valor} value={x.valor}>{x.rotulo}</option>)}
-                    </select>
-                  </div>
-                  <div className="campo">
-                    <label htmlFor="nota">O que aconteceu</label>
-                    <textarea id="nota" name="nota" required placeholder="Ex.: mandei fotos da coleção nova; pediu para retornar semana que vem" />
-                  </div>
-                  <div className="campos duas">
-                    <div className="campo"><label htmlFor="contatado_em">Data</label><input id="contatado_em" name="contatado_em" type="date" defaultValue={hoje} max={hoje} required /></div>
-                    <div className="campo"><label htmlFor="proximo_contato">Retornar em</label><input id="proximo_contato" name="proximo_contato" type="date" min={hoje} defaultValue={somarDias(hoje, 7)} /></div>
-                  </div>
-                  <span className="ajuda mini">Apague a data de retorno se não precisar chamar de novo.</span>
-                  <BotaoEnviar>Salvar contato</BotaoEnviar>
-                </FormAcao>
-              </div>
-            </section>
-          )}
-
           <section className="painel">
             <div className="painel-topo"><div><h2>Dados da cliente</h2></div>{c.codigo_externo && <span className="mini">código {c.codigo_externo}</span>}</div>
             <dl className="dados-cliente">
@@ -171,24 +151,35 @@ export default async function PaginaCliente({ params }: { params: Promise<{ id: 
               <div><dt>CPF</dt><dd>{c.cpf ?? "—"}</dd></div>
               {c.observacao && <div style={{ gridColumn: "1 / -1" }}><dt>Observações</dt><dd style={{ fontWeight: 500 }}>{c.observacao}</dd></div>}
             </dl>
-            {(gestao || sessao.pode("comercial", "criar")) && (
-              <div className="painel-corpo" style={{ paddingTop: 0 }}>
-                <details>
-                  <summary className="botao leve pequeno">Editar dados</summary>
-                  <div style={{ marginTop: 14 }}>
-                    <FormAcao acao={editarCliente}>
-                      <input type="hidden" name="id" value={c.id} />
-                      <CamposCliente valores={c}
-                        vendedoras={gestao ? ((vendedorasR ?? []) as { id: string; nome: string; apelido: string | null }[]).map((v) => ({ id: v.id, nome: v.apelido || v.nome })) : undefined} />
-                      <div className="formulario-rodape"><BotaoEnviar>Salvar dados</BotaoEnviar></div>
-                    </FormAcao>
-                  </div>
-                </details>
-              </div>
-            )}
           </section>
         </div>
       </div>
+
+      {podeContato && (
+        <Suspense>
+          <JanelaLateral param="acao" valor="contato" titulo="Registrar contato" subtitulo={`${c.nome} · etapa atual: ${e.rotulo}`}>
+            <FormAcao acao={registrarContato}>
+              <input type="hidden" name="cliente_id" value={c.id} />
+              <CamposContato etapaAtual={c.etapa} hoje={hoje} />
+              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar>Salvar contato</BotaoEnviar></div>
+            </FormAcao>
+          </JanelaLateral>
+        </Suspense>
+      )}
+      {podeEditar && (
+        <Suspense>
+          <JanelaLateral param="acao" valor="editar" titulo="Editar dados" subtitulo={c.codigo_externo ? `Código no sistema de vendas: ${c.codigo_externo}` : c.nome}>
+            <FormAcao acao={editarCliente}>
+              <input type="hidden" name="id" value={c.id} />
+              <div className="bloco-janela">
+                <CamposCliente valores={c}
+                  vendedoras={gestao ? ((vendedorasR ?? []) as { id: string; nome: string; apelido: string | null }[]).map((v) => ({ id: v.id, nome: v.apelido || v.nome })) : undefined} />
+              </div>
+              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar>Salvar dados</BotaoEnviar></div>
+            </FormAcao>
+          </JanelaLateral>
+        </Suspense>
+      )}
     </>
   );
 }

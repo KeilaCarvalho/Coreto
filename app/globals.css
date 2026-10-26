@@ -798,3 +798,10 @@ details > summary::-webkit-details-marker { display: none; }
 .guardar-padrao { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--verde-50); font-size: 12.5px; color: var(--suave); cursor: pointer; }
 .guardar-padrao input { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--tinta); flex-shrink: 0; }
 .guardar-padrao b { color: var(--tinta); }
+
+/* Botões de escolha em linha (etapa do contato, quando chamar de novo) */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.chip { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--linha-forte); background: var(--superficie); color: var(--tinta); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: transform .12s, box-shadow .12s; }
+.chip:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.08); }
+.chip.marcada { border-color: var(--tinta); background: var(--gradiente-azul); box-shadow: 0 3px 0 var(--tinta); }
+.cliente-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

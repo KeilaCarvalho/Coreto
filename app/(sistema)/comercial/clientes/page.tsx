@@ -1,9 +1,15 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { exigir } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { Cabecalho, Vazio } from "@/components/cabecalho";
 import { Icone } from "@/components/icone";
 import { Kpi } from "@/components/painel";
+import { LinhaClicavel } from "@/components/linha-clicavel";
+import { BotaoEnviar, FormAcao } from "@/components/form-acao";
+import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
+import { CamposCliente } from "@/components/campos-cliente";
+import { criarCliente } from "../acoes";
 import { etapa, linkWhats, primeiroNome, telefoneBonito, ETAPAS } from "@/lib/clientes";
 import { dataCurta, numero, reais } from "@/lib/formatos";
 
@@ -78,9 +84,10 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
         descricao={gestao ? "A carteira de cada vendedora, com retornos, aniversariantes e histórico de contatos." : "Sua carteira: quem chamar hoje, aniversariantes e o histórico de cada cliente."}
         acoes={<>
           {gestao && <Link className="botao secundario" href="/comercial/relatorios"><Icone nome="arquivo" />Importar relatórios</Link>}
-          {sessao.pode("comercial", "criar") && <Link className="botao" href="/comercial/clientes/nova"><Icone nome="mais" />Nova cliente</Link>}
+          {sessao.pode("comercial", "criar") && <Link className="botao" href={`${filtroUrl(visao)}&nova=1`} scroll={false}><Icone nome="mais" />Nova cliente</Link>}
         </>}
       />
+      <Suspense><AvisoDaUrl /></Suspense>
       <div className="kpis">
         <Kpi destaque titulo="Retornos para hoje" valor={numero(conta("retornos"))} nota="incluindo atrasados" href={filtroUrl("retornos")} />
         <Kpi titulo="Aniversariantes do mês" valor={numero(conta("aniversariantes"))} nota="uma mensagem faz diferença" href={filtroUrl("aniversariantes")} />
@@ -122,7 +129,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
                     : `Oi, ${primeiroNome(c.nome)}! Aqui é a ${nomeVendedora}, da Coreto. Tudo bem?`;
                   const whats = linkWhats(c.telefone, msg);
                   return (
-                    <tr key={c.id}>
+                    <LinhaClicavel key={c.id} href={`/comercial/clientes/${c.id}`}>
                       <td>
                         <Link className="linha-link" href={`/comercial/clientes/${c.id}`}>{c.nome}</Link>
                         <div className="mini">{[c.cidade, aniversario(c) && c.nascimento ? `aniversário ${dataCurta(c.nascimento).slice(0, 5)}` : null].filter(Boolean).join(" · ") || " "}</div>
@@ -140,7 +147,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
                       <td className={c.proximo_contato && c.proximo_contato < hoje ? "atrasado" : c.proximo_contato === hoje ? undefined : "mini"}>
                         {c.proximo_contato ? (c.proximo_contato === hoje ? <strong>Hoje</strong> : dataCurta(c.proximo_contato)) : "—"}
                       </td>
-                    </tr>
+                    </LinhaClicavel>
                   );
                 })}
               </tbody>
@@ -156,6 +163,20 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
           </Vazio>
         )}
       </section>
+      {sessao.pode("comercial", "criar") && (
+        <Suspense>
+          <JanelaLateral param="nova" titulo="Nova cliente"
+            subtitulo={gestao ? "Para quem ainda não aparece nos relatórios do sistema de vendas." : "A cliente entra direto na sua carteira."}>
+            <FormAcao acao={criarCliente}>
+              <div className="bloco-janela">
+                <CamposCliente valores={{ uf: "GO", cidade: "Goiânia" }}
+                  vendedoras={gestao ? ((vendedorasR ?? []) as { id: string; nome: string; apelido: string | null }[]).map((v) => ({ id: v.id, nome: v.apelido || v.nome })) : undefined} />
+              </div>
+              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar enviando="Cadastrando…">Cadastrar cliente</BotaoEnviar></div>
+            </FormAcao>
+          </JanelaLateral>
+        </Suspense>
+      )}
       {gestao && (
         <p className="mini" style={{ marginTop: 12 }}>Etapas: {ETAPAS.map((e) => e.rotulo).join(" → ")}. Para cada vendedora ver a própria carteira, informe em Equipe o nome dela como aparece nos relatórios.</p>
       )}
