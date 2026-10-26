@@ -94,13 +94,16 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   const desde = [inicioCal, somarDias(data, -30)].sort()[0];
 
   const supabase = await supabaseServidor();
-  const [{ data: diaR }, { data: mesR }, { data: anteriorR }, { data: periodoR }, { data: vendedorasR }] = await Promise.all([
+  const [{ data: diaR }, { data: mesR }, { data: anteriorR }, { data: periodoR }, { data: vendedorasR }, { data: configR }] = await Promise.all([
     supabase.from("fluxo_dias").select("data, vendas, saldos, a_receber, observacao, atualizado_em, quem:pessoas!atualizado_por(nome)").eq("data", data).maybeSingle(),
     supabase.from("fluxo_meses").select("mes, vendas, vendedoras, contas_a_pagar, contas_pagas").eq("mes", mesRef).maybeSingle(),
     supabase.from("fluxo_dias").select("data, vendas, saldos, a_receber").lt("data", data).order("data", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("fluxo_dias").select("data, vendas").gte("data", desde).lte("data", fimCal).order("data"),
     supabase.from("pessoas").select("nome, apelido").eq("e_vendedora", true).is("arquivado_em", null).order("nome"),
+    supabase.from("fluxo_config").select("contas_padrao").maybeSingle(),
   ]);
+  const contasPadrao = (Array.isArray(configR?.contas_padrao) ? configR.contas_padrao : [])
+    .filter((n: unknown): n is string => typeof n === "string" && n.trim() !== "");
   const dia = diaR as unknown as Dia | null;
   const mes = mesR as unknown as Mes | null;
   const anterior = anteriorR as unknown as (DiaCurto & { saldos: unknown; a_receber: unknown }) | null;
@@ -117,15 +120,21 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
 
   /* ---------- o que abre na janela de lançamento ---------- */
   const zerado = (l: LinhaValor[]) => l.map((x) => ({ nome: x.nome, valor: 0 }));
+  // Contas de banco: as guardadas como padrão sempre aparecem, mesmo com saldo zerado.
+  const comPadrao = (l: LinhaValor[]) => [
+    ...contasPadrao.map((nome) => l.find((x) => x.nome === nome) ?? { nome, valor: 0 }),
+    ...l.filter((x) => !contasPadrao.includes(x.nome)),
+  ];
   const nomesVendas = anterior ? lerLinhas(anterior.vendas).map((v) => v.nome) : [];
   const formas = [...new Set([...FORMAS_PAGAMENTO, ...nomesVendas])];
   const paraJanela: DadosFluxo = salvoDados ? {
     ...salvoDados,
+    saldos: comPadrao(salvoDados.saldos),
     vendasDia: [...salvoDados.vendasDia, ...formas.filter((f) => !salvoDados.vendasDia.some((v) => v.nome === f)).map((nome) => ({ nome, valor: 0, dias: periodo.map(() => 0) }))],
   } : {
     data, diasVenda: periodo,
     vendasDia: formas.map((nome) => ({ nome, valor: 0, dias: periodo.map(() => 0) })),
-    saldos: zerado(lerLinhas(anterior?.saldos)),
+    saldos: comPadrao(zerado(lerLinhas(anterior?.saldos))),
     aReceber: lerLinhas(anterior?.a_receber),
     observacao: "",
     vendasMes: lerLinhas(mes?.vendas),
@@ -372,7 +381,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
 
       {podeLancar && (
         <Suspense>
-          <JanelaLancamento key={data + (dia?.atualizado_em ?? "")} inicial={paraJanela} novo={!dia} salvar={salvarFluxo} />
+          <JanelaLancamento contasPadrao={contasPadrao} key={data + (dia?.atualizado_em ?? "")} inicial={paraJanela} novo={!dia} salvar={salvarFluxo} />
         </Suspense>
       )}
     </>

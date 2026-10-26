@@ -55,7 +55,7 @@ function Linhas({ linhas, mudar, rotulo, rotuloValor = "Valor" }: {
 }
 
 /** Janela lateral para lançar ou corrigir um dia. Abre com ?lancar= na URL (o valor é a seção para onde rolar). */
-export function JanelaLancamento({ inicial, novo, salvar }: { inicial: DadosFluxo; novo: boolean; salvar: Acao }) {
+export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: { inicial: DadosFluxo; novo: boolean; salvar: Acao; contasPadrao?: string[] }) {
   const router = useRouter();
   const params = useSearchParams();
   const secao = params.get("lancar");
@@ -81,6 +81,7 @@ export function JanelaLancamento({ inicial, novo, salvar }: { inicial: DadosFlux
   const [vendedoras, setVendedoras] = useState(texto(inicial.vendedoras));
   const [contasAPagar, setContasAPagar] = useState(campo(inicial.contasAPagar));
   const [contasPagas, setContasPagas] = useState(campo(inicial.contasPagas));
+  const [guardarContas, setGuardarContas] = useState<boolean | null>(null);
   const [estado, enviar, salvando] = useActionState(salvar, null);
 
   useEffect(() => {
@@ -109,7 +110,11 @@ export function JanelaLancamento({ inicial, novo, salvar }: { inicial: DadosFlux
     vendasMes: vendasLimpas.filter((v) => v.mes !== 0).map((v) => ({ nome: v.nome, valor: v.mes })),
     saldos: limpa(saldos), aReceber: limpa(aReceber), vendedoras: limpa(vendedoras),
     contasAPagar: r2(num(contasAPagar)), contasPagas: r2(num(contasPagas)), observacao: inicial.observacao,
+    contasPadrao: guardar && contasMudaram ? nomesContas : null,
   });
+  const nomesContas = [...new Set(saldos.map((x) => x.nome.trim()).filter(Boolean))];
+  const contasMudaram = nomesContas.join("|") !== contasPadrao.join("|");
+  const guardar = guardarContas ?? (!contasPadrao.length || contasMudaram);
   const colunas = `minmax(0,1fr) ${inicial.diasVenda.map(() => "minmax(92px,120px)").join(" ")} minmax(92px,120px) 34px`;
   const ir = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -169,6 +174,15 @@ export function JanelaLancamento({ inicial, novo, salvar }: { inicial: DadosFlux
             <h3>Saldo nos bancos</h3>
             <p>Quanto tem em cada conta hoje.</p>
             <Linhas linhas={saldos} mudar={setSaldos} rotulo="Conta" rotuloValor="Saldo" />
+            {contasMudaram ? (
+              <label className="guardar-padrao">
+                <input type="checkbox" checked={guardar} onChange={(e) => setGuardarContas(e.target.checked)} />
+                <span><b style={{ display: "block" }}>{contasPadrao.length ? "Atualizar as contas padrão" : "Guardar estas contas como padrão"}</b>
+                  As contas ({nomesContas.join(", ") || "nenhuma"}) vêm preenchidas em todo dia novo, mesmo quando o saldo ficar zerado.</span>
+              </label>
+            ) : contasPadrao.length > 0 && (
+              <p className="mini" style={{ marginTop: 8 }}><Icone nome="certo" tamanho={14} /> Estas são as contas padrão: vêm preenchidas em todo dia novo.</p>
+            )}
           </section>
 
           <section className="fx-bloco" id="b-receber">

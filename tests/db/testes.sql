@@ -420,3 +420,21 @@ select public.gerar_variantes((select id from public.produtos where referencia =
 select teste.ok((select string_agg(tamanho || ':' || ativa, ',' order by tamanho) from public.variantes v join public.produtos p on p.id = v.produto_id where p.referencia = 'TG1')
                 = 'G:true,GG:true,M:true,P:false', 'trocar a grade cria GG e desativa P sem apagar');
 rollback;
+
+-- ---------------------------------------------------------------------
+-- 14. Contas de banco padrão do fluxo: o financeiro guarda, a vendedora não vê.
+-- ---------------------------------------------------------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+update public.fluxo_config set contas_padrao = '["Itaú","Nubank","Caixa"]';
+select teste.ok((select contas_padrao = '["Itaú","Nubank","Caixa"]'::jsonb and atualizado_por is not null from public.fluxo_config), 'financeiro guarda as contas padrão');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'carla'), true);
+select teste.ok((select count(*) from public.fluxo_config) = 0, 'vendedora não vê as contas padrão');
+update public.fluxo_config set contas_padrao = '[]';
+commit;
+select teste.ok((select jsonb_array_length(contas_padrao) = 3 from public.fluxo_config), 'vendedora não muda as contas padrão');

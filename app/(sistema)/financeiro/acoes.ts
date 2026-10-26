@@ -19,6 +19,7 @@ const Fluxo = z.object({
   contasAPagar: z.number().finite().min(0, "Contas a pagar não pode ser negativo."),
   contasPagas: z.number().finite().min(0, "Contas pagas não pode ser negativo."),
   observacao: z.string().max(2000),
+  contasPadrao: z.array(z.string().trim().min(1).max(80)).max(40).nullable().optional(),
 });
 
 const hojeSP = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
@@ -48,8 +49,12 @@ export async function salvarFluxo(_: EstadoAcao, dados: FormData): Promise<Estad
       mes: inicioDoMes(periodo[periodo.length - 1]), vendas: f.vendasMes, vendedoras: f.vendedoras, contas_a_pagar: f.contasAPagar, contas_pagas: f.contasPagas,
     }).select("mes"),
   ]);
-  const erro = dia.error ?? mes.error;
+  let erro = dia.error ?? mes.error;
+  if (!erro && f.contasPadrao) {
+    const { error } = await supabase.from("fluxo_config").update({ contas_padrao: [...new Set(f.contasPadrao)] }).eq("unico", true);
+    erro = error;
+  }
   if (erro) return { erro: erro.message.includes("row-level security") ? "Seu perfil não pode lançar no fluxo financeiro." : erro.message };
   revalidatePath("/financeiro/fluxo");
-  return { ok: `Fluxo de ${f.data.slice(8, 10)}/${f.data.slice(5, 7)} salvo.` };
+  return { ok: `Fluxo de ${f.data.slice(8, 10)}/${f.data.slice(5, 7)} salvo.${f.contasPadrao ? " As contas dos bancos ficaram guardadas como padrão." : ""}` };
 }
