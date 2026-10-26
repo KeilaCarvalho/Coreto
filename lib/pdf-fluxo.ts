@@ -134,7 +134,11 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
     doc.text(corta(k.rotulo, kw - 8), x + 4, y + 9);
     fonte("bold", 13.5); ink(k.escuro ? C.branco : k.alerta ? C.alerta : C.preto);
     doc.text(reais(k.valor), x + 4, y + 16);
-    fonte("normal", 6.6); ink(k.escuro ? [190, 200, 200] : C.suave);
+    // A nota diminui a letra para caber inteira (ex.: "sex R$ 5.679,50 · sáb R$ 9.640,00").
+    let tam = 6.6;
+    fonte("normal", tam);
+    while (tam > 4.6 && doc.getTextWidth(k.nota) > kw - 8) { tam -= 0.2; fonte("normal", tam); }
+    ink(k.escuro ? [190, 200, 200] : C.suave);
     doc.text(corta(k.nota, kw - 8), x + 4, y + 20.4);
   });
   y += kh + 5;
