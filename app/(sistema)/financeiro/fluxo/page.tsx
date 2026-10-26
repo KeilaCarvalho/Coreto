@@ -102,8 +102,9 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
     supabase.from("pessoas").select("nome, apelido").eq("e_vendedora", true).is("arquivado_em", null).order("nome"),
     supabase.from("fluxo_config").select("contas_padrao").maybeSingle(),
   ]);
-  const contasPadrao = (Array.isArray(configR?.contas_padrao) ? configR.contas_padrao : [])
-    .filter((n: unknown): n is string => typeof n === "string" && n.trim() !== "");
+  const brutoPadrao: unknown = (configR as { contas_padrao?: unknown } | null)?.contas_padrao;
+  const contasPadrao: string[] = [];
+  if (Array.isArray(brutoPadrao)) for (const n of brutoPadrao) if (typeof n === "string" && n.trim()) contasPadrao.push(n);
   const dia = diaR as unknown as Dia | null;
   const mes = mesR as unknown as Mes | null;
   const anterior = anteriorR as unknown as (DiaCurto & { saldos: unknown; a_receber: unknown }) | null;
@@ -121,8 +122,8 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   /* ---------- o que abre na janela de lançamento ---------- */
   const zerado = (l: LinhaValor[]) => l.map((x) => ({ nome: x.nome, valor: 0 }));
   // Contas de banco: as guardadas como padrão sempre aparecem, mesmo com saldo zerado.
-  const comPadrao = (l: LinhaValor[]) => [
-    ...contasPadrao.map((nome) => l.find((x) => x.nome === nome) ?? { nome, valor: 0 }),
+  const comPadrao = (l: LinhaValor[]): LinhaValor[] => [
+    ...contasPadrao.map((nome): LinhaValor => l.find((x) => x.nome === nome) ?? { nome, valor: 0 }),
     ...l.filter((x) => !contasPadrao.includes(x.nome)),
   ];
   const nomesVendas = anterior ? lerLinhas(anterior.vendas).map((v) => v.nome) : [];

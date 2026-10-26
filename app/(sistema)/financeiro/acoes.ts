@@ -49,10 +49,10 @@ export async function salvarFluxo(_: EstadoAcao, dados: FormData): Promise<Estad
       mes: inicioDoMes(periodo[periodo.length - 1]), vendas: f.vendasMes, vendedoras: f.vendedoras, contas_a_pagar: f.contasAPagar, contas_pagas: f.contasPagas,
     }).select("mes"),
   ]);
-  let erro = dia.error ?? mes.error;
+  let erro: { message: string } | null = dia.error ?? mes.error;
   if (!erro && f.contasPadrao) {
-    const { error } = await supabase.from("fluxo_config").update({ contas_padrao: [...new Set(f.contasPadrao)] }).eq("unico", true);
-    erro = error;
+    const r = await supabase.from("fluxo_config").update({ contas_padrao: [...new Set(f.contasPadrao)] }).eq("unico", true);
+    erro = r.error;
   }
   if (erro) return { erro: erro.message.includes("row-level security") ? "Seu perfil não pode lançar no fluxo financeiro." : erro.message };
   revalidatePath("/financeiro/fluxo");
