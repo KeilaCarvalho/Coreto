@@ -104,6 +104,9 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: {
   const totalDias = inicial.diasVenda.map((_, k) => vendasLimpas.reduce((t, v) => t + (v.dias[k] ?? 0), 0));
   const totalPeriodo = totalDias.reduce((t, n) => t + n, 0);
   const totalMes = vendasLimpas.reduce((t, v) => t + v.mes, 0);
+  const nomesContas = [...new Set(saldos.map((x) => x.nome.trim()).filter(Boolean))];
+  const contasMudaram = nomesContas.join("|") !== contasPadrao.join("|");
+  const guardar = guardarContas ?? (!contasPadrao.length || contasMudaram);
   const pacote = JSON.stringify({
     data: inicial.data,
     vendasDia: vendasLimpas.filter((v) => v.dias.some((d) => d !== 0)).map((v) => ({ nome: v.nome, valor: r2(v.dias.reduce((t, n) => t + n, 0)), dias: v.dias })),
@@ -112,9 +115,6 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: {
     contasAPagar: r2(num(contasAPagar)), contasPagas: r2(num(contasPagas)), observacao: inicial.observacao,
     contasPadrao: guardar && contasMudaram ? nomesContas : null,
   });
-  const nomesContas = [...new Set(saldos.map((x) => x.nome.trim()).filter(Boolean))];
-  const contasMudaram = nomesContas.join("|") !== contasPadrao.join("|");
-  const guardar = guardarContas ?? (!contasPadrao.length || contasMudaram);
   const colunas = `minmax(0,1fr) ${inicial.diasVenda.map(() => "minmax(92px,120px)").join(" ")} minmax(92px,120px) 34px`;
   const ir = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
