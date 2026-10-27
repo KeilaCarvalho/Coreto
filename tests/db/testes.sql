@@ -438,3 +438,26 @@ select teste.ok((select count(*) from public.fluxo_config) = 0, 'vendedora não 
 update public.fluxo_config set contas_padrao = '[]';
 commit;
 select teste.ok((select jsonb_array_length(contas_padrao) = 3 from public.fluxo_config), 'vendedora não muda as contas padrão');
+
+-- ---------------------------------------------------------------------
+-- 15. Caixa de entrada do financeiro: carimbos das etapas e pendências.
+-- ---------------------------------------------------------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+insert into public.documentos_financeiros (fornecedor, valor, vence_em) values ('Tecidos Teste', 450.00, public.hoje_sp() + 3);
+select teste.ok((select situacao = 'entrada' and not lancado_conta_azul and lancado_em is null and criado_por is not null
+                 from public.documentos_financeiros where fornecedor = 'Tecidos Teste'), 'documento novo entra como pendente');
+update public.documentos_financeiros set lancado_conta_azul = true, pago = true, link_drive = 'https://drive.google.com/x' where fornecedor = 'Tecidos Teste';
+select teste.ok((select lancado_em is not null and pago_em = public.hoje_sp() and salvo_drive and not anexado_conta_azul
+                 from public.documentos_financeiros where fornecedor = 'Tecidos Teste'), 'marcar lançado e pago carimba a hora; link do Drive marca salvo');
+update public.documentos_financeiros set lancado_conta_azul = false where fornecedor = 'Tecidos Teste';
+select teste.ok((select lancado_em is null from public.documentos_financeiros where fornecedor = 'Tecidos Teste'), 'desmarcar lançado limpa a hora');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'carla'), true);
+select teste.ok((select count(*) from public.documentos_financeiros) = 0, 'vendedora não vê os documentos do financeiro');
+select teste.erro($$insert into public.documentos_financeiros (fornecedor) values ('Intrusa')$$, 'row-level security', 'vendedora não joga documento no financeiro');
+rollback;
