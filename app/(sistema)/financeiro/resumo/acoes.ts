@@ -75,7 +75,7 @@ export async function salvarDocumento(_: EstadoAcao, dados: FormData): Promise<E
     valor,
     lancado_conta_azul: marcado("lancado_conta_azul"),
     anexado_conta_azul: marcado("anexado_conta_azul"),
-    salvo_drive: marcado("salvo_drive") || !!lido.data.link_drive,
+    salvo_drive: marcado("salvo_drive"),
     pago: marcado("pago"),
   }).eq("id", id).select("id");
   if (error) return { erro: mensagem(error.message) };
