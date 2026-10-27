@@ -25,12 +25,12 @@ export const SITUACOES_DOCUMENTO = {
 } as const;
 export type SituacaoDocumento = keyof typeof SITUACOES_DOCUMENTO;
 
-/** Pastas do financeiro no Google Drive (conta storecoreto@gmail.com). */
+/** Pastas do financeiro no Google Drive (EMPRESA CORETO - KEILA / 02. FINANCEIRO). */
 export const PASTAS_DRIVE = {
-  financeiro: "https://drive.google.com/drive/folders/1VWqRmc8OeZe1B_fwl2AjqyBeDrTxAHM0",
-  entrada: "https://drive.google.com/drive/folders/1ohtfzRX9LASLKrdUKr9nLpl2X6cnoy1v",
-  nfEntrada: "https://drive.google.com/drive/folders/1VqqPa31H3aH3T0KiqMchZLSUn3sHGjnt",
-  pendencias: "https://drive.google.com/drive/folders/1Kxl7jzUD0PPXrXc3krAragJiwMTGxi-D",
+  financeiro: "https://drive.google.com/drive/folders/1Fg2Gvy2GZWXA2pNZBk5uLXhrSW1xfAWB",
+  entrada: "https://drive.google.com/drive/folders/1pHSNd1ci3GFtylADXMxWGqDqeJQH--5X",
+  nfEntrada: "https://drive.google.com/drive/folders/1a-G1P6uqGWNvrwGwCCoQAX5s5Cp0yVN-",
+  pendencias: "https://drive.google.com/drive/folders/1Ker_KT9zReXl_-jAUZGfCmL__m2DIfpk",
 };
 
 export const TIPOS_ARQUIVO_ACEITOS = /^(application\/pdf|image\/(jpeg|png|webp|heic|heif)|text\/xml|application\/xml)$/;
