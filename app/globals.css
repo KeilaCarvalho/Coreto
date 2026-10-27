@@ -845,3 +845,11 @@ details > summary::-webkit-details-marker { display: none; }
   .cx-lista li { flex-wrap: wrap; }
   .cx-botoes { width: 100%; justify-content: flex-end; }
 }
+
+/* Chegada da facção: colunas mais juntas e observação ao lado */
+.tabela-lotes .andamento { min-width: 130px; max-width: 170px; }
+.tabela-lotes td.col-aguardando { text-align: left; }
+.tabela-lotes th:nth-child(4), .tabela-lotes td:nth-child(4) { width: 1%; }
+.tabela-lotes td.col-obs { min-width: 200px; width: 32%; }
+.tabela-lotes td.col-obs p { margin: 0 0 2px; font-size: 13px; line-height: 1.35; color: var(--tinta); white-space: pre-line; }
+.tabela-lotes td.col-obs .botao-link { font-size: 12px; }

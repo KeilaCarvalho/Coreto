@@ -86,3 +86,13 @@ export async function salvarPendencia(_: EstadoAcao, dados: FormData): Promise<E
   atualizar(id);
   return { ok: pendente ? "Lote marcado como pendente." : "Pendência resolvida." };
 }
+
+export async function salvarObservacao(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const id = String(dados.get("id") ?? "");
+  const observacao = String(dados.get("observacao") ?? "").trim().slice(0, 500) || null;
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.from("recebimentos").update({ observacao }).eq("id", id);
+  if (error) return { erro: mensagemBanco(error.message) };
+  atualizar(id);
+  return { ok: observacao ? "Observação salva." : "Observação apagada." };
+}

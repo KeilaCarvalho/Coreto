@@ -12,13 +12,13 @@ import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-l
 import { CampoFaccao, EscolherModelo } from "@/components/recebimento/campos";
 import { montarGrade, ordenarTamanhos, SITUACAO, type VarianteGrade } from "@/lib/grade";
 import { dataCurta, numero, reais } from "@/lib/formatos";
-import { registrarRecebimento } from "../acoes";
+import { registrarRecebimento, salvarObservacao } from "../acoes";
 
 export const metadata = { title: "Chegada da facção" };
 
 type Lote = {
   id: string; numero: number; recebido_em: string; referencia: string; produto_nome: string; faccao_nome: string | null;
-  recebido: number; liberado: number; aguardando: number; situacao: string; pendente: boolean; pendencia: string | null;
+  recebido: number; liberado: number; aguardando: number; situacao: string; pendente: boolean; pendencia: string | null; observacao: string | null;
 };
 type Produto = {
   id: string; referencia: string; nome: string; preco_venda: number | null;
@@ -36,15 +36,16 @@ const FILTROS = [
 
 const hojeSP = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 
-export default async function Recebimentos({ searchParams }: { searchParams: Promise<{ ver?: string; registrar?: string; produto?: string }> }) {
+export default async function Recebimentos({ searchParams }: { searchParams: Promise<{ ver?: string; registrar?: string; produto?: string; obs?: string }> }) {
   const sessao = await exigir("producao");
-  const { ver = "abertos", registrar, produto: produtoId } = await searchParams;
+  const { ver = "abertos", registrar, produto: produtoId, obs } = await searchParams;
   const supabase = await supabaseServidor();
   const podeRegistrar = sessao.pode("producao", "criar") || sessao.pode("estoque", "criar");
   const podePrecificar = sessao.pode("produto", "editar");
+  const podeEditar = sessao.pode("producao", "editar") || sessao.pode("estoque", "criar");
 
   const { data } = await supabase.from("recebimentos_resumo")
-    .select("id, numero, recebido_em, referencia, produto_nome, faccao_nome, recebido, liberado, aguardando, situacao, pendente, pendencia")
+    .select("id, numero, recebido_em, referencia, produto_nome, faccao_nome, recebido, liberado, aguardando, situacao, pendente, pendencia, observacao")
     .order("recebido_em", { ascending: false }).order("numero", { ascending: false }).limit(300);
   const todos = (data ?? []) as Lote[];
   const abertos = todos.filter((l) => ["sem_preco", "pendente", "pronto"].includes(l.situacao));
@@ -70,6 +71,7 @@ export default async function Recebimentos({ searchParams }: { searchParams: Pro
       produto = pr as unknown as Produto | null;
     }
   }
+  const loteObs = obs ? todos.find((l) => l.id === obs) ?? null : null;
   const linkRegistrar = `/producao/recebimentos?ver=${ver}&registrar=1`;
 
   return (
@@ -113,8 +115,8 @@ export default async function Recebimentos({ searchParams }: { searchParams: Pro
         </div>
         {lista.length ? (
           <div className="tabela-rolagem">
-            <table className="tabela">
-              <thead><tr><th>Lote</th><th>Modelo</th><th>Facção</th><th>Andamento</th><th className="num">Aguardando</th><th>Situação</th><th /></tr></thead>
+            <table className="tabela tabela-lotes">
+              <thead><tr><th>Lote</th><th>Modelo</th><th>Facção</th><th>Andamento</th><th>Aguardando</th><th>Situação</th><th>Observação</th><th /></tr></thead>
               <tbody>
                 {lista.map((l) => {
                   const s = SITUACAO[l.situacao] ?? SITUACAO.vazio;
@@ -130,10 +132,19 @@ export default async function Recebimentos({ searchParams }: { searchParams: Pro
                           <span>{numero(l.liberado)} de {numero(l.recebido)} liberadas</span>
                         </div>
                       </td>
-                      <td className="num"><strong>{numero(l.aguardando)}</strong></td>
+                      <td className="col-aguardando"><strong>{numero(l.aguardando)}</strong></td>
                       <td>
                         <span className={`etiqueta ${s.classe}`}>{s.rotulo}</span>
                         {l.pendente && l.pendencia && <div className="mini" style={{ marginTop: 4 }}>{l.pendencia}</div>}
+                      </td>
+                      <td className="col-obs">
+                        {l.observacao && <p>{l.observacao}</p>}
+                        {podeEditar && (
+                          <Link className="botao-link" href={`/producao/recebimentos?ver=${ver}&obs=${l.id}`} scroll={false}>
+                            {l.observacao ? "Editar" : "Escrever observação"}
+                          </Link>
+                        )}
+                        {!l.observacao && !podeEditar && <span className="mini">—</span>}
                       </td>
                       <td className="num">
                         {l.situacao === "sem_preco" && podePrecificar
@@ -152,6 +163,25 @@ export default async function Recebimentos({ searchParams }: { searchParams: Pro
           </Vazio>
         )}
       </section>
+
+      {podeEditar && loteObs && (
+        <Suspense>
+          <JanelaLateral param="obs" valor={loteObs.id} titulo="Observação do lote" subtitulo={`${loteObs.produto_nome} · lote nº ${loteObs.numero}`}>
+            <FormAcao acao={salvarObservacao}>
+              <input type="hidden" name="id" value={loteObs.id} />
+              <div className="bloco-janela">
+                <h3>Por que ainda não foi liberado?</h3>
+                <p>Aparece na lista ao lado do lote. Deixe em branco para apagar.</p>
+                <div className="campo">
+                  <label htmlFor="obs-texto">Observação</label>
+                  <textarea id="obs-texto" name="observacao" rows={4} maxLength={500} defaultValue={loteObs.observacao ?? ""} placeholder="Ex.: falta passar e etiquetar; esperando foto para o site" />
+                </div>
+              </div>
+              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar enviando="Salvando…">Salvar</BotaoEnviar></div>
+            </FormAcao>
+          </JanelaLateral>
+        </Suspense>
+      )}
 
       {podeRegistrar && (
         <Suspense>
