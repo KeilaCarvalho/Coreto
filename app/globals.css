@@ -853,3 +853,7 @@ details > summary::-webkit-details-marker { display: none; }
 .tabela-lotes td.col-obs { min-width: 200px; width: 32%; }
 .tabela-lotes td.col-obs p { margin: 0 0 2px; font-size: 13px; line-height: 1.35; color: var(--tinta); white-space: pre-line; }
 .tabela-lotes td.col-obs .botao-link { font-size: 12px; }
+
+/* "Esqueci minha senha" embaixo do campo de senha */
+.esqueci-senha { justify-self: end; margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; }
+.esqueci-senha:hover { color: var(--azul-escuro, #009a9c); }
