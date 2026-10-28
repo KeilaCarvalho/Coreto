@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { criarAcesso, entrar, pedirNovaSenha } from "@/app/acoes/auth";
 import { lerSessao } from "@/lib/sessao";
+import { AvisoLinkDoEmail } from "@/components/entrar/aviso-link";
 
 export const metadata = { title: "Entrar" };
 
@@ -51,6 +52,7 @@ export default async function PaginaEntrar({ searchParams }: { searchParams: Pro
             <>
               <h1>Entrar</h1>
               <p>Use o e-mail cadastrado na Coreto.</p>
+              <AvisoLinkDoEmail />
               {aviso === "link-senha-invalido" && <p className="aviso erro" role="alert">O link para criar a senha nova é inválido ou expirou. Peça outro em “Esqueci minha senha” e abra no mesmo aparelho e navegador.</p>}
               {aviso === "link-invalido" && <p className="aviso erro" role="alert">O link de confirmação é inválido ou expirou. Entre com e-mail e senha ou peça um novo acesso.</p>}
               <FormAcao acao={entrar} className="campos">
