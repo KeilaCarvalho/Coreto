@@ -857,3 +857,41 @@ details > summary::-webkit-details-marker { display: none; }
 /* "Esqueci minha senha" embaixo do campo de senha */
 .esqueci-senha { justify-self: end; margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; }
 .esqueci-senha:hover { color: var(--azul-escuro, #009a9c); }
+
+/* =====================================================================
+   Celular: tabelas viram cartões, cabeçalhos e abas mais compactos
+   ===================================================================== */
+@media (max-width: 700px) {
+  .tabela-rolagem:has(> .tabela.em-cartoes) { overflow: visible; }
+  .tabela.em-cartoes, .tabela.em-cartoes tbody { display: block; width: 100%; }
+  .tabela.em-cartoes thead { display: none; }
+  .tabela.em-cartoes tbody { padding: 10px 12px 14px; display: grid; gap: 10px; }
+  .tabela.em-cartoes tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 14px; padding: 14px 16px; border: 1px solid var(--linha); border-radius: 18px; background: var(--superficie); box-shadow: 0 2px 0 var(--linha), 0 6px 16px rgba(22, 25, 23, 0.05); }
+  .tabela.em-cartoes td { display: block; padding: 0; border: 0; min-width: 0 !important; width: auto !important; max-width: none !important; text-align: left !important; white-space: normal; background: none !important; }
+  .tabela.em-cartoes td::before { content: attr(data-rotulo); display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--tenue); margin-bottom: 2px; }
+  .tabela.em-cartoes td[data-rotulo=""]::before { display: none; }
+  /* a primeira coluna é o título do cartão; a última costuma ter os botões */
+  .tabela.em-cartoes td:first-child { grid-column: 1 / -1; font-size: 15px; }
+  .tabela.em-cartoes td:first-child::before { display: none; }
+  .tabela.em-cartoes td:last-child[data-rotulo=""] { grid-column: 1 / -1; }
+  .tabela.em-cartoes td:last-child[data-rotulo=""] .botao { width: 100%; justify-content: center; }
+  .tabela.em-cartoes td:empty { display: none; }
+  .tabela.em-cartoes tfoot { display: block; }
+  .tabela.em-cartoes tfoot tr { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 0 12px 14px; border-radius: 14px; }
+  .tabela.em-cartoes tfoot td { border: 0; padding: 0; background: none; }
+  .tabela.em-cartoes .andamento { max-width: none; }
+  .tabela-lotes.em-cartoes td.col-obs { grid-column: 1 / -1; }
+
+  .cabecalho { align-items: stretch; gap: 14px; margin-bottom: 18px; }
+  .cabecalho h1 { font-size: 26px; }
+  .cabecalho .acoes { width: 100%; }
+  .cabecalho .acoes > .botao, .cabecalho .acoes > a.botao { flex: 1 1 auto; justify-content: center; }
+  .painel-topo { padding: 16px 14px 12px; }
+  .abas { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+  .abas::-webkit-scrollbar { display: none; }
+  .filtros { width: 100%; }
+  .filtros .entrada { min-width: 0; flex: 1 1 160px; }
+  .kpi-valor { font-size: 24px; }
+  .kpi { padding: 14px; }
+  .pagina { padding: 18px 12px 40px; }
+}

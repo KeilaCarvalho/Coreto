@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icone } from "@/components/icone";
 import type { GrupoMenu } from "@/lib/navegacao";
+import { TabelasNoCelular } from "@/components/tabelas-celular";
 
 export function Estrutura({ grupos, nome, email, sair, pendencias, children }: {
   grupos: GrupoMenu[]; nome: string; email: string; sair: () => Promise<void>; pendencias: number; children: React.ReactNode;
@@ -90,6 +91,7 @@ export function Estrutura({ grupos, nome, email, sair, pendencias, children }: {
           </div>
         </header>
         <main className="pagina" id="conteudo">{children}</main>
+        <TabelasNoCelular />
       </div>
     </div>
   );
