@@ -40,6 +40,7 @@ export const ICONES = {
   calendario: "M3 4h18v18H3z M16 2v4 M8 2v4 M3 10h18",
   banco: "M3 10h18 M5 10v8 M9 10v8 M15 10v8 M19 10v8 M3 21h18 M12 3l9 5H3z",
   cifrao: "M12 2v20 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
+  tarefas: "M9 11l3 3 8-8 M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",
   flor: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v4 M12 18v4 M2 12h4 M18 12h4",
 } as const;
 

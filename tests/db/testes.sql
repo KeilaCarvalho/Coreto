@@ -461,3 +461,33 @@ select set_config('request.jwt.claim.sub', (select id::text from teste.ids where
 select teste.ok((select count(*) from public.documentos_financeiros) = 0, 'vendedora não vê os documentos do financeiro');
 select teste.erro($$insert into public.documentos_financeiros (fornecedor) values ('Intrusa')$$, 'row-level security', 'vendedora não joga documento no financeiro');
 rollback;
+
+-- ---------------------------------------------------------------------
+-- 15. Minhas tarefas: cada login só vê as próprias; rotina pula para a próxima data.
+-- ---------------------------------------------------------------------
+select teste.ok(public.proxima_data_rotina('dias_uteis', '2026-10-30') = '2026-11-02', 'rotina de dias úteis: sexta pula para segunda');
+select teste.ok(public.proxima_data_rotina('semanal:1', '2026-10-29') = '2026-11-02', 'rotina semanal na segunda');
+select teste.ok(public.proxima_data_rotina('mensal:31', '2026-10-31') = '2026-11-30', 'rotina mensal dia 31 cai no último dia de novembro');
+select teste.ok(public.proxima_data_rotina('mensal:5', '2026-10-29') = '2026-11-05', 'rotina mensal no dia 5');
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+insert into public.tarefas (titulo, area, data, repete, checklist) values
+  ('Lançar o fluxo', 'financeiro', '2026-10-29', 'dias_uteis', '[{"texto":"PDF","feito":true}]');
+insert into public.tarefas (titulo) values ('Ligar para o contador');
+select public.concluir_tarefa((select id from public.tarefas where titulo = 'Lançar o fluxo'));
+select teste.ok((select data > '2026-10-29' and status = 'a_fazer' and checklist->0->>'feito' = 'false' from public.tarefas where titulo = 'Lançar o fluxo'),
+                'rotina feita vai para a próxima data e desmarca o checklist');
+select teste.ok((select count(*) = 1 from public.tarefa_feitas), 'o dia feito fica registrado');
+select public.concluir_tarefa((select id from public.tarefas where titulo = 'Ligar para o contador'));
+select teste.ok((select status = 'feito' and feita_em is not null from public.tarefas where titulo = 'Ligar para o contador'), 'tarefa comum vai para Feito');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'bia'), true);
+select teste.ok((select count(*) from public.tarefas) = 0, 'outra pessoa não vê as tarefas');
+update public.tarefas set titulo = 'x';
+select teste.erro($$select public.concluir_tarefa((select id from teste.ids limit 1))$$, 'Tarefa não encontrada', 'outra pessoa não conclui tarefa alheia');
+commit;
+select teste.ok((select count(*) = 0 from public.tarefas where titulo = 'x'), 'outra pessoa não altera as tarefas');
