@@ -67,12 +67,18 @@ export const hojeSP = () => new Date().toLocaleDateString("en-CA", { timeZone: "
 export const somarDias = (iso: string, n: number) => new Date(new Date(`${iso}T12:00:00-03:00`).getTime() + n * 864e5).toISOString().slice(0, 10);
 export const diaSP = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 
+/** "qui 29/10" */
+export function diaCurto(iso: string) {
+  const d = new Date(`${iso}T12:00:00-03:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${DIAS_SEMANA[d.getDay()].slice(0, 3)} ${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+}
+
 /** "Hoje", "Amanhã", "Ontem", "seg 03/11"… */
 export function dataAmigavel(iso: string | null, hoje = hojeSP()) {
   if (!iso) return null;
   if (iso === hoje) return "Hoje";
   if (iso === somarDias(hoje, 1)) return "Amanhã";
   if (iso === somarDias(hoje, -1)) return "Ontem";
-  const dia = DIAS_SEMANA[new Date(`${iso}T12:00:00-03:00`).getDay()].slice(0, 3);
-  return `${dia} ${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+  return diaCurto(iso);
 }

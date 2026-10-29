@@ -11,7 +11,7 @@ import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-l
 import { CartaoTarefa } from "@/components/tarefas/cartao";
 import { Kanban } from "@/components/tarefas/kanban";
 import { CamposTarefa } from "@/components/tarefas/campos-tarefa";
-import { AREAS, COLUNAS_TAREFA, area, dataAmigavel, descreverRepete, diaSP, hojeSP, somarDias, type Tarefa } from "@/lib/tarefas";
+import { AREAS, COLUNAS_TAREFA, area, dataAmigavel, diaCurto, descreverRepete, diaSP, hojeSP, somarDias, type Tarefa } from "@/lib/tarefas";
 import { numero } from "@/lib/formatos";
 import { adicionarRapida, excluirTarefa, salvarTarefa } from "./acoes";
 
@@ -136,7 +136,7 @@ export default async function MinhasTarefas({ searchParams }: { searchParams: Pr
           <div className="tf-hoje">
             <div className="tf-coluna-principal">
               <Grupo titulo="Atrasadas" nota="Ficaram para trás" tarefas={atrasadas} hoje={hoje} classe="atrasadas" />
-              <Grupo titulo={`Hoje, ${dataAmigavel(hoje, "x")}`} tarefas={deHoje} hoje={hoje} mostrarData={false} />
+              <Grupo titulo={`Hoje, ${diaCurto(hoje)}`} tarefas={deHoje} hoje={hoje} mostrarData={false} />
               {!atrasadas.length && !deHoje.length && (
                 <section className="tf-grupo"><Vazio titulo="Tudo em dia" texto="Nada marcado para hoje. Anote acima o que precisar fazer." /></section>
               )}
