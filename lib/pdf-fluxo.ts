@@ -1,6 +1,6 @@
 "use client";
 
-import { dataPorExtenso, mesPorExtenso, nomeDoDia, rotuloPeriodo, totaisFluxo, vendasPorDia, type DadosFluxo, type LinhaValor } from "@/lib/fluxo";
+import { dataPorExtenso, mesDoLancamento, mesPorExtenso, nomeDoDia, rotuloPeriodo, totaisFluxo, vendasPorDia, type DadosFluxo, type LinhaValor } from "@/lib/fluxo";
 
 /*
  * PDF do fluxo financeiro diário: uma página A4 retrato, gerado no navegador.
@@ -120,8 +120,10 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   let y = HC + 8;
   const kw = (W - 3 * 4) / 4, kh = 23;
   const sobra = t.sobra;
+  // As vendas de sexta e sábado lançadas no dia 1º/2 ainda são do mês anterior: o mês vem do último dia de venda.
+  const nomeMes = mesPorExtenso(mesDoLancamento(d.data)).split(" ")[0];
   const kpis: { rotulo: string; valor: number; nota: string; escuro?: boolean; alerta?: boolean }[] = [
-    { rotulo: "VENDAS NO MÊS", valor: t.vendasMes, nota: `acumulado de ${mesPorExtenso(d.data).split(" ")[0]}`, escuro: true },
+    { rotulo: "VENDAS NO MÊS", valor: t.vendasMes, nota: `acumulado de ${nomeMes}`, escuro: true },
     { rotulo: rotuloPeriodo(d.diasVenda).toUpperCase(), valor: t.vendasDia, nota: d.diasVenda.length > 1 ? vendasPorDia(d).map((v) => `${nomeDoDia(v.dia).slice(0, 3)} ${reais(v.valor)}`).join(" · ") : d.diasVenda[0] ? `${nomeDoDia(d.diasVenda[0])}, ${d.diasVenda[0].slice(8, 10)}/${d.diasVenda[0].slice(5, 7)}` : "" },
     { rotulo: "SALDO EM CONTA", valor: t.saldo, nota: `${d.saldos.length} ${d.saldos.length === 1 ? "conta" : "contas"}` },
     { rotulo: "SALDO APÓS AS CONTAS", valor: sobra, nota: "saldo em conta - contas a pagar", alerta: sobra < 0 },
@@ -147,11 +149,11 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   const fh = 14;
   cartao(M, y, W, fh);
   const pagas = t.contasPagas, aPagar = t.contasAPagar, somaContas = pagas + aPagar;
-  titulo(M + 4, y + 8.4, "Contas do mês");
-  fonte("normal", 7); ink(C.suave); doc.text("PAGAS", M + 46, y + 5.4); doc.text("A PAGAR", M + 82, y + 5.4);
-  fonte("bold", 10.5); ink(C.preto); doc.text(reais(pagas), M + 46, y + 10.6);
-  ink(aPagar > t.saldo ? C.alerta : C.preto); doc.text(reais(aPagar), M + 82, y + 10.6);
-  const bx = M + 122, bw = W - 122 - 22;
+  titulo(M + 4, y + 8.4, `Contas de ${nomeMes}`);
+  fonte("normal", 7); ink(C.suave); doc.text("PAGAS", M + 54, y + 5.4); doc.text("A PAGAR", M + 90, y + 5.4);
+  fonte("bold", 10.5); ink(C.preto); doc.text(reais(pagas), M + 54, y + 10.6);
+  ink(aPagar > t.saldo ? C.alerta : C.preto); doc.text(reais(aPagar), M + 90, y + 10.6);
+  const bx = M + 128, bw = W - 128 - 22;
   fill(C.azulClaro); doc.roundedRect(bx, y + 5.6, bw, 3.2, 1.6, 1.6, "F");
   if (somaContas > 0 && pagas > 0) { fill(C.preto); doc.roundedRect(bx, y + 5.6, Math.max(3.2, bw * (pagas / somaContas)), 3.2, 1.6, 1.6, "F"); }
   fonte("bold", 11); ink(C.preto); doc.text(pct(pagas, somaContas), M + W - 4, y + 8.6, { align: "right" });
@@ -265,7 +267,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   lista(M + meia + 5, y, meia, H.b, "A receber", d.aReceber, "Total a receber", rh);
   y += H.b + 5;
 
-  lista(M, y, W, H.c, "Equipe no mês", equipe, "Total da equipe", rh * 1.15, true);
+  lista(M, y, W, H.c, `Equipe em ${nomeMes}`, equipe, "Total da equipe", rh * 1.15, true);
 
   // ===================== Rodapé =====================
   fill(C.azul); doc.rect(0, 293.5, L, 3.5, "F");
