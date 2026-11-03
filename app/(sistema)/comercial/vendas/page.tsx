@@ -54,7 +54,7 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
   const fim = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).toISOString().slice(0, 10);
   const [{ data: cR }, { data: pR }, { data: iR }, { data: vR }] = await Promise.all([
     supabase.from("comissoes_mensais").select("codigo, vendedora, vendas, comissao, percentual, qtd_vendas, qtd_pecas, ticket_medio, valor_pagar").eq("mes", inicio).order("vendas", { ascending: false }),
-    supabase.from("produtos_vendidos_mes").select("codigo, referencia, descricao, classe, quantidade, custo, venda, percentual").eq("mes", inicio).order("quantidade", { ascending: false }).limit(20),
+    supabase.from("produtos_vendidos_mes").select("codigo, referencia, descricao, classe, quantidade, custo, venda, percentual").eq("mes", inicio).order("quantidade", { ascending: false }).limit(2000),
     supabase.from("vendas_itens").select("data, quantidade, valor_produto, variacao_valor, valor_total").eq("mes", inicio).limit(10000),
     supabase.from("cliente_compras").select("data, vendedora_nome, valor, valor_produtos, valor_variacao").gte("data", inicio).lte("data", fim).limit(10000),
   ]);
@@ -71,7 +71,9 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
     codigo: nome, vendedora: nome, vendas: v.vendas, comissao: 0, percentual: 0, qtd_vendas: v.qtd, qtd_pecas: 0, ticket_medio: v.qtd ? v.vendas / v.qtd : 0, valor_pagar: 0,
   }));
   const semComissao = !comissoesRel.length && comissoes.length > 0;
-  const produtos = (pR ?? []) as Produto[];
+  const todosProdutos = (pR ?? []) as Produto[];
+  const produtos = todosProdutos.slice(0, 20);
+  const pecasCurva = todosProdutos.reduce((t, p) => t + n(p.quantidade), 0);
   const itens = (iR ?? []) as Item[];
   const doMes = mensais.find((m) => m.mes === mes);
   const anterior = mensais.find((m) => m.mes === disponiveis[disponiveis.indexOf(mes) - 1]);
@@ -82,7 +84,11 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
   const totalCompras = compras.reduce((t, c) => t + n(c.valor), 0);
   const valorMes = doMes?.valor_total ?? (totalComissoes || totalCompras || totalItens);
   const qtdVendas = doMes?.qtd_vendas ?? (comissoes.reduce((t, c) => t + n(c.qtd_vendas), 0) || compras.length);
-  const pecas = doMes?.faturadas ?? (comissoes.reduce((t, c) => t + n(c.qtd_pecas), 0) || itens.reduce((t, i) => t + n(i.quantidade), 0));
+  // Peças: resumo do mês > comissão > vendas peça a peça > curva ABC (soma das quantidades dos produtos).
+  const pecasComissao = comissoes.reduce((t, c) => t + n(c.qtd_pecas), 0);
+  const pecasItens = itens.reduce((t, i) => t + n(i.quantidade), 0);
+  const pecas = doMes?.faturadas ?? (pecasComissao || pecasItens || pecasCurva);
+  const pecasDaCurva = doMes?.faturadas == null && !pecasComissao && !pecasItens && pecasCurva > 0;
   const ticket = qtdVendas ? valorMes / qtdVendas : 0;
   const variacao = anterior && anterior.valor_total ? ((valorMes - anterior.valor_total) / anterior.valor_total) * 100 : null;
 
@@ -123,7 +129,7 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
         <div className="kpi">
           <div className="kpi-topo"><span>Peças vendidas</span><span className="seta"><Icone nome="catalogo" tamanho={16} /></span></div>
           <p className="kpi-valor">{numero(pecas)}</p>
-          <p className="kpi-nota">{doMes?.devolucoes ? `${numero(doMes.devolucoes)} devolvidas` : "no mês"}</p>
+          <p className="kpi-nota">{doMes?.devolucoes ? `${numero(doMes.devolucoes)} devolvidas` : pecasDaCurva ? "pela curva ABC importada" : pecas ? "no mês" : "importe a curva ABC ou vendas por dia"}</p>
         </div>
         <div className="kpi">
           <div className="kpi-topo"><span>Vendas</span><span className="seta"><Icone nome="caixa" tamanho={16} /></span></div>
