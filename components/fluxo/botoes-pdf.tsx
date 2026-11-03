@@ -5,7 +5,7 @@ import { Icone } from "@/components/icone";
 import type { DadosFluxo } from "@/lib/fluxo";
 
 /** Baixar o PDF do dia ou mandar para a Deborah pelo compartilhamento do celular (WhatsApp). */
-export function BotoesPdf({ dados }: { dados: DadosFluxo | null }) {
+export function BotoesPdf({ dados, fechamento }: { dados: DadosFluxo | null; fechamento?: string }) {
   const [gerando, setGerando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
 
@@ -14,9 +14,9 @@ export function BotoesPdf({ dados }: { dados: DadosFluxo | null }) {
     setGerando(true);
     setAviso(null);
     try {
-      const { gerarPdfFluxo, nomeDoPdf } = await import("@/lib/pdf-fluxo");
-      const blob = await gerarPdfFluxo(dados);
-      return new File([blob], nomeDoPdf(dados.data), { type: "application/pdf" });
+      const { gerarPdfFluxo, nomeDoPdf, tituloFechamento } = await import("@/lib/pdf-fluxo");
+      const blob = await gerarPdfFluxo(dados, { fechamento });
+      return new File([blob], fechamento ? `${tituloFechamento(fechamento)}.pdf` : nomeDoPdf(dados.data), { type: "application/pdf" });
     } catch (e) {
       setAviso({ tipo: "erro", texto: `Não consegui gerar o PDF: ${(e as Error).message}` });
       return null;
@@ -44,8 +44,8 @@ export function BotoesPdf({ dados }: { dados: DadosFluxo | null }) {
   async function enviarDeborah() {
     const arquivo = await gerar();
     if (!arquivo || !dados) return;
-    const { tituloDoPdf } = await import("@/lib/pdf-fluxo");
-    const texto = tituloDoPdf(dados.data);
+    const { tituloDoPdf, tituloFechamento } = await import("@/lib/pdf-fluxo");
+    const texto = fechamento ? tituloFechamento(fechamento) : tituloDoPdf(dados.data);
     if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [arquivo] })) {
       try {
         await navigator.share({ files: [arquivo], title: texto, text: texto });
@@ -59,7 +59,7 @@ export function BotoesPdf({ dados }: { dados: DadosFluxo | null }) {
     setAviso({ tipo: "ok", texto: "O PDF foi baixado. Neste computador é só anexar na conversa da Deborah no WhatsApp." });
   }
 
-  const titulo = dados ? undefined : "Lance o dia primeiro";
+  const titulo = dados ? undefined : fechamento ? "Nenhum lançamento neste mês" : "Lance o dia primeiro";
   return (
     <>
       <button type="button" className="botao leve" onClick={baixarPdf} disabled={!dados || gerando} title={titulo}><Icone nome="baixar" />{gerando ? "Gerando…" : "Baixar PDF"}</button>

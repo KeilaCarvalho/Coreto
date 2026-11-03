@@ -4,7 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icone } from "@/components/icone";
 import type { EstadoAcao } from "@/components/form-acao";
-import { dataPorExtenso, nomeDoDia, rotuloPeriodo, type DadosFluxo } from "@/lib/fluxo";
+import { dataPorExtenso, inicioDoMes, mesDoLancamento, mesPorExtenso, nomeDoDia, rotuloPeriodo, type DadosFluxo } from "@/lib/fluxo";
 
 type Acao = (estado: EstadoAcao, dados: FormData) => Promise<EstadoAcao>;
 type LinhaTexto = { nome: string; valor: string };
@@ -192,8 +192,8 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: {
           </section>
 
           <section className="fx-bloco" id="b-contas-mes">
-            <h3>Contas do mês</h3>
-            <p>Quanto já foi pago e quanto ainda falta pagar no mês.</p>
+            <h3>Contas de {mesPorExtenso(inicioDoMes(inicial.data)).split(" ")[0]}</h3>
+            <p>Quanto já foi pago e quanto ainda falta pagar no mês.{mesDoLancamento(inicial.data) !== inicioDoMes(inicial.data) ? ` As vendas acima ainda somam em ${mesPorExtenso(mesDoLancamento(inicial.data)).split(" ")[0]}; o fechamento dele fica em "Fechar mês".` : ""}</p>
             <div className="fx-dois">
               <label>Já pagas<input className="fx-in valor" value={contasPagas} inputMode="decimal" placeholder="0,00" onChange={(e) => setContasPagas(e.target.value)} /></label>
               <label>Ainda a pagar<input className="fx-in valor" value={contasAPagar} inputMode="decimal" placeholder="0,00" onChange={(e) => setContasAPagar(e.target.value)} /></label>
@@ -201,7 +201,7 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: {
           </section>
 
           <section className="fx-bloco" id="b-equipe">
-            <h3>Equipe no mês</h3>
+            <h3>Equipe em {mesPorExtenso(mesDoLancamento(inicial.data)).split(" ")[0]}</h3>
             <p>Quanto cada vendedora vendeu no mês até agora.</p>
             <Linhas linhas={vendedoras} mudar={setVendedoras} rotulo="Vendedora" rotuloValor="No mês" />
           </section>

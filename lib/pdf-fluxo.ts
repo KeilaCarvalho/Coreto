@@ -1,6 +1,6 @@
 "use client";
 
-import { dataPorExtenso, mesDoLancamento, mesPorExtenso, nomeDoDia, rotuloPeriodo, totaisFluxo, vendasPorDia, type DadosFluxo, type LinhaValor } from "@/lib/fluxo";
+import { dataPorExtenso, inicioDoMes, mesDoLancamento, mesPorExtenso, nomeDoDia, rotuloPeriodo, totaisFluxo, vendasPorDia, type DadosFluxo, type LinhaValor } from "@/lib/fluxo";
 
 /*
  * PDF do fluxo financeiro diário: uma página A4 retrato, gerado no navegador.
@@ -56,10 +56,22 @@ export function nomeDoPdf(data: string) {
   return `${tituloDoPdf(data)}.pdf`;
 }
 
-export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
+/** "2026-10-01" → "Fechamento de outubro 2026" */
+export function tituloFechamento(mes: string) {
+  return `Fechamento de ${mesPorExtenso(mes).replace(" de ", " ")}`;
+}
+
+const mesNome = (iso: string) => mesPorExtenso(iso).split(" ")[0];
+
+/**
+ * opcoes.fechamento = "2026-10-01": PDF de fechamento do mês (sem os dias de venda; saldos do último lançamento do mês).
+ */
+export async function gerarPdfFluxo(d: DadosFluxo, opcoes: { fechamento?: string } = {}): Promise<Blob> {
+  const fech = opcoes.fechamento ?? null;
   const { jsPDF, GState } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  doc.setProperties({ title: tituloDoPdf(d.data), subject: tituloDoPdf(d.data), author: "Coreto", creator: "Sistema Coreto" });
+  const tituloDoc = fech ? tituloFechamento(fech) : tituloDoPdf(d.data);
+  doc.setProperties({ title: tituloDoc, subject: tituloDoc, author: "Coreto", creator: "Sistema Coreto" });
   const [nomeEscuro, flor] = await Promise.all([imagem("/coreto-nome-escuro.png"), imagem("/coreto-flor-branca.png")]);
   const t = totaisFluxo(d);
   const L = 210, M = 12, W = L - M * 2, FIM = 284;
@@ -106,23 +118,31 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   if (nomeEscuro) doc.addImage(nomeEscuro, "PNG", M, 8.5, 34, 5.15, undefined, "FAST");
   else { fonte("bold", 16); ink(C.preto); doc.text("CORETO", M, 13); }
   fonte("bold", 19); ink(C.preto);
-  doc.text("Fluxo financeiro diário", M, 24.5);
+  doc.text(fech ? "Fechamento do mês" : "Fluxo financeiro diário", M, 24.5);
   fonte("normal", 9); ink([10, 60, 61]);
-  doc.text(`${dataPorExtenso(d.data)} · ${rotuloPeriodo(d.diasVenda).toLowerCase()}`, M, 29.8);
+  const ultimo = d.data.split("-").reverse().join("/");
+  doc.text(fech ? `${mesPorExtenso(fech).replace(/^./, (c) => c.toUpperCase())} · bancos e a receber do último lançamento (${ultimo})` : `${dataPorExtenso(d.data)} · ${rotuloPeriodo(d.diasVenda).toLowerCase()}`, M, 29.8);
   // selo preto com a data
   const sw = 44, sx = L - M - sw;
   fill(C.sombra); opacidade(0.18); doc.roundedRect(sx, 10.4, sw, 17, 3.5, 3.5, "F"); opacidade(1);
   fill(C.preto); doc.roundedRect(sx, 9.2, sw, 17, 3.5, 3.5, "F");
-  fonte("bold", 6.6); ink(C.azul); doc.text("DATA DE REFERÊNCIA", sx + sw / 2, 15, { align: "center" });
-  fonte("bold", 14); ink(C.branco); doc.text(d.data.split("-").reverse().join("/"), sx + sw / 2, 22.4, { align: "center" });
+  fonte("bold", 6.6); ink(C.azul); doc.text(fech ? "MÊS DE REFERÊNCIA" : "DATA DE REFERÊNCIA", sx + sw / 2, 15, { align: "center" });
+  fonte("bold", 14); ink(C.branco); doc.text(fech ? `${fech.slice(5, 7)}/${fech.slice(0, 4)}` : ultimo, sx + sw / 2, 22.4, { align: "center" });
 
   // ===================== Números principais =====================
   let y = HC + 8;
   const kw = (W - 3 * 4) / 4, kh = 23;
   const sobra = t.sobra;
   // As vendas de sexta e sábado lançadas no dia 1º/2 ainda são do mês anterior: o mês vem do último dia de venda.
-  const nomeMes = mesPorExtenso(mesDoLancamento(d.data)).split(" ")[0];
-  const kpis: { rotulo: string; valor: number; nota: string; escuro?: boolean; alerta?: boolean }[] = [
+  // As contas são do mês do dia do lançamento.
+  const nomeMes = mesNome(fech ?? mesDoLancamento(d.data));
+  const nomeMesContas = mesNome(fech ?? inicioDoMes(d.data));
+  const kpis: { rotulo: string; valor: number; nota: string; escuro?: boolean; alerta?: boolean }[] = fech ? [
+    { rotulo: "VENDAS NO MÊS", valor: t.vendasMes, nota: `total de ${nomeMes}`, escuro: true },
+    { rotulo: "CONTAS PAGAS", valor: t.contasPagas, nota: `${pct(t.contasPagas, t.contasPagas + t.contasAPagar)} das contas do mês` },
+    { rotulo: "SALDO EM CONTA", valor: t.saldo, nota: `no lançamento de ${ultimo.slice(0, 5)}` },
+    { rotulo: "SALDO APÓS AS CONTAS", valor: sobra, nota: "saldo em conta - contas a pagar", alerta: sobra < 0 },
+  ] : [
     { rotulo: "VENDAS NO MÊS", valor: t.vendasMes, nota: `acumulado de ${nomeMes}`, escuro: true },
     { rotulo: rotuloPeriodo(d.diasVenda).toUpperCase(), valor: t.vendasDia, nota: d.diasVenda.length > 1 ? vendasPorDia(d).map((v) => `${nomeDoDia(v.dia).slice(0, 3)} ${reais(v.valor)}`).join(" · ") : d.diasVenda[0] ? `${nomeDoDia(d.diasVenda[0])}, ${d.diasVenda[0].slice(8, 10)}/${d.diasVenda[0].slice(5, 7)}` : "" },
     { rotulo: "SALDO EM CONTA", valor: t.saldo, nota: `${d.saldos.length} ${d.saldos.length === 1 ? "conta" : "contas"}` },
@@ -149,7 +169,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   const fh = 14;
   cartao(M, y, W, fh);
   const pagas = t.contasPagas, aPagar = t.contasAPagar, somaContas = pagas + aPagar;
-  titulo(M + 4, y + 8.4, `Contas de ${nomeMes}`);
+  titulo(M + 4, y + 8.4, `Contas de ${nomeMesContas}`);
   fonte("normal", 7); ink(C.suave); doc.text("PAGAS", M + 54, y + 5.4); doc.text("A PAGAR", M + 90, y + 5.4);
   fonte("bold", 10.5); ink(C.preto); doc.text(reais(pagas), M + 54, y + 10.6);
   ink(aPagar > t.saldo ? C.alerta : C.preto); doc.text(reais(aPagar), M + 90, y + 10.6);
@@ -191,7 +211,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   cartao(M, y, W, H.a);
   titulo(M + 4, y + 7.6, "Vendas por forma de pagamento");
   fonte("normal", 7.2); ink(C.suave);
-  doc.text(`${rotuloPeriodo(d.diasVenda)} e acumulado do mês`, M + W - 4, y + 7.6, { align: "right" });
+  doc.text(fech ? `Total de ${nomeMes}` : `${rotuloPeriodo(d.diasVenda)} e acumulado do mês`, M + W - 4, y + 7.6, { align: "right" });
   // colunas: forma | dias... | período (se +1 dia) | no mês | barra % do mês
   const colMes = M + W - 52, colBarra = M + W - 46, larguraBarra = 30;
   const colsDias = d.diasVenda.length > 1
@@ -201,7 +221,7 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   fill(C.fundo); doc.roundedRect(M + 3, ty, W - 6, 6, 1.6, 1.6, "F");
   fonte("bold", 6.4); ink(C.suave);
   doc.text("FORMA", M + 6, ty + 4);
-  if (d.diasVenda.length > 1) {
+  if (fech) { /* só o mês */ } else if (d.diasVenda.length > 1) {
     d.diasVenda.forEach((dia, k) => doc.text(curtoDia(dia).toUpperCase(), colsDias[k], ty + 4, { align: "right" }));
     doc.text("PERÍODO", colsDias[colsDias.length - 1], ty + 4, { align: "right" });
   } else doc.text((d.diasVenda[0] ? curtoDia(d.diasVenda[0]) : "DIA").toUpperCase(), colsDias[0], ty + 4, { align: "right" });
@@ -212,11 +232,11 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
   formas.forEach((f, i) => {
     const base = ty + i * rh + rh * 0.68;
     if (i > 0) { draw(C.linha); doc.setLineWidth(0.15); doc.line(M + 6, ty + i * rh, M + W - 6, ty + i * rh); }
-    fonte("normal", tam.linha); ink(C.preto); doc.text(corta(f.nome, colsDias[0] - (d.diasVenda.length > 1 ? 24 : 28) - (M + 6)), M + 6, base);
+    fonte("normal", tam.linha); ink(C.preto); doc.text(corta(f.nome, fech ? colMes - 30 - (M + 6) : colsDias[0] - (d.diasVenda.length > 1 ? 24 : 28) - (M + 6)), M + 6, base);
     fonte("normal", tam.linha); ink(C.suave);
-    if (d.diasVenda.length > 1) f.dias.forEach((v, k) => doc.text(reais(v), colsDias[k], base, { align: "right" }));
+    if (!fech && d.diasVenda.length > 1) f.dias.forEach((v, k) => doc.text(reais(v), colsDias[k], base, { align: "right" }));
     fonte("bold", tam.valor); ink(C.preto);
-    doc.text(reais(f.periodo), colsDias[colsDias.length - 1], base, { align: "right" });
+    if (!fech) doc.text(reais(f.periodo), colsDias[colsDias.length - 1], base, { align: "right" });
     doc.text(reais(f.mes), colMes, base, { align: "right" });
     const bh = Math.min(2.6, rh * 0.38), by = ty + i * rh + (rh - bh) / 2;
     fill(C.azulClaro); doc.roundedRect(colBarra, by, larguraBarra, bh, bh / 2, bh / 2, "F");
@@ -227,9 +247,9 @@ export async function gerarPdfFluxo(d: DadosFluxo): Promise<Blob> {
     const yt = y + H.a - 11;
     fill(C.preto); doc.roundedRect(M + 3, yt, W - 6, 7, 2, 2, "F");
     fonte("bold", 8.2); ink(C.branco); doc.text("Total", M + 6, yt + 4.7);
-    if (d.diasVenda.length > 1) { fonte("normal", 7.6); ink([200, 210, 210]); vendasPorDia(d).forEach((v, k) => doc.text(reais(v.valor), colsDias[k], yt + 4.7, { align: "right" })); }
+    if (!fech && d.diasVenda.length > 1) { fonte("normal", 7.6); ink([200, 210, 210]); vendasPorDia(d).forEach((v, k) => doc.text(reais(v.valor), colsDias[k], yt + 4.7, { align: "right" })); }
     fonte("bold", 8.2); ink(C.azul);
-    doc.text(reais(t.vendasDia), colsDias[colsDias.length - 1], yt + 4.7, { align: "right" });
+    if (!fech) doc.text(reais(t.vendasDia), colsDias[colsDias.length - 1], yt + 4.7, { align: "right" });
     doc.text(reais(t.vendasMes), colMes, yt + 4.7, { align: "right" });
   }
   y += H.a + 5;

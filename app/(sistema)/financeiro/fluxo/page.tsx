@@ -88,20 +88,23 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   if (!pedida && ehFimDeSemana(data)) data = diaUtil(data, -1); // fim de semana: abre a sexta
   const fimDeSemana = ehFimDeSemana(data);
   const periodo = diasDeVenda(data);
-  const mesRef = mesDoLancamento(data);
+  const mesRef = mesDoLancamento(data);        // vendas e equipe: mês do último dia de venda
+  const mesContasRef = inicioDoMes(data);       // contas: mês do dia do lançamento
   const inicioCal = inicioDoMes(data);
   const fimCal = somarDias(inicioDoMes(somarDias(inicioCal, 32)), -1);
   const desde = [inicioCal, somarDias(data, -30)].sort()[0];
 
   const supabase = await supabaseServidor();
-  const [{ data: diaR }, { data: mesR }, { data: anteriorR }, { data: periodoR }, { data: vendedorasR }, { data: configR }] = await Promise.all([
+  const [{ data: diaR }, { data: mesR }, { data: anteriorR }, { data: periodoR }, { data: vendedorasR }, { data: configR }, { data: contasR }] = await Promise.all([
     supabase.from("fluxo_dias").select("data, vendas, saldos, a_receber, observacao, atualizado_em, quem:pessoas!atualizado_por(nome)").eq("data", data).maybeSingle(),
     supabase.from("fluxo_meses").select("mes, vendas, vendedoras, contas_a_pagar, contas_pagas").eq("mes", mesRef).maybeSingle(),
     supabase.from("fluxo_dias").select("data, vendas, saldos, a_receber").lt("data", data).order("data", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("fluxo_dias").select("data, vendas").gte("data", desde).lte("data", fimCal).order("data"),
     supabase.from("pessoas").select("nome, apelido").eq("e_vendedora", true).is("arquivado_em", null).order("nome"),
     supabase.from("fluxo_config").select("contas_padrao").maybeSingle(),
+    supabase.from("fluxo_meses").select("contas_a_pagar, contas_pagas").eq("mes", mesContasRef).maybeSingle(),
   ]);
+  const contasMes = contasR as { contas_a_pagar: number; contas_pagas: number } | null;
   const brutoPadrao: unknown = (configR as { contas_padrao?: unknown } | null)?.contas_padrao;
   const contasPadrao: string[] = [];
   if (Array.isArray(brutoPadrao)) for (const n of brutoPadrao) if (typeof n === "string" && n.trim()) contasPadrao.push(n);
@@ -116,7 +119,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
     vendasDia: lerVendas(dia.vendas, periodo.length),
     saldos: lerLinhas(dia.saldos), aReceber: lerLinhas(dia.a_receber), observacao: dia.observacao ?? "",
     vendasMes: lerLinhas(mes?.vendas), vendedoras: lerLinhas(mes?.vendedoras),
-    contasAPagar: Number(mes?.contas_a_pagar ?? 0), contasPagas: Number(mes?.contas_pagas ?? 0),
+    contasAPagar: Number(contasMes?.contas_a_pagar ?? 0), contasPagas: Number(contasMes?.contas_pagas ?? 0),
   } : null;
 
   /* ---------- o que abre na janela de lançamento ---------- */
@@ -140,8 +143,8 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
     observacao: "",
     vendasMes: lerLinhas(mes?.vendas),
     vendedoras: mes ? lerLinhas(mes.vendedoras) : (vendedorasR ?? []).map((v) => ({ nome: v.apelido || v.nome, valor: 0 })),
-    contasAPagar: Number(mes?.contas_a_pagar ?? 0),
-    contasPagas: Number(mes?.contas_pagas ?? 0),
+    contasAPagar: Number(contasMes?.contas_a_pagar ?? 0),
+    contasPagas: Number(contasMes?.contas_pagas ?? 0),
   };
 
   /* ---------- gráfico: últimos 14 dias de venda (sem domingo) ---------- */
@@ -190,6 +193,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
           </div>
         </div>
         <div className="acoes">
+          <Link className="botao leve" href="/financeiro/fluxo/fechamento"><Icone nome="calendario" />Fechar mês</Link>
           <BotoesPdf dados={salvoDados} />
           {podeLancar && <Link className="botao" href={lancar()} scroll={false}><Icone nome={dia ? "lapis" : "mais"} />{dia ? "Editar lançamento" : "Lançar dia"}</Link>}
         </div>
@@ -315,7 +319,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
 
             <section className="painel c4">
               <div className="painel-topo">
-                <div><h2>Contas do mês</h2><p style={{ textTransform: "capitalize" }}>{mesPorExtenso(mesRef)}</p></div>
+                <div><h2>Contas do mês</h2><p style={{ textTransform: "capitalize" }}>{mesPorExtenso(mesContasRef)}</p></div>
                 {podeLancar && <Editar href={lancar("b-contas-mes")} rotulo="Editar contas do mês" />}
               </div>
               <div className="fx-medidor"><Medidor pagas={t.contasPagas} aPagar={t.contasAPagar} /></div>
