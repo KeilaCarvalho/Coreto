@@ -7,7 +7,7 @@ import type { EstadoAcao } from "@/components/form-acao";
 import { carteiraDoCsv } from "@/lib/clientes";
 import { NOMES } from "@/lib/relatorios-nomes";
 
-type Lido = { id: number; arquivo: string; tipo: string; mes: string; linhas: Record<string, unknown>[]; erro?: string; status: "lendo" | "pronto" | "importando" | "feito" | "erro"; resultado?: string };
+type Lido = { id: number; arquivo: string; tipo: string; mes: string; linhas: Record<string, unknown>[]; aviso?: string; erro?: string; status: "lendo" | "pronto" | "importando" | "feito" | "erro"; resultado?: string };
 
 // Ordem certa para importar vários de uma vez: clientes antes das vendas delas.
 const ORDEM = ["carteira", "primeira_compra", "aniversariantes", "vendas_vendedora", "evolucao", "comissao", "curva_abc", "vendas_dia"];
@@ -38,7 +38,7 @@ export function ImportarRelatorios({ importar }: { importar: (e: EstadoAcao, d: 
         const resposta = await fetch("/api/relatorios/ler", { method: "POST", body: corpo });
         const json = await resposta.json();
         if (!resposta.ok) mudar(id, { status: "erro", erro: json.erro ?? "Não consegui ler o PDF." });
-        else mudar(id, { status: "pronto", tipo: json.tipo, mes: json.mes, linhas: json.linhas });
+        else mudar(id, { status: "pronto", tipo: json.tipo, mes: json.mes, linhas: json.linhas, aviso: json.aviso || undefined });
       } catch {
         mudar(id, { status: "erro", erro: "Não consegui enviar o arquivo. Confira a internet e tente de novo." });
       }
@@ -84,7 +84,7 @@ export function ImportarRelatorios({ importar }: { importar: (e: EstadoAcao, d: 
                 <small>
                   {l.status === "lendo" && "Lendo o PDF…"}
                   {l.status === "erro" && l.erro}
-                  {(l.status === "pronto" || l.status === "importando") && `${l.arquivo} · ${l.linhas.length} ${l.linhas.length === 1 ? "linha" : "linhas"}${l.mes ? ` · ${mesBR(l.mes)}` : ""} · vai para: ${NOMES[l.tipo]?.vai}`}
+                  {(l.status === "pronto" || l.status === "importando") && `${l.arquivo} · ${l.linhas.length} ${l.linhas.length === 1 ? "linha" : "linhas"}${l.mes ? ` · ${mesBR(l.mes)}` : ""} · vai para: ${NOMES[l.tipo]?.vai}${l.aviso ? ` · ${l.aviso}` : ""}`}
                   {l.status === "feito" && <>{l.resultado} <a className="botao-link" href={`${NOMES[l.tipo]?.href}${l.mes && NOMES[l.tipo]?.href === "/comercial/vendas" ? `?mes=${l.mes}` : ""}`}>Ver em {NOMES[l.tipo]?.onde} →</a></>}
                 </small>
               </div>

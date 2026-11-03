@@ -78,11 +78,11 @@ async function aniversariantes(pdf: DocumentoPdf): Promise<Linha[]> {
       const bloco = itens.filter((i) => i.y <= cod.y + 3 && i.y > limite && i.y >= cod.y - 45);
       const nome = depoisDe(bloco, /^Cliente\s*:$/), cpf = depoisDe(bloco, /^C\.P\.F/);
       if (!nome) return;
-      const nasc = depoisDe(bloco, /^Data\s*Nasc/);
+      const nasc = depoisDe(bloco, /^Data\s*Nasc/), cad = depoisDe(bloco, /^Data\s*Cad/);
       const fone = depoisDe(bloco, /^Fone1\s*:/) || depoisDe(bloco, /^Fone2\s*:/);
       saida.push({
         codigo: cod.str, nome, cpf: /[\d.-]{8,}/.test(cpf) ? cpf : "", cidade: depoisDe(bloco, /^Cidade\s*:/), uf: depoisDe(bloco, /^UF\s*:/),
-        nascimento: /^\d{2}\/\d{2}\/\d{4}$/.test(nasc) ? dataIso(nasc) : "", telefone: /\d{8,}/.test(fone.replace(/\D/g, "")) ? fone : "",
+        nascimento: /^\d{2}\/\d{2}\/\d{4}$/.test(nasc) ? dataIso(nasc) : "", cadastro: /^\d{2}\/\d{2}\/\d{4}$/.test(cad) ? dataIso(cad) : "", telefone: /\d{8,}/.test(fone.replace(/\D/g, "")) ? fone : "",
       });
     });
   }
@@ -190,7 +190,30 @@ export async function analisarRelatorio(doc: DocumentoPdf, texto: string) {
     primeira_compra: primeiraCompra, vendas_vendedora: vendasPorVendedora, aniversariantes,
     comissao: comissaoVendedor, curva_abc: curvaAbc, evolucao: evolucaoMensal, vendas_dia: vendasPorDia,
   };
-  return { tipo: r.tipo, mes: mesDoRelatorio(texto), linhas: await leitor[r.tipo](doc) };
+  const linhas = await leitor[r.tipo](doc);
+  if (r.tipo === "aniversariantes") return { tipo: r.tipo, mes: mesDoRelatorio(texto), ...soAniversariantesDoMes(linhas) };
+  return { tipo: r.tipo, mes: mesDoRelatorio(texto), linhas };
+}
+
+/**
+ * O sistema de vendas manda no relatório de aniversariantes clientes com a data de nascimento
+ * preenchida com o dia do cadastro (ou com ano impossível). Fica só quem nasceu de verdade no mês do filtro.
+ */
+export function soAniversariantesDoMes(linhas: Linha[]) {
+  const anoLimite = new Date().getFullYear() - 10;
+  const valida = (l: Linha) => {
+    const n = String(l.nascimento ?? "");
+    return /^\d{4}-\d{2}-\d{2}$/.test(n) && n !== l.cadastro && Number(n.slice(0, 4)) <= anoLimite && Number(n.slice(0, 4)) >= 1900;
+  };
+  const contagem = new Map<string, number>();
+  for (const l of linhas) if (valida(l)) { const m = String(l.nascimento).slice(5, 7); contagem.set(m, (contagem.get(m) ?? 0) + 1); }
+  const mes = [...contagem.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+  const ficam = linhas.filter((l) => valida(l) && String(l.nascimento).slice(5, 7) === mes).map(({ cadastro: _c, ...resto }) => resto);
+  const fora = linhas.length - ficam.length;
+  return {
+    linhas: ficam,
+    aviso: fora ? `${fora} ${fora === 1 ? "cliente ficou" : "clientes ficaram"} de fora: nascimento igual à data do cadastro, ano impossível ou fora do mês` : "",
+  };
 }
 
 /** Descobre o tipo do relatório pelo texto e devolve as linhas prontas para importar. */
