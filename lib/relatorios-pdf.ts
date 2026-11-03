@@ -16,8 +16,11 @@ const dataIso = (v: string) => {
   const [dia, mes, ano] = v.split("/");
   return `${ano.length === 2 ? `20${ano}` : ano}-${mes}-${dia}`;
 };
+/** Mês do relatório: o fim do período ("01/10/2026 à 31/10/2026"), achado em qualquer lugar da página. */
 const mesDoRelatorio = (texto: string) => {
-  const m = texto.match(/Periodo\s*:\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+  const intervalo = texto.match(/(\d{2})\/(\d{2})\/(\d{4})\s*(?:à|a|até)\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+  if (intervalo) return `${intervalo[6]}-${intervalo[5]}`;
+  const m = texto.match(/Per[ií]odo\s*:\s*(\d{2})\/(\d{2})\/(\d{4})/i);
   return m ? `${m[3]}-${m[2]}` : "";
 };
 
