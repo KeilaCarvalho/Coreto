@@ -20,6 +20,12 @@ const campo = (v: number) => (v ? v.toFixed(2).replace(".", ",") : "");
 const nomeMes = (mes: string) => mesPorExtenso(mes).replace(/^./, (c) => c.toUpperCase());
 const fimDoMes = (mes: string) => somarDias(inicioDoMes(somarDias(mes, 32)), -1);
 
+/** "R$ 157.927,15" com o R$ e os centavos menores, como na tela do fluxo. */
+function Valor({ v }: { v: number }) {
+  const [inteiro, centavos] = reais(v).replace("R$", "").trim().split(",");
+  return <><small>R$</small>{inteiro}{centavos !== undefined && <small style={{ verticalAlign: "baseline", marginLeft: 1 }}>,{centavos}</small>}</>;
+}
+
 function Lista({ linhas, total, vazio }: { linhas: LinhaValor[]; total: string; vazio: string }) {
   const soma = somar(linhas);
   return (
@@ -107,11 +113,11 @@ export default async function Fechamento({ searchParams }: { searchParams: Promi
             <p className="aviso alerta"><Icone nome="alerta" />A soma da equipe ({reais(totalEquipe)}) não bate com as vendas do mês ({reais(t.vendasMes)}): diferença de {reais(Math.abs(difEquipe))}.</p>
           )}
 
-          <div className="kpis">
-            <Kpi destaque titulo="Vendas no mês" valor={reais(t.vendasMes)} nota={`total de ${mesPorExtenso(mes).split(" ")[0]}`} />
-            <Kpi titulo="Contas pagas" valor={reais(t.contasPagas)} nota={`${pct(t.contasPagas, t.contasPagas + t.contasAPagar)} das contas · ${reais(t.contasAPagar)} a pagar`} />
-            <Kpi titulo="Saldo em conta" valor={reais(t.saldo)} nota={ultimo ? `no lançamento de ${ultimo.data.slice(8, 10)}/${ultimo.data.slice(5, 7)}` : "sem lançamento"} />
-            <Kpi titulo="Saldo após as contas" valor={reais(t.sobra)} nota="saldo em conta - contas a pagar" />
+          <div className="kpis fx-kpis fx-fechamento">
+            <Kpi destaque titulo="Vendas no mês" valor={<Valor v={t.vendasMes} />} nota={`total de ${mesPorExtenso(mes).split(" ")[0]}`} />
+            <Kpi titulo="Contas pagas" valor={<Valor v={t.contasPagas} />} nota={`${pct(t.contasPagas, t.contasPagas + t.contasAPagar)} das contas · ${reais(t.contasAPagar)} a pagar`} />
+            <Kpi titulo="Saldo em conta" valor={<Valor v={t.saldo} />} nota={ultimo ? `no lançamento de ${ultimo.data.slice(8, 10)}/${ultimo.data.slice(5, 7)}` : "sem lançamento"} />
+            <Kpi titulo="Saldo após as contas" valor={<Valor v={t.sobra} />} nota="saldo em conta - contas a pagar" />
           </div>
 
           <div className="grade-lateral">

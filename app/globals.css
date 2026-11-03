@@ -1005,3 +1005,6 @@ details > summary::-webkit-details-marker { display: none; }
   .tf-cartao:hover .tf-mover, .tf-mover:focus { opacity: 1; }
 }
 @media (max-width: 700px) { .tf-rapida > .icone { display: none; } }
+
+/* Fechamento do mês: valores grandes cabem no cartão */
+.fx-fechamento .kpi-valor { font-size: clamp(22px, 2.1vw, 32px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

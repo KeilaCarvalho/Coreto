@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icone } from "@/components/icone";
 
 export function Kpi({ titulo, valor, nota, destaque, href, chip }: {
-  titulo: string; valor: string; nota?: string; destaque?: boolean; href?: string; chip?: string;
+  titulo: string; valor: React.ReactNode; nota?: string; destaque?: boolean; href?: string; chip?: string;
 }) {
   const corpo = (
     <>
