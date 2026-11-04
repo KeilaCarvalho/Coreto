@@ -491,3 +491,25 @@ update public.tarefas set titulo = 'x';
 select teste.erro($$select public.concluir_tarefa((select id from teste.ids limit 1))$$, 'Tarefa não encontrada', 'outra pessoa não conclui tarefa alheia');
 commit;
 select teste.ok((select count(*) = 0 from public.tarefas where titulo = 'x'), 'outra pessoa não altera as tarefas');
+
+-- ---------------------------------------------------------------------
+-- 16. Folha: só a administração vê e lança.
+-- ---------------------------------------------------------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+insert into public.folha_regras (pessoa_id, comissao_percentual, recebe_vt, ajuda_custo)
+  select id, 0.035, true, 250 from public.pessoas where e_vendedora limit 1;
+insert into public.folhas (mes, vt_inicio, vt_fim) values ('2026-10-01', '2026-11-08', '2026-12-07');
+insert into public.folha_itens (mes, pessoa_id, parte, tipo, valor)
+  select '2026-10-01', pessoa_id, 'comissao', 'retirada', -150 from public.folha_regras limit 1;
+select teste.ok((select count(*) = 1 from public.folha_itens), 'administração lança na folha');
+select teste.erro($$insert into public.folhas (mes, vt_inicio, vt_fim) values ('2026-11-15', '2026-11-08', '2026-12-07')$$, 'check', 'folha é sempre do dia 1º');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'carla'), true);
+select teste.ok((select count(*) from public.folha_regras) = 0 and (select count(*) from public.folha_itens) = 0, 'vendedora não vê a folha');
+select teste.erro($$insert into public.folhas (mes, vt_inicio, vt_fim) values ('2026-12-01', '2026-12-08', '2027-01-07')$$, 'row-level security', 'vendedora não cria folha');
+commit;

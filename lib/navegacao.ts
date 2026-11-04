@@ -36,7 +36,7 @@ export const MENU: GrupoMenu[] = [
     { rotulo: "Resumo do dia", href: "/financeiro/resumo", modulo: "financeiro", icone: "calendario" },
     { rotulo: "Fluxo financeiro", href: "/financeiro/fluxo", modulo: "financeiro", icone: "financeiro" },
     { rotulo: "Equipe", href: "/pessoas/equipe", modulo: "pessoas", icone: "equipe" },
-    { rotulo: "Folha e retiradas", href: "/em-breve/folha", modulo: "pessoas", icone: "folha", fase: "F4" },
+    { rotulo: "Folha e comissões", href: "/pessoas/folha", modulo: "pessoas", acao: "aprovar", icone: "folha" },
   ] },
   { rotulo: "Configurações", itens: [
     { rotulo: "Acessos", href: "/configuracoes/acessos", modulo: "configuracoes", icone: "acessos" },
