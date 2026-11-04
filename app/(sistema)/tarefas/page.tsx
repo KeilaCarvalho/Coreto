@@ -39,6 +39,7 @@ function Grupo({ titulo, nota, tarefas, hoje, classe, mostrarData = true }: { ti
 export default async function MinhasTarefas({ searchParams }: { searchParams: Promise<{ ver?: string; area?: string; tarefa?: string; status?: string }> }) {
   const sessao = await lerSessao();
   if (!sessao) redirect("/entrar");
+  if (!sessao.pode("tarefas", "ver")) redirect("/");
   const { ver: verPedido = "hoje", area: filtroArea = "", tarefa: abrir, status: statusNovo } = await searchParams;
   const ver = VISOES.some((v) => v.valor === verPedido) ? verPedido : "hoje";
   const hoje = hojeSP();

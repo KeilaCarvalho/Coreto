@@ -1,4 +1,4 @@
-export type Modulo = "produto" | "producao" | "estoque" | "comercial" | "marketing" | "financeiro" | "pessoas" | "configuracoes";
+export type Modulo = "produto" | "producao" | "estoque" | "comercial" | "marketing" | "financeiro" | "pessoas" | "configuracoes" | "tarefas";
 export type Acao = "ver" | "criar" | "editar" | "aprovar";
 
 import type { NomeIcone } from "@/components/icone";

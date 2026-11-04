@@ -7,8 +7,8 @@ import { Icone } from "@/components/icone";
 import type { GrupoMenu } from "@/lib/navegacao";
 import { TabelasNoCelular } from "@/components/tabelas-celular";
 
-export function Estrutura({ grupos, nome, email, sair, pendencias, children }: {
-  grupos: GrupoMenu[]; nome: string; email: string; sair: () => Promise<void>; pendencias: number; children: React.ReactNode;
+export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, children }: {
+  grupos: GrupoMenu[]; tarefas: boolean; nome: string; email: string; sair: () => Promise<void>; pendencias: number; children: React.ReactNode;
 }) {
   const caminho = usePathname();
   const router = useRouter();
@@ -45,7 +45,7 @@ export function Estrutura({ grupos, nome, email, sair, pendencias, children }: {
           <div className="menu-grupo">
             <p className="menu-grupo-nome">Geral</p>
             <Link href="/" className="menu-link" aria-current={caminho === "/" ? "page" : undefined}><Icone nome="inicio" />Início</Link>
-            <Link href="/tarefas" className="menu-link" aria-current={atual("/tarefas")}><Icone nome="tarefas" />Minhas tarefas</Link>
+            {tarefas && <Link href="/tarefas" className="menu-link" aria-current={atual("/tarefas")}><Icone nome="tarefas" />Minhas tarefas</Link>}
           </div>
           {grupos.map((grupo) => (
             <div className="menu-grupo" key={grupo.rotulo}>
