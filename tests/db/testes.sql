@@ -513,3 +513,28 @@ select set_config('request.jwt.claim.sub', (select id::text from teste.ids where
 select teste.ok((select count(*) from public.folha_regras) = 0 and (select count(*) from public.folha_itens) = 0, 'vendedora não vê a folha');
 select teste.erro($$insert into public.folhas (mes, vt_inicio, vt_fim) values ('2026-12-01', '2026-12-08', '2027-01-07')$$, 'row-level security', 'vendedora não cria folha');
 commit;
+
+-- ---------------------------------------------------------------------
+-- 17. Retiradas: parcelas, desconto na folha e desfazer.
+-- ---------------------------------------------------------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'ana'), true);
+select public.registrar_retirada(jsonb_build_object(
+  'pessoa_id', (select pessoa_id from public.folha_regras limit 1), 'data', '2026-09-01',
+  'abatimentos', '[{"descricao":"Prêmio semanal","valor":250}]'::jsonb, 'parcelas', 3, 'primeiro_vencimento', '2026-10-07',
+  'itens', '[{"descricao":"Calça","preco":590,"desconto":0.3,"liquido":413},{"descricao":"Cinto","preco":360,"desconto":null,"liquido":80},{"descricao":"Calça couro","preco":540,"desconto":0.3,"liquido":378},{"descricao":"Cinto 2","preco":390,"desconto":null,"liquido":120}]'::jsonb));
+select teste.ok((select string_agg(valor::text || '@' || vencimento, ',' order by numero) from public.retirada_parcelas) = '247.00@2026-10-07,247.00@2026-11-07,247.00@2026-12-07',
+                'retirada de R$ 991 − R$ 250 vira 3 parcelas de R$ 247 no dia 7');
+select public.descontar_parcela((select id from public.retirada_parcelas where numero = 2), '2026-10-01', 'comissao');
+select teste.ok((select situacao = 'paga' and folha_mes = '2026-10-01' from public.retirada_parcelas where numero = 2)
+                and (select valor = -247 from public.folha_itens where parcela_id is not null), 'descontar a parcela lança na folha');
+delete from public.folha_itens where parcela_id is not null;
+select teste.ok((select situacao = 'aberta' and folha_mes is null from public.retirada_parcelas where numero = 2), 'tirar da folha reabre a parcela');
+commit;
+
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', (select id::text from teste.ids where nome = 'carla'), true);
+select teste.ok((select count(*) from public.retiradas) = 0 and (select count(*) from public.retirada_parcelas) = 0, 'vendedora não vê as retiradas');
+commit;

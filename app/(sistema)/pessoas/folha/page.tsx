@@ -14,6 +14,7 @@ import { calcularFolha, dataBR, percentualBR, tipoItem, type Ajuste, type Folha,
 import { lerLinhas } from "@/lib/fluxo";
 import { reais } from "@/lib/formatos";
 import { criarFolha, excluirItem, incluirPessoa, lancarItem, salvarAjuste, salvarPeriodo, salvarRegra } from "./acoes";
+import { descontarParcela, mudarParcela } from "../retiradas/acoes";
 
 export const metadata = { title: "Folha" };
 
@@ -40,14 +41,21 @@ export default async function PaginaFolha({ searchParams }: { searchParams: Prom
   const base = `/pessoas/folha?mes=${mes.slice(0, 7)}`;
 
   const supabase = await supabaseServidor();
-  const [{ data: folhaR }, { data: regrasR }, { data: pessoasR }, { data: fluxoR }, { data: ajustesR }, { data: itensR }] = await Promise.all([
+  // Parcelas de retirada da folha deste mês: as que vencem até o fim do mês seguinte (dia 7) e ainda estão abertas,
+  // mais as que já foram descontadas nesta folha.
+  const fimMesSeguinte = new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)) + 1, 0)).toISOString().slice(0, 10);
+  const [{ data: folhaR }, { data: regrasR }, { data: pessoasR }, { data: fluxoR }, { data: ajustesR }, { data: itensR }, { data: parcelasR }] = await Promise.all([
     supabase.from("folhas").select("mes, vt_inicio, vt_fim, feriados, fechada_em").eq("mes", mes).maybeSingle(),
     supabase.from("folha_regras").select("*"),
     supabase.from("pessoas").select("id, nome").is("arquivado_em", null).order("nome"),
     supabase.from("fluxo_meses").select("vendedoras").eq("mes", mes).maybeSingle(),
     supabase.from("folha_pessoas").select("pessoa_id, realizado, dias_vt").eq("mes", mes),
     supabase.from("folha_itens").select("id, pessoa_id, parte, tipo, descricao, valor").eq("mes", mes).order("id"),
+    supabase.from("retirada_parcelas").select("id, numero, de, vencimento, valor, situacao, folha_mes, retirada:retiradas(pessoa_id, data)")
+      .or(`and(situacao.eq.aberta,vencimento.lte.${fimMesSeguinte}),folha_mes.eq.${mes}`).order("vencimento"),
   ]);
+  type ParcelaFolha = { id: number; numero: number; de: number; vencimento: string; valor: number; situacao: string; folha_mes: string | null; retirada: { pessoa_id: string; data: string } | null };
+  const parcelas = (parcelasR ?? []) as unknown as ParcelaFolha[];
   const folha = folhaR as Folha | null;
   const regras = (regrasR ?? []) as Regra[];
   const pessoas = (pessoasR ?? []) as Pessoa[];
@@ -164,6 +172,50 @@ export default async function PaginaFolha({ searchParams }: { searchParams: Prom
                 </table>
               </div>
             ) : <p className="painel-corpo mini">Ninguém recebe VT ou ajuda de custo. Marque em Regras da equipe.</p>}
+          </section>
+
+          <section className="painel" style={{ marginTop: 16 }}>
+            <div className="painel-topo">
+              <div><h2>Parcelas de retirada</h2><p>Vencem até {dataBR(fimMesSeguinte).slice(0, 5)}. Você escolhe: descontar nesta folha, marcar como paga por fora ou perdoar.</p></div>
+              <Link className="botao leve pequeno" href="/pessoas/retiradas">Ver retiradas</Link>
+            </div>
+            {parcelas.length ? (
+              <div className="tabela-rolagem">
+                <table className="tabela">
+                  <thead><tr><th>Pessoa</th><th>Retirada</th><th>Parcela</th><th>Vence</th><th className="num">Valor</th><th /></tr></thead>
+                  <tbody>
+                    {parcelas.map((p) => {
+                      const quem = p.retirada ? pessoas.find((x) => x.id === p.retirada!.pessoa_id)?.nome ?? "?" : "?";
+                      const vendedora = regras.some((r) => r.pessoa_id === p.retirada?.pessoa_id && r.comissao_percentual != null);
+                      const nesta = p.folha_mes === mes;
+                      return (
+                        <tr key={p.id}>
+                          <td><strong>{quem}</strong></td>
+                          <td className="mini">{p.retirada ? dataBR(p.retirada.data) : "—"}</td>
+                          <td>{p.numero}/{p.de}</td>
+                          <td className={!nesta && p.vencimento < hoje ? "atrasado" : undefined}>{dataBR(p.vencimento)}</td>
+                          <td className="num"><strong>{reais(Number(p.valor))}</strong></td>
+                          <td className="num">
+                            {nesta ? (
+                              <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+                                <span className="etiqueta ok">Descontada nesta folha</span>
+                                <form action={mudarParcela}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="situacao" value="aberta" /><button className="botao-link" type="submit">Desfazer</button></form>
+                              </span>
+                            ) : (
+                              <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                                <form action={descontarParcela}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="mes" value={mes} /><input type="hidden" name="parte" value={vendedora ? "comissao" : "vt"} /><button className="botao pequeno" type="submit">Descontar nesta folha</button></form>
+                                <form action={mudarParcela}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="situacao" value="paga" /><button className="botao leve pequeno" type="submit">Paga por fora</button></form>
+                                <form action={mudarParcela}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="situacao" value="perdoada" /><button className="botao leve pequeno" type="submit">Perdoar</button></form>
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : <p className="painel-corpo mini">Nenhuma parcela de retirada para esta folha.</p>}
           </section>
         </>
       )}

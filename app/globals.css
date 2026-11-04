@@ -1008,3 +1008,15 @@ details > summary::-webkit-details-marker { display: none; }
 
 /* Fechamento do mês: valores grandes cabem no cartão */
 .fx-fechamento .kpi-valor { font-size: clamp(22px, 2.1vw, 32px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Retiradas: linhas de peças e abatimentos */
+.rt-pecas { display: grid; gap: 8px; }
+.rt-peca { display: grid; grid-template-columns: minmax(0, 1fr) 96px 130px auto 92px 34px; gap: 8px; align-items: center; }
+.rt-peca:not(:has(input[aria-label="Desconto %"], input[aria-label="Preço de custo"])) { grid-template-columns: minmax(0, 1fr) 96px 130px 92px 34px; }
+.rt-liquido { text-align: right; font-weight: 700; font-size: 13.5px; white-space: nowrap; }
+.rt-abat { display: grid; grid-template-columns: minmax(0, 1fr) 110px 34px; gap: 8px; align-items: center; margin-bottom: 8px; }
+@media (max-width: 700px) {
+  .rt-peca, .rt-peca:not(:has(input[aria-label="Desconto %"], input[aria-label="Preço de custo"])) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 34px; }
+  .rt-peca > input:first-child { grid-column: 1 / -1; }
+  .rt-liquido { text-align: left; }
+}
