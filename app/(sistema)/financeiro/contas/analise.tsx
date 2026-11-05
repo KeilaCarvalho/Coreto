@@ -56,16 +56,16 @@ export function AnaliseContas({ contas, mes, hoje }: { contas: ContaPagar[]; mes
       </div>
 
       <div className="kpis fx-kpis fx-fechamento">
-        <Kpi destaque titulo="Saídas do mês" valor={reais(soma(doMes))} nota={`${doMes.length} contas · todos os bancos`} />
-        <Kpi titulo="Já pago" valor={reais(soma(doMes, "valor_pago"))} nota={`${doMes.filter((c) => Number(c.em_aberto) === 0).length} contas quitadas`} />
-        <Kpi titulo="Em aberto" valor={reais(soma(doMes, "em_aberto"))} nota={`${doMes.filter((c) => Number(c.em_aberto) > 0).length} contas`} />
+        <Kpi destaque titulo="Contas do mês" valor={reais(soma(doMes))} nota={`${doMes.length} contas · pagas + a pagar`} />
+        <Kpi titulo="Já saiu (pago)" valor={reais(soma(doMes, "valor_pago"))} nota={`${doMes.filter((c) => Number(c.em_aberto) === 0).length} contas quitadas`} />
+        <Kpi titulo="Ainda a pagar" valor={reais(soma(doMes, "em_aberto"))} nota={`${doMes.filter((c) => Number(c.em_aberto) > 0).length} contas`} />
         <Kpi titulo="Meses seguintes" valor={reais(soma(futuro, "em_aberto"))} nota={`${futuro.length} contas já lançadas`} />
       </div>
 
       <div className="painel-inicio">
         <section className="painel col-7">
           <div className="painel-topo">
-            <div><h2>Saídas por semana do mês</h2><p>{doMes.length ? `A semana mais pesada é a de ${maior.rotulo}.` : "Nenhuma conta neste mês."}{mesesAnt ? ` A marca mostra a média de ${mesesAnt} ${mesesAnt === 1 ? "mês anterior" : "meses anteriores"}.` : ""}</p></div>
+            <div><h2>Contas por semana do mês</h2><p>{doMes.length ? `A semana mais pesada é a de ${maior.rotulo}.` : "Nenhuma conta neste mês."}{mesesAnt ? ` A marca mostra a média de ${mesesAnt} ${mesesAnt === 1 ? "mês anterior" : "meses anteriores"}.` : ""}</p></div>
             <div className="legenda"><span><i style={{ background: "var(--marca)" }} />Pago</span><span><i style={{ background: "#bcd9ef" }} />Em aberto</span></div>
           </div>
           <div className="cp-semanas">
@@ -112,7 +112,7 @@ export function AnaliseContas({ contas, mes, hoje }: { contas: ContaPagar[]; mes
         </section>
 
         <section className="painel col-7">
-          <div className="painel-topo"><div><h2>Saídas mês a mês</h2><p>Todas as contas importadas, inclusive as dos próximos meses. Clique no mês para ver os detalhes.</p></div></div>
+          <div className="painel-topo"><div><h2>Contas mês a mês</h2><p>Pelo vencimento: a parte cheia já foi paga, a clara ainda vai sair. Clique no mês para ver os detalhes.</p></div></div>
           {meses.length ? (
             <div className="cp-meses">
               {meses.map(([k, v]) => {
