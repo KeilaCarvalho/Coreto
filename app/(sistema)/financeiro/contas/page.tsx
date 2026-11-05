@@ -7,10 +7,10 @@ import { Icone } from "@/components/icone";
 import { Kpi } from "@/components/painel";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
-import { BANCOS_COBRADOS, FILTRO_BANCOS, faltaNota, bancoCobrado, diasPara, prazo, type Banco, type ContaPagar } from "@/lib/contas-pagar";
+import { BANCOS_COBRADOS, FILTRO_BANCOS, eCartao, faltaNota, bancoCobrado, diasPara, prazo, type Banco, type ContaPagar } from "@/lib/contas-pagar";
 import { hojeSP } from "@/lib/tarefas";
 import { dataCurta, quando, reais } from "@/lib/formatos";
-import { importarContasPagar } from "./acoes";
+import { importarContasPagar, marcarNota } from "./acoes";
 import { AnaliseContas } from "./analise";
 
 export const metadata = { title: "Contas a pagar" };
@@ -34,7 +34,9 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
   const notasR = !analise
     ? await supabase.from("contas_pagar").select("*").or(FILTRO_BANCOS).is("nota_fiscal", null).order("vencimento")
     : { data: [] };
-  const semNota = ((notasR.data ?? []) as ContaPagar[]).filter(faltaNota);
+  const okR = !analise ? await supabase.from("contas_pagar_nota_ok").select("chave") : { data: [] };
+  const comNota = new Set(((okR.data ?? []) as { chave: string }[]).map((x) => x.chave));
+  const semNota = ((notasR.data ?? []) as (ContaPagar & { chave: string | null })[]).filter((c) => faltaNota(c) && !(c.chave && comNota.has(c.chave)));
   const [cobradasR, outrasR, fluxoR, ultimaR] = await Promise.all([
     supabase.from("contas_pagar").select("*").or(FILTRO_BANCOS).gt("em_aberto", 0).order("vencimento").order("fornecedor"),
     supabase.from("contas_pagar").select("conta, em_aberto, vencimento").gt("em_aberto", 0).not("conta", "ilike", "%santander%").not("conta", "ilike", "%caixa%"),
@@ -51,7 +53,7 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
     const lista = cobradas.filter((c) => bancoCobrado(c.conta) === b);
     const atrasadas = lista.filter((c) => diasPara(c.vencimento, hoje) < 0);
     const semana = lista.filter((c) => { const d = diasPara(c.vencimento, hoje); return d >= 0 && d <= 7; });
-    const saldo = b === "Cartão Caixa" ? null : saldoDe(b);
+    const saldo = eCartao(b) ? null : saldoDe(b);
     const precisa = soma(atrasadas) + soma(semana);
     return { b, lista, atrasadas, semana, saldo, precisa, sobra: saldo == null ? null : saldo - precisa };
   });
@@ -89,7 +91,7 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
             {semNota.length ? (
               <div className="tabela-rolagem">
                 <table className="tabela">
-                  <thead><tr><th>Vencimento</th><th>Fornecedor</th><th>Categoria</th><th>Banco</th><th className="num">Valor</th><th>Situação</th></tr></thead>
+                  <thead><tr><th>Vencimento</th><th>Fornecedor</th><th>Categoria</th><th>Banco</th><th className="num">Valor</th><th>Situação</th><th></th></tr></thead>
                   <tbody>
                     {semNota.map((c) => (
                       <tr key={c.id}>
@@ -99,6 +101,7 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
                         <td data-rotulo="Banco">{bancoCobrado(c.conta)}</td>
                         <td data-rotulo="Valor" className="num">{reais(Number(c.valor))}</td>
                         <td data-rotulo="Situação"><span className={`etiqueta ${Number(c.em_aberto) > 0 ? "neutra" : "ok"}`}>{Number(c.em_aberto) > 0 ? "Em aberto" : "Paga"}</span></td>
+                        <td>{c.chave && podeImportar && <form action={marcarNota}><input type="hidden" name="chave" value={c.chave} /><button className="botao leve pequeno" type="submit"><Icone nome="certo" />Já tenho a nota</button></form>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -111,7 +114,7 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
             <Kpi destaque titulo="Atrasadas" valor={reais(soma(atrasadas))} nota={atrasadas.length ? `${atrasadas.length} ${atrasadas.length === 1 ? "conta" : "contas"} no Santander e na Caixa` : "nenhuma atrasada"} />
             {porBanco.map((p) => (
               <Kpi key={p.b} titulo={`${p.b}: vence em 7 dias`} valor={reais(p.precisa)}
-                nota={p.b === "Cartão Caixa" ? `${p.lista.length} em aberto · paga na fatura`
+                nota={eCartao(p.b) ? `${p.lista.length} em aberto · paga na fatura`
                   : p.saldo == null ? "sem saldo no Fluxo"
                   : `saldo ${reais(p.saldo)}${dataFluxo ? ` em ${dataCurta(dataFluxo).slice(0, 5)}` : ""} · ${p.sobra! >= 0 ? `sobra ${reais(p.sobra)}` : `faltam ${reais(-p.sobra!)}`}`}
                 chip={p.sobra != null && p.sobra < 0 ? "Saldo não cobre " : undefined} />
@@ -120,7 +123,7 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
 
           <section className="painel">
             <div className="painel-topo">
-              <div><h2>Vencimentos</h2><p>Só Santander, Caixa e cartão Caixa. Some daqui quando for baixada no Conta Azul e você importar de novo.</p></div>
+              <div><h2>Vencimentos</h2><p>Só Santander, Caixa e os cartões dos dois. Some daqui quando for baixada no Conta Azul e você importar de novo.</p></div>
               <nav className="abas" aria-label="Filtrar">
                 <Link href="/financeiro/contas?aba=cobranca" className={ver !== "todas" ? "ativa" : undefined}>Atrasadas e 7 dias</Link>
                 <Link href="/financeiro/contas?aba=cobranca&ver=todas" className={ver === "todas" ? "ativa" : undefined}>Todas em aberto</Link>

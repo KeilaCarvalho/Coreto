@@ -55,15 +55,16 @@ export function contasDaPlanilha(linhas: string[][]): { contas: ContaPagar[]; er
 }
 
 /** Bancos que a Keila quer ser cobrada. O cartão Caixa conta junto (pago na fatura). */
-export type Banco = "Santander" | "Caixa" | "Cartão Caixa";
+export type Banco = "Santander" | "Caixa" | "Cartão Santander" | "Cartão Caixa";
 export function bancoCobrado(conta: string | null): Banco | null {
   const c = (conta ?? "").toLowerCase();
-  if (c.includes("santander")) return "Santander";
-  if (/cart[aã]o/.test(c) && c.includes("caixa")) return "Cartão Caixa";
-  if (c.includes("caixa")) return "Caixa";
+  const cartao = /cart[aã]o/.test(c);
+  if (c.includes("santander")) return cartao ? "Cartão Santander" : "Santander";
+  if (c.includes("caixa")) return cartao ? "Cartão Caixa" : "Caixa";
   return null;
 }
-export const BANCOS_COBRADOS: Banco[] = ["Santander", "Caixa", "Cartão Caixa"];
+export const BANCOS_COBRADOS: Banco[] = ["Santander", "Caixa", "Cartão Santander", "Cartão Caixa"];
+export const eCartao = (b: Banco) => b.startsWith("Cartão");
 /** Filtro do Supabase para os bancos cobrados. */
 export const FILTRO_BANCOS = "conta.ilike.%santander%,conta.ilike.%caixa%";
 
@@ -84,12 +85,12 @@ export function prazo(venc: string, hoje: string): { rotulo: string; classe: str
 export const semanaDoMes = (iso: string) => Math.min(4, Math.floor((Number(iso.slice(8, 10)) - 1) / 7));
 
 /** Categorias que não emitem nota (pessoa física, folha, impostos, tarifas). */
-const SEM_NOTA = /fac[cç][aã]o|m\.o\.d|folha|sal[aá]rio|pr[oó]-?labore|comiss|vale|impost|tributo|das\b|taxa|tarifa|juros|retirada|empr[eé]stimo|aluguel|transfer/i;
+const SEM_NOTA = /fac[cç][aã]o|m\.o\.d|folha|sal[aá]rio|pr[oó]-?labore|comiss|vale|impost|tributo|das\b|simples|inss|fgts|iptu|difal|taxa|tarifa|juros|retirada|empr[eé]stimo|amortiza|aluguel|transfer|gratifica|adiantamento|ajuda de custo|benef[ií]cio|rescis|f[eé]rias|mercado|lanche|uber|transporte|estorno|a identificar|[aá]gua|energia|m[aã]o de obra|coquet/i;
 /** Conta de fornecedor sem nota fiscal no Conta Azul (nem número de NF na descrição). */
 export function faltaNota(c: Pick<ContaPagar, "nota_fiscal" | "categoria" | "fornecedor" | "descricao">) {
   if (c.nota_fiscal?.trim()) return false;
   if (!c.fornecedor?.trim()) return false;
   if (SEM_NOTA.test(c.categoria ?? "")) return false;
-  if (/\bNF[\s.:-]*\d{3,}/i.test(c.descricao ?? "")) return false;
+  if (/\b(NF|NFE|NF-E|NOTA FISCAL)[\s.:-]*\d{3,}/i.test(c.descricao ?? "")) return false;
   return true;
 }

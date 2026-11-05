@@ -27,3 +27,13 @@ export async function importarContasPagar(_: EstadoAcao, dados: FormData): Promi
   const br = (d: string) => d.split("-").reverse().join("/");
   return { ok: `${data ?? contas.length} contas importadas (vencimento de ${br(de)} a ${br(ate)}), ${reais(aberto)} em aberto.` };
 }
+
+/** "Já tenho a nota": tira a conta da lista de notas a pedir (fica guardado mesmo depois de importar de novo). */
+export async function marcarNota(dados: FormData) {
+  const chave = String(dados.get("chave") ?? "");
+  if (!/^[0-9a-f]{32}$/.test(chave)) return;
+  const supabase = await supabaseServidor();
+  if (dados.get("desfazer")) await supabase.from("contas_pagar_nota_ok").delete().eq("chave", chave);
+  else await supabase.from("contas_pagar_nota_ok").upsert({ chave });
+  revalidatePath("/financeiro/contas");
+}
