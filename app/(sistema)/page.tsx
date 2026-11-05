@@ -5,6 +5,7 @@ import { Cabecalho } from "@/components/cabecalho";
 import { Icone } from "@/components/icone";
 import { BarrasSemana, Kpi, Medidor } from "@/components/painel";
 import { hojeExtenso, horaSP, numero, reais } from "@/lib/formatos";
+import { FILTRO_BANCOS, diasPara } from "@/lib/contas-pagar";
 
 export const metadata = { title: "Início" };
 
@@ -31,6 +32,11 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const inicioJanela = `${diaSP(seteDias)}T00:00:00-03:00`;
 
   const vazio = { data: null } as const;
+  const veFinanceiro = sessao.pode("financeiro");
+  const limiteCobranca = diaSP(new Date(agora.getTime() + 3 * 864e5));
+  const cobrancaR = veFinanceiro
+    ? await supabase.from("contas_pagar").select("vencimento, em_aberto").or(FILTRO_BANCOS).gt("em_aberto", 0).lte("vencimento", limiteCobranca)
+    : vazio;
   const [produtosR, variantesR, saldosR, locaisR, movR, pessoasR] = await Promise.all([
     supabase.from("produtos").select("id, referencia, nome, preco_venda, variantes(id)", { count: "exact" }).is("arquivado_em", null).order("criado_em", { ascending: false }).limit(5),
     supabase.from("variantes").select("id", { count: "exact", head: true }).eq("ativa", true),
@@ -64,10 +70,23 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   const primeiroNome = sessao.pessoa!.nome.split(" ")[0];
   const podeCriar = sessao.pode("produto", "criar");
+  const cobranca = (cobrancaR.data ?? []) as { vencimento: string; em_aberto: number }[];
+  const cobAtrasadas = cobranca.filter((c) => diasPara(c.vencimento, hoje) < 0);
+  const cobProximas = cobranca.filter((c) => diasPara(c.vencimento, hoje) >= 0);
+  const somaCob = (l: { em_aberto: number }[]) => l.reduce((t, c) => t + Number(c.em_aberto), 0);
 
   return (
     <>
       {aviso === "sem-permissao" && <p className="aviso alerta" role="alert"><Icone nome="alerta" />Seu perfil não tem acesso àquela área. Fale com a administração se precisar.</p>}
+      {cobranca.length > 0 && (
+        <p className="aviso erro" role="alert"><Icone nome="alerta" />
+          <span>
+            {cobAtrasadas.length > 0 && <>{cobAtrasadas.length} {cobAtrasadas.length === 1 ? "conta atrasada" : "contas atrasadas"} ({reais(somaCob(cobAtrasadas))}){cobProximas.length ? " e " : " "}</>}
+            {cobProximas.length > 0 && <>{cobProximas.length} {cobProximas.length === 1 ? "vence" : "vencem"} até {limiteCobranca.slice(8, 10)}/{limiteCobranca.slice(5, 7)} ({reais(somaCob(cobProximas))}) </>}
+            no Santander e na Caixa. <Link href="/financeiro/contas">Ver contas</Link>
+          </span>
+        </p>
+      )}
       <Cabecalho
         titulo={`${saudacao}, ${primeiroNome}`}
         descricao={`${hojeExtenso(agora)}. Acompanhe o estoque, a equipe e o que entra nas próximas fases.`}
