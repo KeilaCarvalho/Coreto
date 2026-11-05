@@ -319,7 +319,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
 
             <section className="painel c4">
               <div className="painel-topo">
-                <div><h2>Contas do mês</h2><p style={{ textTransform: "capitalize" }}>{mesPorExtenso(mesContasRef)}</p></div>
+                <div><h2>Contas do mês</h2><p><span style={{ textTransform: "capitalize" }}>{mesPorExtenso(mesContasRef)}</span> · <Link href="/financeiro/contas">vem do Conta Azul</Link></p></div>
                 {podeLancar && <Editar href={lancar("b-contas-mes")} rotulo="Editar contas do mês" />}
               </div>
               <div className="fx-medidor"><Medidor pagas={t.contasPagas} aPagar={t.contasAPagar} /></div>
