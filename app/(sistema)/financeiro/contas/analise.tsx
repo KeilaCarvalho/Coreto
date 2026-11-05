@@ -56,7 +56,7 @@ export function AnaliseContas({ contas, mes, hoje }: { contas: ContaPagar[]; mes
       </div>
 
       <div className="kpis fx-kpis fx-fechamento">
-        <Kpi destaque titulo="Contas do mês" valor={reais(soma(doMes))} nota={`${doMes.length} contas · pagas + a pagar`} />
+        <Kpi destaque titulo="Total do mês" valor={reais(soma(doMes))} nota={`${doMes.length} contas · pagas + a pagar`} />
         <Kpi titulo="Já saiu (pago)" valor={reais(soma(doMes, "valor_pago"))} nota={`${doMes.filter((c) => Number(c.em_aberto) === 0).length} contas quitadas`} />
         <Kpi titulo="Ainda a pagar" valor={reais(soma(doMes, "em_aberto"))} nota={`${doMes.filter((c) => Number(c.em_aberto) > 0).length} contas`} />
         <Kpi titulo="Meses seguintes" valor={reais(soma(futuro, "em_aberto"))} nota={`${futuro.length} contas já lançadas`} />
