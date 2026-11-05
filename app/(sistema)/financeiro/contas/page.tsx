@@ -7,7 +7,7 @@ import { Icone } from "@/components/icone";
 import { Kpi } from "@/components/painel";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
-import { BANCOS_COBRADOS, FILTRO_BANCOS, bancoCobrado, diasPara, prazo, type Banco, type ContaPagar } from "@/lib/contas-pagar";
+import { BANCOS_COBRADOS, FILTRO_BANCOS, faltaNota, bancoCobrado, diasPara, prazo, type Banco, type ContaPagar } from "@/lib/contas-pagar";
 import { hojeSP } from "@/lib/tarefas";
 import { dataCurta, quando, reais } from "@/lib/formatos";
 import { importarContasPagar } from "./acoes";
@@ -22,14 +22,19 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
   const { ver, aba, mes: mesParam } = await searchParams;
   const supabase = await supabaseServidor();
   const hoje = hojeSP();
-  const analise = aba === "analise";
+  const analise = aba !== "cobranca";
   const mes = /^\d{4}-\d{2}-01$/.test(mesParam ?? "") ? mesParam! : `${hoje.slice(0, 7)}-01`;
-  const [ma, mm] = mes.split("-").map(Number);
-  const desde = new Date(Date.UTC(ma, mm - 4, 1)).toISOString().slice(0, 10);
-  const ate = new Date(Date.UTC(ma, mm, 1)).toISOString().slice(0, 10);
-  const analiseR = analise
-    ? await supabase.from("contas_pagar").select("*").gte("vencimento", desde).lt("vencimento", ate).order("vencimento").limit(5000)
+  // Todas as contas (o Supabase entrega no máximo 1000 por vez).
+  const todas: ContaPagar[] = [];
+  for (let de = 0; analise && de < 50000; de += 1000) {
+    const { data } = await supabase.from("contas_pagar").select("*").order("vencimento").order("id").range(de, de + 999);
+    todas.push(...((data ?? []) as ContaPagar[]));
+    if (!data || data.length < 1000) break;
+  }
+  const notasR = !analise
+    ? await supabase.from("contas_pagar").select("*").or(FILTRO_BANCOS).is("nota_fiscal", null).order("vencimento")
     : { data: [] };
+  const semNota = ((notasR.data ?? []) as ContaPagar[]).filter(faltaNota);
   const [cobradasR, outrasR, fluxoR, ultimaR] = await Promise.all([
     supabase.from("contas_pagar").select("*").or(FILTRO_BANCOS).gt("em_aberto", 0).order("vencimento").order("fornecedor"),
     supabase.from("contas_pagar").select("conta, em_aberto, vencimento").gt("em_aberto", 0).not("conta", "ilike", "%santander%").not("conta", "ilike", "%caixa%"),
@@ -60,7 +65,7 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
     <>
       <Cabecalho
         titulo="Contas a pagar"
-        descricao={`Cobrança das contas do Santander e da Caixa, com o saldo do Fluxo. ${ultima ? `Última importação do Conta Azul: ${quando(ultima)}.` : "Ainda não tem importação do Conta Azul."}`}
+        descricao={`Todas as contas do Conta Azul, dos meses passados e futuros. ${ultima ? `Última importação do Conta Azul: ${quando(ultima)}.` : "Ainda não tem importação do Conta Azul."}`}
         trilha={[{ rotulo: "Financeiro", href: "/financeiro/fluxo" }]}
         acoes={podeImportar && <Link className="botao" href="?importar=1" scroll={false}><Icone nome="entrada" />Importar do Conta Azul</Link>}
       />
@@ -68,17 +73,40 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
 
       {ultima && (
         <nav className="abas cp-abas" aria-label="Visão">
-          <Link href="/financeiro/contas" className={!analise ? "ativa" : undefined}>Cobrança</Link>
-          <Link href="/financeiro/contas?aba=analise" className={analise ? "ativa" : undefined}>Análise</Link>
+          <Link href="/financeiro/contas" className={analise ? "ativa" : undefined}>Análise</Link>
+          <Link href="/financeiro/contas?aba=cobranca" className={!analise ? "ativa" : undefined}>Cobrança</Link>
         </nav>
       )}
 
       {ultima && analise ? (
-        <AnaliseContas contas={(analiseR.data ?? []) as ContaPagar[]} mes={mes} hoje={hoje} />
+        <AnaliseContas contas={todas} mes={mes} hoje={hoje} />
       ) : !ultima ? (
         <section className="painel"><Vazio titulo="Importe as contas do Conta Azul" texto="No Conta Azul, em Contas a pagar, exporte a visão (todas as situações) e importe aqui. Repita sempre que lançar conta nova." /></section>
       ) : (
         <>
+          <section className="painel" style={{ marginBottom: 16 }}>
+            <div className="painel-topo"><div><h2>Falta pedir nota fiscal</h2><p>Contas do Santander e da Caixa sem nota no Conta Azul. Facção, folha, impostos e tarifas ficam de fora.</p></div>{semNota.length > 0 && <span className="etiqueta alerta">{semNota.length}</span>}</div>
+            {semNota.length ? (
+              <div className="tabela-rolagem">
+                <table className="tabela">
+                  <thead><tr><th>Vencimento</th><th>Fornecedor</th><th>Categoria</th><th>Banco</th><th className="num">Valor</th><th>Situação</th></tr></thead>
+                  <tbody>
+                    {semNota.map((c) => (
+                      <tr key={c.id}>
+                        <td data-rotulo="Vencimento">{dataCurta(c.vencimento)}</td>
+                        <td data-rotulo="Fornecedor"><b>{c.fornecedor || "—"}</b><div className="mini">{c.descricao}</div></td>
+                        <td data-rotulo="Categoria" className="mini">{c.categoria ?? "—"}</td>
+                        <td data-rotulo="Banco">{bancoCobrado(c.conta)}</td>
+                        <td data-rotulo="Valor" className="num">{reais(Number(c.valor))}</td>
+                        <td data-rotulo="Situação"><span className={`etiqueta ${Number(c.em_aberto) > 0 ? "neutra" : "ok"}`}>{Number(c.em_aberto) > 0 ? "Em aberto" : "Paga"}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <p className="painel-corpo mini">Nenhuma conta do Santander ou da Caixa sem nota.</p>}
+          </section>
+
           <div className="kpis fx-kpis fx-fechamento">
             <Kpi destaque titulo="Atrasadas" valor={reais(soma(atrasadas))} nota={atrasadas.length ? `${atrasadas.length} ${atrasadas.length === 1 ? "conta" : "contas"} no Santander e na Caixa` : "nenhuma atrasada"} />
             {porBanco.map((p) => (
@@ -92,10 +120,10 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
 
           <section className="painel">
             <div className="painel-topo">
-              <div><h2>Para pagar</h2><p>Só Santander, Caixa e cartão Caixa. Some daqui quando for baixada no Conta Azul e você importar de novo.</p></div>
+              <div><h2>Vencimentos</h2><p>Só Santander, Caixa e cartão Caixa. Some daqui quando for baixada no Conta Azul e você importar de novo.</p></div>
               <nav className="abas" aria-label="Filtrar">
-                <Link href="/financeiro/contas" className={ver !== "todas" ? "ativa" : undefined}>Atrasadas e 7 dias</Link>
-                <Link href="/financeiro/contas?ver=todas" className={ver === "todas" ? "ativa" : undefined}>Todas em aberto</Link>
+                <Link href="/financeiro/contas?aba=cobranca" className={ver !== "todas" ? "ativa" : undefined}>Atrasadas e 7 dias</Link>
+                <Link href="/financeiro/contas?aba=cobranca&ver=todas" className={ver === "todas" ? "ativa" : undefined}>Todas em aberto</Link>
               </nav>
             </div>
             {lista.length ? (

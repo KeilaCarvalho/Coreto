@@ -83,7 +83,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
           <span>
             {cobAtrasadas.length > 0 && <>{cobAtrasadas.length} {cobAtrasadas.length === 1 ? "conta atrasada" : "contas atrasadas"} ({reais(somaCob(cobAtrasadas))}){cobProximas.length ? " e " : " "}</>}
             {cobProximas.length > 0 && <>{cobProximas.length} {cobProximas.length === 1 ? "vence" : "vencem"} até {limiteCobranca.slice(8, 10)}/{limiteCobranca.slice(5, 7)} ({reais(somaCob(cobProximas))}) </>}
-            no Santander e na Caixa. <Link href="/financeiro/contas">Ver contas</Link>
+            no Santander e na Caixa. <Link href="/financeiro/contas?aba=cobranca">Ver contas</Link>
           </span>
         </p>
       )}

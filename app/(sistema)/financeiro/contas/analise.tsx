@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Kpi } from "@/components/painel";
-import { bancoCobrado, faltaNota, semanaDoMes, type ContaPagar } from "@/lib/contas-pagar";
+import { semanaDoMes, type ContaPagar } from "@/lib/contas-pagar";
 import { dataCurta, reais } from "@/lib/formatos";
 
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -9,11 +9,12 @@ const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const curto = (v: number) => (v >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: v >= 10000 ? 0 : 1 })}k` : String(Math.round(v)));
 const mil = (v: number) => (v >= 1000 ? `R$ ${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil` : reais(v));
 
-/** Análise das saídas do mês: semanas do mês, calendário, categorias e notas que faltam pedir. */
+/** Análise de todas as contas (todos os bancos, meses passados e futuros). */
 export function AnaliseContas({ contas, mes, hoje }: { contas: ContaPagar[]; mes: string; hoje: string }) {
   const [a, m] = mes.split("-").map(Number);
   const doMes = contas.filter((c) => c.vencimento.slice(0, 7) === mes.slice(0, 7));
-  const anteriores = contas.filter((c) => c.vencimento < mes);
+  // Média: meses fechados antes do mês atual (os futuros ainda não estão completos).
+  const anteriores = contas.filter((c) => c.vencimento < mes && c.vencimento < `${hoje.slice(0, 7)}-01`);
   const mesesAnt = new Set(anteriores.map((c) => c.vencimento.slice(0, 7))).size;
   const soma = (l: ContaPagar[], k: "valor" | "em_aberto" | "valor_pago" = "valor") => l.reduce((t, c) => t + Number(c[k]), 0);
 
@@ -35,23 +36,30 @@ export function AnaliseContas({ contas, mes, hoje }: { contas: ContaPagar[]; mes
     .sort((x, y) => y[1] - x[1]);
   const maxCat = Math.max(1, ...categorias.map((c) => c[1]));
 
-  const semNota = contas.filter((c) => c.vencimento <= `${mes.slice(0, 7)}-31` && faltaNota(c)).sort((x, y) => x.vencimento.localeCompare(y.vencimento));
+  const meses = [...contas.reduce((mapa, c) => {
+    const k = c.vencimento.slice(0, 7);
+    const v = mapa.get(k) ?? { pago: 0, aberto: 0 };
+    v.pago += Number(c.valor_pago); v.aberto += Number(c.em_aberto);
+    return mapa.set(k, v);
+  }, new Map<string, { pago: number; aberto: number }>())].sort((x, y) => x[0].localeCompare(y[0]));
+  const maxMes = Math.max(1, ...meses.map(([, v]) => v.pago + v.aberto));
+  const futuro = contas.filter((c) => c.vencimento >= new Date(Date.UTC(a, m, 1)).toISOString().slice(0, 10));
   const anterior = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
   const seguinte = new Date(Date.UTC(a, m, 1)).toISOString().slice(0, 10);
 
   return (
     <>
       <div className="cp-mes">
-        <Link className="botao leve pequeno" href={`?aba=analise&mes=${anterior}`} aria-label="Mês anterior">‹</Link>
+        <Link className="botao leve pequeno" href={`?mes=${anterior}`} aria-label="Mês anterior">‹</Link>
         <strong>{MESES[m - 1]} {a}</strong>
-        <Link className="botao leve pequeno" href={`?aba=analise&mes=${seguinte}`} aria-label="Próximo mês">›</Link>
+        <Link className="botao leve pequeno" href={`?mes=${seguinte}`} aria-label="Próximo mês">›</Link>
       </div>
 
       <div className="kpis fx-kpis fx-fechamento">
         <Kpi destaque titulo="Saídas do mês" valor={reais(soma(doMes))} nota={`${doMes.length} contas · todos os bancos`} />
         <Kpi titulo="Já pago" valor={reais(soma(doMes, "valor_pago"))} nota={`${doMes.filter((c) => Number(c.em_aberto) === 0).length} contas quitadas`} />
         <Kpi titulo="Em aberto" valor={reais(soma(doMes, "em_aberto"))} nota={`${doMes.filter((c) => Number(c.em_aberto) > 0).length} contas`} />
-        <Kpi titulo="Falta nota fiscal" valor={String(semNota.length)} nota={semNota.length ? `${reais(soma(semNota))} sem nota` : "nada para pedir"} />
+        <Kpi titulo="Meses seguintes" valor={reais(soma(futuro, "em_aberto"))} nota={`${futuro.length} contas já lançadas`} />
       </div>
 
       <div className="painel-inicio">
@@ -104,26 +112,24 @@ export function AnaliseContas({ contas, mes, hoje }: { contas: ContaPagar[]; mes
         </section>
 
         <section className="painel col-7">
-          <div className="painel-topo"><div><h2>Falta pedir nota fiscal</h2><p>Contas sem nota no Conta Azul. Facção, folha, impostos e tarifas ficam de fora.</p></div>{semNota.length > 0 && <span className="etiqueta alerta">{semNota.length}</span>}</div>
-          {semNota.length ? (
-            <div className="tabela-rolagem">
-              <table className="tabela">
-                <thead><tr><th>Vencimento</th><th>Fornecedor</th><th>Categoria</th><th>Banco</th><th className="num">Valor</th><th>Situação</th></tr></thead>
-                <tbody>
-                  {semNota.slice(0, 40).map((c) => (
-                    <tr key={c.id}>
-                      <td data-rotulo="Vencimento">{dataCurta(c.vencimento)}</td>
-                      <td data-rotulo="Fornecedor"><b>{c.fornecedor || "—"}</b><div className="mini">{c.descricao}</div></td>
-                      <td data-rotulo="Categoria" className="mini">{c.categoria ?? "—"}</td>
-                      <td data-rotulo="Banco" className="mini">{bancoCobrado(c.conta) ?? c.conta ?? "—"}</td>
-                      <td data-rotulo="Valor" className="num">{reais(Number(c.valor))}</td>
-                      <td data-rotulo="Situação"><span className={`etiqueta ${Number(c.em_aberto) > 0 ? "neutra" : "ok"}`}>{Number(c.em_aberto) > 0 ? "Em aberto" : "Paga"}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="painel-topo"><div><h2>Saídas mês a mês</h2><p>Todas as contas importadas, inclusive as dos próximos meses. Clique no mês para ver os detalhes.</p></div></div>
+          {meses.length ? (
+            <div className="cp-meses">
+              {meses.map(([k, v]) => {
+                const [ka, km] = k.split("-").map(Number);
+                return (
+                  <Link key={k} href={`?mes=${k}-01`} className={`cp-mes-barra${k === mes.slice(0, 7) ? " atual" : ""}${k > hoje.slice(0, 7) ? " futuro" : ""}`} title={`${MESES[km - 1]} ${ka}: ${reais(v.pago + v.aberto)}`}>
+                    <span className="cp-sem-valor">{curto(v.pago + v.aberto)}</span>
+                    <span className="cp-sem-trilho">
+                      <i className="aberto" style={{ height: `${(v.aberto / maxMes) * 100}%` }} />
+                      <i className="pago" style={{ height: `${(v.pago / maxMes) * 100}%` }} />
+                    </span>
+                    <span className="cp-sem-rotulo">{MESES[km - 1].slice(0, 3)}/{String(ka).slice(2)}</span>
+                  </Link>
+                );
+              })}
             </div>
-          ) : <p className="painel-corpo mini">Todas as contas de fornecedor têm nota.</p>}
+          ) : <p className="painel-corpo mini">Nenhuma conta importada.</p>}
         </section>
       </div>
     </>
