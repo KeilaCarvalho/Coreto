@@ -1017,3 +1017,35 @@ details > summary::-webkit-details-marker { display: none; }
 .rt-peca > .rt-liquido { grid-column: 4; }
 .rt-liquido { text-align: right; font-weight: 700; font-size: 13.5px; white-space: nowrap; }
 .rt-abat { display: grid; grid-template-columns: minmax(0, 1fr) 110px 34px; gap: 8px; align-items: center; margin-bottom: 8px; }
+
+/* Contas a pagar: análise */
+.cp-abas { margin-bottom: 16px; }
+.cp-mes { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.cp-mes strong { font-size: 18px; text-transform: capitalize; min-width: 150px; text-align: center; }
+.cp-semanas { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; padding: 8px 22px 22px; height: 280px; }
+.cp-sem { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; text-align: center; min-width: 0; }
+.cp-sem-valor { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.cp-sem-rotulo { font-size: 12px; color: var(--suave); white-space: nowrap; }
+.cp-sem-trilho { position: relative; border-radius: 14px; background: var(--superficie-2); display: flex; flex-direction: column-reverse; overflow: hidden; }
+.cp-sem-trilho i { display: block; width: 100%; }
+.cp-sem-trilho i.pago { background: var(--marca); }
+.cp-sem-trilho i.aberto { background: #bcd9ef; order: 1; }
+.cp-sem-trilho em { position: absolute; left: 10%; right: 10%; height: 0; border-top: 2px dashed var(--tinta); z-index: 1; }
+.cp-sem.atual .cp-sem-rotulo { color: var(--tinta); font-weight: 700; }
+.cp-sem.atual .cp-sem-trilho { box-shadow: inset 0 0 0 2px var(--tinta); }
+.cp-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 4px 22px 22px; }
+.cp-cal-dia { font-size: 11px; color: var(--suave); text-align: center; font-weight: 600; }
+.cp-cal-cel { min-height: 50px; border-radius: 10px; padding: 5px 6px; display: flex; flex-direction: column; justify-content: space-between; font-size: 11px; background: var(--superficie-2); color: var(--suave); min-width: 0; }
+.cp-cal-cel b { font-weight: 600; }
+.cp-cal-cel small { font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp-cal-cel.n1 { background: #e3f0fa; color: var(--tinta); }
+.cp-cal-cel.n2 { background: #bcd9ef; color: var(--tinta); }
+.cp-cal-cel.n3 { background: #6fa9d6; color: #fff; }
+.cp-cal-cel.n4 { background: #1f5f99; color: #fff; }
+.cp-cal-cel.hoje { box-shadow: inset 0 0 0 2px var(--tinta); }
+.cp-cats { list-style: none; margin: 0; padding: 4px 22px 22px; display: grid; gap: 12px; }
+.cp-cats li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 13px; }
+.cp-cats li b { font-weight: 700; }
+.cp-cats li i { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--marca); min-width: 4px; }
+@media (max-width: 900px) { .painel-inicio > .col-7 { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .cp-semanas { gap: 6px; padding: 8px 12px 16px; } .cp-sem-valor { font-size: 11px; } .cp-cal { padding: 4px 12px 16px; gap: 4px; } .cp-cal-cel small { display: none; } }

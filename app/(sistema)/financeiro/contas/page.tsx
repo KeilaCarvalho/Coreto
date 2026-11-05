@@ -11,16 +11,25 @@ import { BANCOS_COBRADOS, FILTRO_BANCOS, bancoCobrado, diasPara, prazo, type Ban
 import { hojeSP } from "@/lib/tarefas";
 import { dataCurta, quando, reais } from "@/lib/formatos";
 import { importarContasPagar } from "./acoes";
+import { AnaliseContas } from "./analise";
 
 export const metadata = { title: "Contas a pagar" };
 
 type Saldo = { nome: string; valor: number };
 
-export default async function ContasPagar({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+export default async function ContasPagar({ searchParams }: { searchParams: Promise<{ ver?: string; aba?: string; mes?: string }> }) {
   const sessao = await exigir("financeiro");
-  const { ver } = await searchParams;
+  const { ver, aba, mes: mesParam } = await searchParams;
   const supabase = await supabaseServidor();
   const hoje = hojeSP();
+  const analise = aba === "analise";
+  const mes = /^\d{4}-\d{2}-01$/.test(mesParam ?? "") ? mesParam! : `${hoje.slice(0, 7)}-01`;
+  const [ma, mm] = mes.split("-").map(Number);
+  const desde = new Date(Date.UTC(ma, mm - 4, 1)).toISOString().slice(0, 10);
+  const ate = new Date(Date.UTC(ma, mm, 1)).toISOString().slice(0, 10);
+  const analiseR = analise
+    ? await supabase.from("contas_pagar").select("*").gte("vencimento", desde).lt("vencimento", ate).order("vencimento").limit(5000)
+    : { data: [] };
   const [cobradasR, outrasR, fluxoR, ultimaR] = await Promise.all([
     supabase.from("contas_pagar").select("*").or(FILTRO_BANCOS).gt("em_aberto", 0).order("vencimento").order("fornecedor"),
     supabase.from("contas_pagar").select("conta, em_aberto, vencimento").gt("em_aberto", 0).not("conta", "ilike", "%santander%").not("conta", "ilike", "%caixa%"),
@@ -57,7 +66,16 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
       />
       <Suspense><AvisoDaUrl /></Suspense>
 
-      {!ultima ? (
+      {ultima && (
+        <nav className="abas cp-abas" aria-label="Visão">
+          <Link href="/financeiro/contas" className={!analise ? "ativa" : undefined}>Cobrança</Link>
+          <Link href="/financeiro/contas?aba=analise" className={analise ? "ativa" : undefined}>Análise</Link>
+        </nav>
+      )}
+
+      {ultima && analise ? (
+        <AnaliseContas contas={(analiseR.data ?? []) as ContaPagar[]} mes={mes} hoje={hoje} />
+      ) : !ultima ? (
         <section className="painel"><Vazio titulo="Importe as contas do Conta Azul" texto="No Conta Azul, em Contas a pagar, exporte a visão (todas as situações) e importe aqui. Repita sempre que lançar conta nova." /></section>
       ) : (
         <>

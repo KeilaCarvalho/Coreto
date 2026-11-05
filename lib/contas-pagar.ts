@@ -79,3 +79,17 @@ export function prazo(venc: string, hoje: string): { rotulo: string; classe: str
   if (d <= 7) return { rotulo: `Em ${d} dias`, classe: "neutra" };
   return { rotulo: `Em ${d} dias`, classe: "neutra" };
 }
+
+/** Semana do mês pelo dia: 0 = dias 1 a 7, 1 = 8 a 14 … 4 = 29 a 31. */
+export const semanaDoMes = (iso: string) => Math.min(4, Math.floor((Number(iso.slice(8, 10)) - 1) / 7));
+
+/** Categorias que não emitem nota (pessoa física, folha, impostos, tarifas). */
+const SEM_NOTA = /fac[cç][aã]o|m\.o\.d|folha|sal[aá]rio|pr[oó]-?labore|comiss|vale|impost|tributo|das\b|taxa|tarifa|juros|retirada|empr[eé]stimo|aluguel|transfer/i;
+/** Conta de fornecedor sem nota fiscal no Conta Azul (nem número de NF na descrição). */
+export function faltaNota(c: Pick<ContaPagar, "nota_fiscal" | "categoria" | "fornecedor" | "descricao">) {
+  if (c.nota_fiscal?.trim()) return false;
+  if (!c.fornecedor?.trim()) return false;
+  if (SEM_NOTA.test(c.categoria ?? "")) return false;
+  if (/\bNF[\s.:-]*\d{3,}/i.test(c.descricao ?? "")) return false;
+  return true;
+}
