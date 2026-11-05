@@ -59,13 +59,6 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
             </div>
           ))}
         </nav>
-        <div className="menu-promo">
-          <img src="/coreto-flor-branca.png" alt="" />
-          <span className="selo"><Icone nome="quadro" /></span>
-          <strong>Próxima fase: quadro de produção</strong>
-          <p>Ordens de produção, facções e corte. O Trello sai de cena.</p>
-          <Link href="/em-breve/quadro">Ver o que vem</Link>
-        </div>
       </aside>
       <div className="conteudo">
         <div className="barra-movel">
