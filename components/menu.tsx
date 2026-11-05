@@ -14,6 +14,15 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   useEffect(() => setAberto(false), [caminho]);
+  // Celular: menu aberto trava a rolagem da página e fecha no Esc.
+  useEffect(() => {
+    if (!aberto) return;
+    const fechar = (e: KeyboardEvent) => { if (e.key === "Escape") setAberto(false); };
+    const antes = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", fechar);
+    return () => { document.body.style.overflow = antes; window.removeEventListener("keydown", fechar); };
+  }, [aberto]);
   const iniciais = nome.split(/\s+/).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
   const atual = (href: string) => (caminho === href || caminho.startsWith(href + "/") ? "page" : undefined);
 
@@ -41,6 +50,7 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
           <img className="flor" src="/coreto-flor-turquesa.png" alt="" />
           <img className="nome" src="/coreto-nome-escuro.png" alt="Coreto" />
         </Link>
+        <button type="button" className="menu-fechar" onClick={() => setAberto(false)} aria-label="Fechar menu"><Icone nome="fechar" tamanho={20} /></button>
         <nav className="menu-rolagem">
           <div className="menu-grupo">
             <p className="menu-grupo-nome">Geral</p>
@@ -60,12 +70,22 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
           ))}
         </nav>
       </aside>
+      {aberto && <button type="button" className="menu-fundo" aria-label="Fechar menu" onClick={() => setAberto(false)} />}
       <div className="conteudo">
         <div className="barra-movel">
-          <img src="/coreto-nome-escuro.png" alt="Coreto" />
-          <button type="button" onClick={() => setAberto((v) => !v)} aria-label={aberto ? "Fechar menu" : "Abrir menu"} aria-expanded={aberto}>
-            <Icone nome={aberto ? "fechar" : "menu"} tamanho={24} />
+          <button type="button" className="barra-movel-menu" onClick={() => setAberto((v) => !v)} aria-label={aberto ? "Fechar menu" : "Abrir menu"} aria-expanded={aberto}>
+            <Icone nome="menu" tamanho={22} />
           </button>
+          <Link href="/" className="barra-movel-marca" aria-label="Coreto, início">
+            <img className="flor" src="/coreto-flor-turquesa.png" alt="" />
+            <img className="nome" src="/coreto-nome-escuro.png" alt="Coreto" />
+          </Link>
+          <div className="barra-movel-acoes">
+            <Link className="icone-botao" href="/configuracoes/acessos" aria-label={pendencias ? `${pendencias} pedido(s) de acesso` : "Avisos"}>
+              <Icone nome="sino" />{pendencias > 0 && <span className="ponto" />}
+            </Link>
+            <Link className="avatar" href="/conta" aria-label="Minha conta" style={{ textDecoration: "none" }}>{iniciais}</Link>
+          </div>
         </div>
         <header className="topo">
           <form className="busca" role="search" onSubmit={buscar}>
