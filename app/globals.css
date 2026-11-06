@@ -1110,6 +1110,7 @@ details > summary::-webkit-details-marker { display: none; }
   .kpis > .kpi.destaque:first-child { grid-column: 1 / -1; }
   .kpis .kpi-valor, .fx-kpis .kpi-valor, .fx-fechamento .kpi-valor { font-size: clamp(20px, 6.4vw, 26px); white-space: nowrap; overflow: visible; text-overflow: clip; letter-spacing: -0.03em; }
   .kpis .kpi.destaque:first-child .kpi-valor { font-size: clamp(28px, 9vw, 36px); }
+  .kpis:has(> .kpi.destaque:first-child) > .kpi:last-child:nth-child(even) { grid-column: 1 / -1; }
 }
 
 /* =====================================================================
@@ -1128,7 +1129,7 @@ details > summary::-webkit-details-marker { display: none; }
   /* "Mais": o menu sobe de baixo, como folha do iPhone */
   .menu { top: auto; bottom: 0; left: 0; right: 0; width: 100%; height: auto; max-height: 86dvh; border-radius: 26px 26px 0 0; transform: translateY(105%); transition: transform 0.26s cubic-bezier(.2,.8,.2,1); padding-bottom: env(safe-area-inset-bottom); }
   .app.menu-aberto .menu { transform: none; box-shadow: 0 -12px 40px rgba(0, 40, 42, 0.28); }
-  .menu-alca { display: block; width: 40px; height: 5px; border-radius: 99px; background: var(--linha-forte); margin: 8px auto 0; }
+  .menu-alca { display: block; order: -1; flex-shrink: 0; width: 40px; height: 5px; border-radius: 99px; background: var(--linha-forte); margin: 8px auto 0; }
   .menu-marca { padding: 10px 20px 8px; }
   .menu-fechar { top: 16px; }
   .menu-rolagem { overflow-y: auto; }
