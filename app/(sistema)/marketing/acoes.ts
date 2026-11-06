@@ -5,7 +5,6 @@ import { z } from "zod";
 import { supabaseServidor } from "@/lib/supabase/server";
 import type { EstadoAcao } from "@/components/form-acao";
 
-const uuid = z.string().regex(/^[0-9a-f-]{36}$/i);
 function mensagem(m: string) {
   if (m.includes("row-level security")) return "Seu perfil não pode lançar peças para fotos.";
   if (m.includes("Saldo insuficiente")) return m.replace(/^.*?Saldo insuficiente/, "Saldo insuficiente");
@@ -21,10 +20,13 @@ const Saida = z.object({
   evento: z.string().trim().min(1, "Diga qual é o evento ou a sessão de fotos.").max(120),
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data da sessão."),
   observacao: z.string().trim().max(500),
-  itens: z.array(z.object({ variante_id: uuid, quantidade: z.number().int().min(1).max(500) })).min(1, "Escolha pelo menos uma peça."),
+  itens: z.array(z.object({
+    peca: z.string().trim().min(1, "Toda peça precisa de nome.").max(120), cor: z.string().trim().max(60), tamanho: z.string().trim().max(20),
+    quantidade: z.number().int().min(1).max(500),
+  })).min(1, "Coloque pelo menos uma peça."),
 });
 
-/** Saída para fotos: sempre da Loja; cria a sessão (evento + data) com as peças. */
+/** Saída para fotos: cria a sessão (evento + data) com as peças digitadas. Não mexe no estoque. */
 export async function registrarSaida(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
   let bruto: unknown;
   try { bruto = JSON.parse(String(dados.get("dados") ?? "")); } catch { return { erro: "Não consegui ler a saída." }; }

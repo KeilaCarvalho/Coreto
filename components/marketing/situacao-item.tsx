@@ -14,7 +14,7 @@ const OPCOES = [
 export function SituacaoItem({ id, situacao, pode }: { id: number; situacao: string; pode: boolean }) {
   const [estado, enviar, enviando] = useActionState(mudarItem, null);
   const [pedindo, setPedindo] = useState(false);
-  if (!pode || situacao === "deu") return <span className={`etiqueta ${CLASSE[situacao]}`}>{ROTULO[situacao]}</span>;
+  if (!pode) return <span className={`etiqueta ${CLASSE[situacao]}`}>{ROTULO[situacao]}</span>;
   return (
     <div className="mf-situacao">
       <div className="mf-seg" role="group" aria-label="Situação">

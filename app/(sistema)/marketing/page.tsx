@@ -6,7 +6,7 @@ import { Cabecalho, Vazio } from "@/components/cabecalho";
 import { Icone } from "@/components/icone";
 import { Kpi } from "@/components/painel";
 import { AvisoDaUrl, JanelaLateral } from "@/components/janela-lateral";
-import { FormSaidaFotos, type VarianteFoto } from "@/components/marketing/form-saida";
+import { FormSaidaFotos } from "@/components/marketing/form-saida";
 import { SituacaoItem } from "@/components/marketing/situacao-item";
 import { ROTULO } from "@/lib/fotos";
 import { hojeSP } from "@/lib/tarefas";
@@ -14,9 +14,8 @@ import { dataCurta } from "@/lib/formatos";
 
 export const metadata = { title: "Peças para fotos" };
 
-type Var = { id: string; tamanho: string; produtos: { referencia: string; nome: string } | null; cores: { nome: string; hex: string | null } | null };
 type Sessao = { id: number; evento: string; data: string; observacao: string | null };
-type Item = { id: number; sessao_id: number; variante_id: string; quantidade: number; situacao: string; observacao: string | null };
+type Item = { id: number; sessao_id: number; peca: string | null; cor: string | null; tamanho: string | null; quantidade: number; situacao: string; observacao: string | null };
 
 export default async function PecasParaFotos({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
   const sessao = await exigir("marketing");
@@ -25,26 +24,14 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
   const supabase = await supabaseServidor();
   const hoje = hojeSP();
   const inicioMes = `${hoje.slice(0, 7)}-01`;
-  const [{ data: locaisR }, { data: saldosR }, { data: sessoesR }, { data: itensR }] = await Promise.all([
-    supabase.from("locais_estoque").select("id, tipo").is("arquivado_em", null),
-    supabase.rpc("saldos_para_fotos"),
-    supabase.from("fotos_sessoes").select("id, evento, data, observacao").order("data", { ascending: false }).order("id", { ascending: false }).limit(60),
-    supabase.from("fotos_itens").select("id, sessao_id, variante_id, quantidade, situacao, observacao").order("id").limit(2000),
+  const [{ data: sessoesR }, { data: itensR }] = await Promise.all([
+    supabase.from("fotos_sessoes").select("id, evento, data, observacao").order("data", { ascending: false }).order("id", { ascending: false }).limit(80),
+    supabase.from("fotos_itens").select("id, sessao_id, peca, cor, tamanho, quantidade, situacao, observacao").order("id").limit(3000),
   ]);
-  const loja = ((locaisR ?? []) as { id: string; tipo: string }[]).find((l) => l.tipo === "loja")?.id;
-  const saldosLoja = ((saldosR ?? []) as { variante_id: string; local_id: string; saldo: number }[]).filter((s) => s.local_id === loja);
   const sessoes = (sessoesR ?? []) as Sessao[];
-  const itens = ((itensR ?? []) as Item[]).filter((i) => sessoes.some((s) => s.id === i.sessao_id) || i.situacao === "com_ela");
-
-  const ids = [...new Set([...saldosLoja.map((s) => s.variante_id), ...itens.map((i) => i.variante_id)])];
-  const { data: varsR } = ids.length ? await supabase.from("variantes").select("id, tamanho, produtos(referencia, nome), cores(nome, hex)").in("id", ids) : { data: [] };
-  const vars = new Map(((varsR ?? []) as unknown as Var[]).map((v) => [v.id, v]));
-  const modeloDe = (id: string) => { const v = vars.get(id); return `${v?.produtos?.referencia ?? ""} ${v?.produtos?.nome ?? ""}`.trim(); };
-
-  const variantes: VarianteFoto[] = saldosLoja.map((s) => {
-    const v = vars.get(s.variante_id);
-    return { id: s.variante_id, produto: v?.produtos?.nome ?? "", referencia: v?.produtos?.referencia ?? "", cor: v?.cores?.nome ?? "", hex: v?.cores?.hex ?? null, tamanho: v?.tamanho ?? "", disponivel: s.saldo };
-  });
+  const itens = ((itensR ?? []) as Item[]).filter((i) => sessoes.some((s) => s.id === i.sessao_id));
+  const modeloDe = (i: Item) => (i.peca ?? "Peça").trim();
+  const detalhe = (i: Item) => [i.cor, i.tamanho].filter(Boolean).join(" · ") || "—";
 
   const soma = (l: Item[]) => l.reduce((t, i) => t + i.quantidade, 0);
   const comEla = itens.filter((i) => i.situacao === "com_ela");
@@ -54,15 +41,13 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
   const sessaoDe = (id: number) => sessoes.find((s) => s.id === id);
 
   const Peca = ({ i, comSessao = false }: { i: Item; comSessao?: boolean }) => {
-    const v = vars.get(i.variante_id);
     const s = sessaoDe(i.sessao_id);
     return (
       <div className="mf-peca">
         <div className="mf-peca-topo">
-          <span className="amostra" style={{ background: v?.cores?.hex ?? "#ccc" }} />
           <div className="mf-item-nome">
-            <b>{comSessao ? modeloDe(i.variante_id) : `${v?.cores?.nome ?? ""} · ${v?.tamanho ?? ""}`}</b>
-            <span>{comSessao ? `${v?.cores?.nome ?? ""} · ${v?.tamanho ?? ""}${s ? ` · ${s.evento} (${dataCurta(s.data).slice(0, 5)})` : ""}` : i.observacao ?? ""}</span>
+            <b>{comSessao ? modeloDe(i) : detalhe(i)}</b>
+            <span>{comSessao ? `${detalhe(i)}${s ? ` · ${s.evento} (${dataCurta(s.data).slice(0, 5)})` : ""}` : i.observacao ?? ""}</span>
           </div>
           {i.quantidade > 1 && <span className="mf-item-qtd">{i.quantidade}</span>}
         </div>
@@ -74,7 +59,7 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
 
   return (
     <>
-      <Cabecalho titulo="Peças para fotos" descricao="Cada saída é uma sessão de fotos. As peças saem da Loja e voltam para ela."
+      <Cabecalho titulo="Peças para fotos" descricao="Cada saída é uma sessão de fotos, com as peças que foram e a situação de cada uma."
         acoes={sessao.pode("marketing", "criar") && <Link className="botao" href="?saida=1" scroll={false}><Icone nome="fotos" />Nova saída para fotos</Link>} />
       <Suspense><AvisoDaUrl /></Suspense>
 
@@ -90,7 +75,7 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
       </nav>
 
       {!itens.length ? (
-        <section className="painel"><Vazio titulo="Nenhuma saída para fotos ainda" texto="Toque em “Nova saída para fotos”, diga o evento e escolha as peças." /></section>
+        <section className="painel"><Vazio titulo="Nenhuma saída para fotos ainda" texto="Toque em “Nova saída para fotos”, diga o evento e escreva as peças." /></section>
       ) : kanban ? (
         <div className="mf-kanban">
           {(["com_ela", "devolvido", "deu"] as const).map((sit) => {
@@ -107,7 +92,7 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
         <div className="mf-sessoes">
           {sessoes.filter((s) => itens.some((i) => i.sessao_id === s.id)).map((s) => {
             const doEvento = itens.filter((i) => i.sessao_id === s.id);
-            const modelos = [...new Set(doEvento.map((i) => modeloDe(i.variante_id)))].sort();
+            const modelos = [...new Set(doEvento.map((i) => modeloDe(i)))].sort((a, b) => a.localeCompare(b));
             const fora = soma(doEvento.filter((i) => i.situacao === "com_ela"));
             return (
               <section key={s.id} className="painel mf-sessao">
@@ -119,7 +104,7 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
                   {modelos.map((m) => (
                     <div key={m} className="mf-modelo-bloco">
                       <h3>{m}</h3>
-                      {doEvento.filter((i) => modeloDe(i.variante_id) === m).map((i) => <Peca key={i.id} i={i} />)}
+                      {doEvento.filter((i) => modeloDe(i) === m).map((i) => <Peca key={i.id} i={i} />)}
                     </div>
                   ))}
                 </div>
@@ -131,8 +116,8 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
 
       {sessao.pode("marketing", "criar") && (
         <Suspense>
-          <JanelaLateral param="saida" titulo="Nova saída para fotos" subtitulo="Evento, data e as peças que estão saindo da loja" larga>
-            <FormSaidaFotos variantes={variantes} hoje={hoje} />
+          <JanelaLateral param="saida" titulo="Nova saída para fotos" subtitulo="Evento, data e as peças que foram" larga>
+            <FormSaidaFotos hoje={hoje} />
           </JanelaLateral>
         </Suspense>
       )}
