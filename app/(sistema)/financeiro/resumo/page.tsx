@@ -47,6 +47,7 @@ function Vencimento({ vence, pago, hoje }: { vence: string | null; pago: boolean
 
 export default async function ResumoDoDia({ searchParams }: { searchParams: Promise<{ ver?: string; doc?: string }> }) {
   const sessao = await exigir("financeiro");
+  await exigir("resumo");
   const { ver = "conferir", doc: docId } = await searchParams;
   const supabase = await supabaseServidor();
   const hoje = hojeSP();

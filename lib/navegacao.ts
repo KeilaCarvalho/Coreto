@@ -1,4 +1,4 @@
-export type Modulo = "produto" | "producao" | "estoque" | "comercial" | "marketing" | "financeiro" | "pessoas" | "configuracoes" | "tarefas";
+export type Modulo = "produto" | "producao" | "estoque" | "comercial" | "marketing" | "financeiro" | "pessoas" | "configuracoes" | "tarefas" | "resumo" | "relatorios";
 export type Acao = "ver" | "criar" | "editar" | "aprovar";
 
 import type { NomeIcone } from "@/components/icone";
@@ -29,11 +29,11 @@ export const MENU: GrupoMenu[] = [
     { rotulo: "Caixa", href: "/em-breve/caixa", modulo: "comercial", icone: "caixa", fase: "F3" },
     { rotulo: "Vendas", href: "/comercial/vendas", modulo: "comercial", acao: "aprovar", icone: "quadro" },
     { rotulo: "Clientes", href: "/comercial/clientes", modulo: "comercial", icone: "clientes" },
-    { rotulo: "Importar relatórios", href: "/comercial/relatorios", modulo: "comercial", acao: "aprovar", icone: "arquivo" },
+    { rotulo: "Importar relatórios", href: "/comercial/relatorios", modulo: "relatorios", icone: "arquivo" },
     { rotulo: "Peças para fotos", href: "/em-breve/marketing", modulo: "marketing", icone: "fotos", fase: "F4" },
   ] },
   { rotulo: "Gestão", itens: [
-    { rotulo: "Resumo do dia", href: "/financeiro/resumo", modulo: "financeiro", icone: "calendario" },
+    { rotulo: "Resumo do dia", href: "/financeiro/resumo", modulo: "resumo", icone: "calendario" },
     { rotulo: "Fluxo financeiro", href: "/financeiro/fluxo", modulo: "financeiro", icone: "financeiro" },
     { rotulo: "Contas a pagar", href: "/financeiro/contas", modulo: "financeiro", icone: "banco" },
     { rotulo: "Equipe", href: "/pessoas/equipe", modulo: "pessoas", icone: "equipe" },

@@ -26,7 +26,7 @@ const LISTA = [
 
 export default async function Relatorios() {
   const sessao = await exigir("comercial");
-  if (!sessao.pode("comercial", "aprovar") && !sessao.pode("financeiro", "editar")) await exigir("comercial", "aprovar");
+  await exigir("relatorios");
   const supabase = await supabaseServidor();
   const [{ data: cli }, { data: ven }, { count: semVendedora }, { data: nomesSoltos }, { data: equipeR }] = await Promise.all([
     supabase.from("importacoes_clientes").select("id, arquivo, tipo, mes, registros, ignorados, criado_em, quem:pessoas!criado_por(nome)").order("criado_em", { ascending: false }).limit(60),

@@ -35,7 +35,7 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
   const mensais = ((mR ?? []) as Mensal[]).map((m) => ({ ...m, mes: m.mes.slice(0, 7), valor_total: n(m.valor_total), preco_medio: n(m.preco_medio) }));
   const disponiveis = [...new Set([...mensais.map((m) => m.mes), ...[...(mesesC ?? []), ...(mesesP ?? []), ...(mesesI ?? []), ...(mesesV ?? [])].map((x) => String(x.mes).slice(0, 7))])].sort();
   const mes = pedido && disponiveis.includes(pedido) ? pedido : disponiveis[disponiveis.length - 1];
-  const podeImportar = sessao.pode("comercial", "aprovar") || sessao.pode("financeiro", "editar");
+  const podeImportar = sessao.pode("relatorios");
 
   if (!mes) {
     return (

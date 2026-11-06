@@ -83,7 +83,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
         titulo={gestao ? "Clientes" : "Minhas clientes"}
         descricao={gestao ? "A carteira de cada vendedora, com retornos, aniversariantes e histórico de contatos." : "Sua carteira: quem chamar hoje, aniversariantes e o histórico de cada cliente."}
         acoes={<>
-          {gestao && <Link className="botao secundario" href="/comercial/relatorios"><Icone nome="arquivo" />Importar relatórios</Link>}
+          {sessao.pode("relatorios") && <Link className="botao secundario" href="/comercial/relatorios"><Icone nome="arquivo" />Importar relatórios</Link>}
           {sessao.pode("comercial", "criar") && <Link className="botao" href={`${filtroUrl(visao)}&nova=1`} scroll={false}><Icone nome="mais" />Nova cliente</Link>}
         </>}
       />
@@ -159,7 +159,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
             titulo={todas.length ? "Ninguém nesta lista" : "A carteira está vazia"}
             texto={todas.length ? (visao === "retornos" ? "Nenhum retorno marcado para hoje. Quando registrar um contato, escolha a data do próximo." : "Nenhuma cliente neste filtro.")
               : gestao ? "Importe os relatórios do sistema de vendas ou a carteira do sistema antigo." : "Suas clientes aparecem aqui quando a gestão importar os relatórios. Você também pode cadastrar uma cliente."}>
-            {!todas.length && gestao && <Link className="botao" href="/comercial/relatorios"><Icone nome="arquivo" />Importar relatórios</Link>}
+            {!todas.length && sessao.pode("relatorios") && <Link className="botao" href="/comercial/relatorios"><Icone nome="arquivo" />Importar relatórios</Link>}
           </Vazio>
         )}
       </section>
