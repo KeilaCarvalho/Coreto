@@ -1320,3 +1320,6 @@ h2 { letter-spacing: -0.01em; line-height: 1.2; }
 .mf-mais summary::-webkit-details-marker { display: none; }
 .mf-coluna.devolvendo header b { color: #5a6b78; }
 @media (min-width: 701px) { .mf-modelo-bloco .mf-peca { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } }
+.mf-excluir { font-size: 12.5px; color: #b42318 !important; justify-self: start; }
+.mf-confirma-excluir { background: #fff1f0; border-color: #f5c2bd; }
+.botao.perigo { background: #d92d20; color: #fff; }

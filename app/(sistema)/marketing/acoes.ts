@@ -53,3 +53,28 @@ export async function mudarItem(_: EstadoAcao, dados: FormData): Promise<EstadoA
   const ok: Record<string, string> = { devolvendo: "Devolução avisada.", doando: "Doação avisada.", devolvido: "Devolução confirmada.", deu: "Doação confirmada.", com_ela: "Voltou para com ela." };
   return { ok: ok[situacao] };
 }
+
+/** Exclui uma peça ou uma sessão inteira (só a administração). Sessão sem peças some junto. */
+export async function excluirFotos(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const item = Number(dados.get("item") ?? NaN);
+  const sessao = Number(dados.get("sessao") ?? NaN);
+  const supabase = await supabaseServidor();
+  if (Number.isInteger(item)) {
+    const { data, error } = await supabase.from("fotos_itens").delete().eq("id", item).select("sessao_id");
+    if (error) return { erro: mensagem(error.message) };
+    if (!data?.length) return { erro: "Só a administração pode excluir." };
+    const sid = data[0].sessao_id as number;
+    const { count } = await supabase.from("fotos_itens").select("id", { count: "exact", head: true }).eq("sessao_id", sid);
+    if (!count) await supabase.from("fotos_sessoes").delete().eq("id", sid);
+    atualizar();
+    return { ok: "Peça excluída." };
+  }
+  if (Number.isInteger(sessao)) {
+    const { data, error } = await supabase.from("fotos_sessoes").delete().eq("id", sessao).select("id");
+    if (error) return { erro: mensagem(error.message) };
+    if (!data?.length) return { erro: "Só a administração pode excluir." };
+    atualizar();
+    return { ok: "Sessão excluída." };
+  }
+  return { erro: "Nada para excluir." };
+}
