@@ -65,7 +65,7 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
       <Suspense><AvisoDaUrl /></Suspense>
 
       <div className="kpis">
-        <Kpi destaque titulo="Com ela agora" valor={String(soma(comEla))} nota={`${comEla.length} ${comEla.length === 1 ? "item" : "itens"} para devolver`} />
+        <Kpi destaque titulo="Para devolver" valor={String(soma(comEla))} nota={`${comEla.length} ${comEla.length === 1 ? "item" : "itens"} para devolver`} />
         <Kpi titulo="Sessões no mês" valor={String(sessoesMes.length)} nota={`${soma(itensMes)} peças saíram`} />
         <Kpi titulo="Devolvidas no mês" valor={String(soma(itensMes.filter((i) => i.situacao === "devolvido")))} nota={`${soma(itensMes.filter((i) => i.situacao === "deu"))} doadas`} />
       </div>
@@ -101,7 +101,7 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
               <section key={s.id} className="painel mf-sessao">
                 <div className="painel-topo">
                   <div><h2>{s.evento}</h2><p>{dataCurta(s.data)} · {soma(doEvento)} {soma(doEvento) === 1 ? "peça" : "peças"}{s.observacao ? ` · ${s.observacao}` : ""}</p></div>
-                  <span className={`etiqueta ${fora ? "alerta" : avisadas ? "neutra" : "ok"}`}>{fora ? `${fora} com ela` : avisadas ? `${avisadas} para confirmar` : "Tudo resolvido"}</span>
+                  <span className={`etiqueta ${fora ? "alerta" : avisadas ? "neutra" : "ok"}`}>{fora ? `${fora} para devolver` : avisadas ? `${avisadas} para confirmar` : "Tudo resolvido"}</span>
                 </div>
                 <div className="mf-modelos-lista">
                   {modelos.map((m) => (

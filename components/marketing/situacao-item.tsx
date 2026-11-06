@@ -20,7 +20,7 @@ function Botao({ id, situacao, children, className = "botao leve pequeno", envia
 export function SituacaoItem({ id, situacao, podeAvisar, podeConfirmar }: { id: number; situacao: string; podeAvisar: boolean; podeConfirmar: boolean }) {
   const [estado, enviar, enviando] = useActionState(mudarItem, null);
   const [passo, setPasso] = useState<"" | "devolver" | "doar">("");
-  const selo = <span className={`etiqueta ${CLASSE[situacao] ?? "neutra"}`}>{ROTULO[situacao] ?? situacao}</span>;
+  const selo = situacao === "com_ela" ? null : <span className={`etiqueta ${CLASSE[situacao] ?? "neutra"}`}>{ROTULO[situacao] ?? situacao}</span>;
 
   let acoes: React.ReactNode = null;
   if (situacao === "com_ela" && podeAvisar) {
@@ -46,7 +46,7 @@ export function SituacaoItem({ id, situacao, podeAvisar, podeConfirmar }: { id: 
     acoes = (
       <form action={enviar} className="mf-acoes">
         <Botao id={id} situacao={situacao === "devolvendo" ? "devolvido" : "deu"} className="botao pequeno" enviando={enviando}>{situacao === "devolvendo" ? "Confirmar que voltou" : "Confirmar doação"}</Botao>
-        <button type="submit" name="situacao" value="com_ela" className="botao-link" disabled={enviando}>Ainda está com ela</button>
+        <button type="submit" name="situacao" value="com_ela" className="botao-link" disabled={enviando}>Não voltou ainda</button>
       </form>
     );
   } else if ((situacao === "devolvendo" || situacao === "doando") && podeAvisar) {
@@ -60,7 +60,7 @@ export function SituacaoItem({ id, situacao, podeAvisar, podeConfirmar }: { id: 
     acoes = (
       <details className="mf-mais">
         <summary className="botao-link">Mudar</summary>
-        <form action={enviar}><Botao id={id} situacao="com_ela" className="botao-link" enviando={enviando}>Voltar para “Com ela”</Botao></form>
+        <form action={enviar}><Botao id={id} situacao="com_ela" className="botao-link" enviando={enviando}>Desfazer baixa</Botao></form>
       </details>
     );
   }
