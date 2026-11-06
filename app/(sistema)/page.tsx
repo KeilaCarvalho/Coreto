@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { lerSessao } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
@@ -21,6 +22,8 @@ type Produto = { id: string; referencia: string; nome: string; preco_venda: numb
 
 export default async function Inicio({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
   const sessao = (await lerSessao())!;
+  // Perfil só de fotos (marketing) cai direto na tela dela.
+  if (!sessao.pode("produto") && !sessao.pode("estoque") && sessao.pode("marketing")) redirect("/marketing");
   const { aviso } = await searchParams;
   const supabase = await supabaseServidor();
   const veEstoque = sessao.pode("estoque");

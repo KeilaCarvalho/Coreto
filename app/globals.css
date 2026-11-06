@@ -1189,3 +1189,29 @@ details > summary::-webkit-details-marker { display: none; }
 @keyframes esq-brilho { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .esq { animation: none; } }
 .abas-app a:active, .abas-app button:active { transform: scale(.94); }
+
+/* Peças para fotos */
+.mf-modelos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 320px; overflow-y: auto; }
+.mf-modelo { display: grid; gap: 2px; text-align: left; padding: 12px; border-radius: 14px; border: 1px solid var(--linha); background: var(--superficie); cursor: pointer; font: inherit; color: var(--tinta); min-height: 44px; }
+.mf-modelo span { font-weight: 600; font-size: 13.5px; }
+.mf-modelo small { color: var(--suave); font-size: 12px; }
+.mf-variantes { display: grid; gap: 8px; }
+.mf-var { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; border: 1px solid var(--linha); background: var(--superficie); }
+.mf-var.escolhida { border-color: var(--marca); box-shadow: 0 0 0 2px rgba(0, 206, 209, .18); }
+.mf-var-nome { display: grid; font-size: 14px; }
+.mf-var-nome small { color: var(--suave); font-size: 12px; }
+.mf-passo { display: flex; align-items: center; gap: 10px; }
+.mf-passo button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--linha-forte); background: var(--superficie-2); font-size: 20px; font-weight: 700; cursor: pointer; color: var(--tinta); }
+.mf-passo button:disabled { opacity: .35; cursor: default; }
+.mf-passo b { min-width: 22px; text-align: center; font-size: 16px; }
+.mf-resumo { margin-top: 12px; padding: 12px; border-radius: 14px; background: var(--superficie-2); font-size: 13px; }
+.mf-resumo ul { margin: 6px 0 0; padding-left: 18px; }
+.mf-lista { list-style: none; margin: 0; padding: 0 16px 16px; display: grid; gap: 10px; }
+.mf-item { padding: 12px 14px; border-radius: 18px; background: var(--superficie-2); border: 1px solid var(--linha); display: grid; gap: 6px; }
+.mf-item-topo { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+.mf-item-nome { display: grid; }
+.mf-item-nome span { font-size: 13px; color: var(--suave); }
+.mf-item-qtd { min-width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; background: var(--tinta); color: #fff; font-weight: 700; }
+.mf-devolver summary { list-style: none; width: fit-content; }
+.mf-devolver summary::-webkit-details-marker { display: none; }
+.mf-devolver[open] summary { margin-bottom: 10px; }

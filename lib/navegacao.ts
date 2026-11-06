@@ -30,7 +30,7 @@ export const MENU: GrupoMenu[] = [
     { rotulo: "Vendas", href: "/comercial/vendas", modulo: "comercial", acao: "aprovar", icone: "quadro" },
     { rotulo: "Clientes", href: "/comercial/clientes", modulo: "comercial", icone: "clientes" },
     { rotulo: "Importar relatórios", href: "/comercial/relatorios", modulo: "relatorios", icone: "arquivo" },
-    { rotulo: "Peças para fotos", href: "/em-breve/marketing", modulo: "marketing", icone: "fotos", fase: "F4" },
+    { rotulo: "Peças para fotos", href: "/marketing", modulo: "marketing", icone: "fotos" },
   ] },
   { rotulo: "Gestão", itens: [
     { rotulo: "Resumo do dia", href: "/financeiro/resumo", modulo: "resumo", icone: "calendario" },
