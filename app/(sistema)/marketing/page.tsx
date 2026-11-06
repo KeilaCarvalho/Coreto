@@ -66,7 +66,7 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
       <div className="kpis">
         <Kpi destaque titulo="Com ela agora" valor={String(soma(comEla))} nota={`${comEla.length} ${comEla.length === 1 ? "item" : "itens"} para devolver`} />
         <Kpi titulo="Sessões no mês" valor={String(sessoesMes.length)} nota={`${soma(itensMes)} peças saíram`} />
-        <Kpi titulo="Devolvidas no mês" valor={String(soma(itensMes.filter((i) => i.situacao === "devolvido")))} nota={`${soma(itensMes.filter((i) => i.situacao === "deu"))} foram dadas`} />
+        <Kpi titulo="Devolvidas no mês" valor={String(soma(itensMes.filter((i) => i.situacao === "devolvido")))} nota={`${soma(itensMes.filter((i) => i.situacao === "deu"))} doadas`} />
       </div>
 
       <nav className="abas cp-abas" aria-label="Visualização">

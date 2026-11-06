@@ -7,7 +7,7 @@ import { CLASSE, ROTULO } from "@/lib/fotos";
 const OPCOES = [
   { v: "com_ela", rotulo: "Com ela" },
   { v: "devolvido", rotulo: "Devolvido" },
-  { v: "deu", rotulo: "Deu" },
+  { v: "deu", rotulo: "Doado" },
 ] as const;
 
 /** Botões de situação da peça (com ela / devolvido / deu). "Deu" pede com quem ficou. */
