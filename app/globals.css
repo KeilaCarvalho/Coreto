@@ -1147,3 +1147,31 @@ details > summary::-webkit-details-marker { display: none; }
 }
 @keyframes folha-sobe { from { transform: translateY(40%); opacity: .4; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .menu, .fx-janela { transition: none !important; animation: none !important; } }
+
+/* =====================================================================
+   Mais enxuto: números, cartões e medidores menores no app inteiro
+   ===================================================================== */
+:root { --raio-cartao: 22px; }
+.kpi { padding: 16px 18px 14px; }
+.kpi-valor { font-size: 30px; margin: 10px 0 6px; letter-spacing: -0.03em; }
+.fx-kpis .kpi-valor, .fx-fechamento .kpi-valor { font-size: clamp(22px, 2vw, 28px); }
+.kpi .seta { width: 34px; height: 34px; }
+.medidor svg { max-width: 200px; }
+.fx-medidor svg { max-width: 190px; }
+.medidor, .fx-medidor { padding-top: 0; padding-bottom: 10px; }
+.cabecalho h1 { font-size: 28px; }
+.cabecalho { margin-bottom: 18px; }
+@media (max-width: 900px) {
+  .cabecalho h1 { font-size: 24px; }
+  .kpi-valor { font-size: 24px; }
+}
+@media (max-width: 520px) {
+  .kpis { gap: 8px; }
+  .kpi { padding: 14px 14px 12px; border-radius: 18px; }
+  .kpis .kpi-valor, .fx-kpis .kpi-valor, .fx-fechamento .kpi-valor { font-size: clamp(17px, 5vw, 20px); margin: 8px 0 4px; }
+  .kpis .kpi.destaque:first-child .kpi-valor { font-size: clamp(22px, 7vw, 26px); }
+  .kpi-titulo { font-size: 13px; }
+  .kpi-nota { font-size: 12px; }
+  .medidor svg, .fx-medidor svg { max-width: 170px; }
+  .painel { border-radius: 18px; }
+}
