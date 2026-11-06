@@ -1215,3 +1215,30 @@ details > summary::-webkit-details-marker { display: none; }
 .mf-devolver summary { list-style: none; width: fit-content; }
 .mf-devolver summary::-webkit-details-marker { display: none; }
 .mf-devolver[open] summary { margin-bottom: 10px; }
+.mf-sessoes { display: grid; gap: 14px; }
+.mf-modelos-lista { display: grid; gap: 14px; padding: 0 18px 18px; }
+.mf-modelo-bloco { display: grid; gap: 8px; }
+.mf-modelo-bloco h3 { font-size: 14.5px; margin: 0; }
+.mf-peca { display: grid; gap: 8px; padding: 10px 12px; border-radius: 16px; background: var(--superficie-2); border: 1px solid var(--linha); }
+.mf-peca-topo { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
+.mf-situacao { display: grid; gap: 8px; }
+.mf-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--superficie); border: 1px solid var(--linha); }
+.mf-seg form { display: contents; }
+.mf-seg button { min-height: 36px; border: 0; border-radius: 10px; background: none; font: 600 13px var(--fonte); color: var(--suave); cursor: pointer; }
+.mf-seg button.ativo { background: var(--tinta); color: #fff; }
+.mf-seg button.ativo.devolvido { background: #1f8a4c; }
+.mf-seg button:disabled { cursor: default; }
+.mf-deu { display: flex; gap: 6px; }
+.mf-deu .entrada { flex: 1; min-width: 0; }
+.mf-kanban { display: grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap: 12px; align-items: start; overflow-x: auto; }
+.mf-coluna { display: grid; gap: 8px; padding: 10px; border-radius: 20px; background: rgba(255,255,255,.55); border: 1px solid var(--linha); }
+.mf-coluna header { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; }
+.mf-coluna header span { min-width: 28px; text-align: center; border-radius: 99px; padding: 2px 8px; background: var(--superficie); font-weight: 700; font-size: 13px; }
+.mf-coluna.com_ela header b { color: #b5651d; }
+.mf-coluna.devolvido header b { color: #1f8a4c; }
+.mf-coluna .mf-peca { background: var(--superficie); }
+@media (max-width: 700px) {
+  .mf-kanban { grid-template-columns: repeat(3, 82vw); scroll-snap-type: x mandatory; margin: 0 -16px; padding: 0 16px 8px; }
+  .mf-coluna { scroll-snap-align: start; }
+  .mf-modelos-lista { padding: 0 0 4px; }
+}

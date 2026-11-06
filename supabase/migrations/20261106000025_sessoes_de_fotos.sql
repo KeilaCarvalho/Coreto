@@ -1,0 +1,4 @@
+-- Sessões de fotos (evento + data) com as peças e a situação de cada uma.
+-- Aplicada no Supabase como "sessoes_de_fotos": tabelas fotos_sessoes e fotos_itens (RLS marketing),
+-- funções registrar_sessao_fotos(jsonb) (sai da Loja → Marketing) e
+-- mudar_item_fotos(bigint, text, text) (devolvido → Loja; deu → brinde; devolvido → com ela).
