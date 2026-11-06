@@ -118,7 +118,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Barra do celular */
 .barra-movel { display: none; }
-.menu-fundo, .menu-fechar { display: none; }
+.menu-fundo, .menu-fechar, .menu-sair { display: none; }
 @keyframes fundo-entra { from { opacity: 0; } to { opacity: 1; } }
 
 /* ---------- Cabeçalho de página ---------- */
@@ -346,6 +346,11 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   .barra-movel-marca .nome { width: 84px; height: auto; }
   .barra-movel-acoes { display: flex; align-items: center; gap: 6px; }
   .barra-movel-acoes .icone-botao { width: 40px; height: 40px; }
+  .menu-sair { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: center; margin: 8px 14px 18px; padding: 12px; border-radius: 18px; background: var(--superficie-2); border: 1px solid var(--linha); }
+  .menu-sair strong { display: block; font-size: 13.5px; line-height: 1.2; }
+  .menu-sair div span { font-size: 12px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  .menu-sair form { grid-column: 1 / -1; }
+  .menu-sair .botao { width: 100%; justify-content: center; }
   .barra-movel-acoes .avatar { width: 40px; height: 40px; font-size: 13px; color: var(--verde-950); }
   .topo { display: none; }
   .conteudo { gap: 0; }

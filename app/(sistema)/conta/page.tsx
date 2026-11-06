@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { lerSessao } from "@/lib/sessao";
 import { Cabecalho } from "@/components/cabecalho";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
-import { trocarSenha } from "@/app/acoes/auth";
+import { sair, trocarSenha } from "@/app/acoes/auth";
+import { Icone } from "@/components/icone";
 
 export const metadata = { title: "Minha conta" };
 
@@ -13,7 +14,7 @@ export default async function MinhaConta() {
   const p = sessao.pessoa;
   return (
     <>
-      <Cabecalho titulo="Minha conta" descricao="Seus dados de acesso ao sistema." />
+      <Cabecalho titulo="Minha conta" descricao="Seus dados de acesso ao sistema." acoes={<form action={sair}><button className="botao leve" type="submit"><Icone nome="sair" />Sair e entrar com outro acesso</button></form>} />
       <div className="grade-lateral">
         <section className="painel">
           <div className="painel-topo"><div><h2>Trocar senha</h2><p>Use pelo menos 8 caracteres.</p></div></div>

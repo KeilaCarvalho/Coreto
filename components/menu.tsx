@@ -69,6 +69,11 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
             </div>
           ))}
         </nav>
+        <div className="menu-sair">
+          <span className="avatar" aria-hidden="true">{iniciais}</span>
+          <div><strong>{nome}</strong><span>{email}</span></div>
+          <form action={sair}><button className="botao leve pequeno" type="submit"><Icone nome="sair" />Sair</button></form>
+        </div>
       </aside>
       {aberto && <button type="button" className="menu-fundo" aria-label="Fechar menu" onClick={() => setAberto(false)} />}
       <div className="conteudo">
