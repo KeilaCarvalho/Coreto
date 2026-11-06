@@ -20,7 +20,7 @@ export function SituacaoItem({ id, situacao, pode }: { id: number; situacao: str
       <div className="mf-seg" role="group" aria-label="Situação">
         {OPCOES.map((o) => (
           o.v === "deu" ? (
-            <button key={o.v} type="button" className={situacao === o.v ? "ativo" : undefined} disabled={enviando} onClick={() => setPedindo((p) => !p)}>{o.rotulo}</button>
+            <button key={o.v} type="button" className={situacao === o.v ? "ativo deu" : undefined} disabled={enviando} onClick={() => setPedindo((p) => !p)}>{o.rotulo}</button>
           ) : (
             <form key={o.v} action={enviar}>
               <input type="hidden" name="id" value={id} />

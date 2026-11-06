@@ -49,7 +49,7 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
             <b>{comSessao ? modeloDe(i) : detalhe(i)}</b>
             <span>{comSessao ? `${detalhe(i)}${s ? ` · ${s.evento} (${dataCurta(s.data).slice(0, 5)})` : ""}` : i.observacao ?? ""}</span>
           </div>
-          {i.quantidade > 1 && <span className="mf-item-qtd">{i.quantidade}</span>}
+          {i.quantidade > 1 && <span className="mf-qtd">×{i.quantidade}</span>}
         </div>
         {comSessao && i.observacao && <span className="mini">{i.observacao}</span>}
         <SituacaoItem id={i.id} situacao={i.situacao} pode={pode} />
