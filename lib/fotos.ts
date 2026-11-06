@@ -1,3 +1,5 @@
-/** Situação de cada peça que saiu para fotos. */
-export const ROTULO: Record<string, string> = { com_ela: "Com ela", devolvido: "Devolvido", deu: "Doado" };
-export const CLASSE: Record<string, string> = { com_ela: "alerta", devolvido: "ok", deu: "neutra" };
+/** Situação de cada peça que saiu para fotos. Ela avisa (devolvendo/doando); a administração confirma (devolvido/deu). */
+export const ROTULO: Record<string, string> = {
+  com_ela: "Com ela", devolvendo: "Devolução avisada", doando: "Doação avisada", devolvido: "Devolvido", deu: "Doado",
+};
+export const CLASSE: Record<string, string> = { com_ela: "alerta", devolvendo: "neutra", doando: "neutra", devolvido: "ok", deu: "neutra" };

@@ -1230,7 +1230,7 @@ details > summary::-webkit-details-marker { display: none; }
 .mf-seg button:disabled { cursor: default; }
 .mf-deu { display: flex; gap: 6px; }
 .mf-deu .entrada { flex: 1; min-width: 0; }
-.mf-kanban { display: grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap: 12px; align-items: start; overflow-x: auto; }
+.mf-kanban { display: grid; grid-template-columns: repeat(4, minmax(230px, 1fr)); gap: 12px; align-items: start; overflow-x: auto; }
 .mf-coluna { display: grid; gap: 8px; padding: 10px; border-radius: 20px; background: rgba(255,255,255,.55); border: 1px solid var(--linha); }
 .mf-coluna header { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; }
 .mf-coluna header span { min-width: 28px; text-align: center; border-radius: 99px; padding: 2px 8px; background: var(--superficie); font-weight: 700; font-size: 13px; }
@@ -1238,7 +1238,7 @@ details > summary::-webkit-details-marker { display: none; }
 .mf-coluna.devolvido header b { color: #1f8a4c; }
 .mf-coluna .mf-peca { background: var(--superficie); }
 @media (max-width: 700px) {
-  .mf-kanban { grid-template-columns: repeat(3, 80vw); scroll-snap-type: x mandatory; padding: 0 0 8px; scroll-padding: 0; }
+  .mf-kanban { grid-template-columns: repeat(4, 80vw); scroll-snap-type: x mandatory; padding: 0 0 8px; scroll-padding: 0; }
   .mf-coluna { scroll-snap-align: start; }
   .mf-modelos-lista { padding: 0 0 4px; }
 }
@@ -1310,3 +1310,13 @@ h2 { letter-spacing: -0.01em; line-height: 1.2; }
 .mf-g-cab span { font-size: 11px; font-weight: 600; color: var(--suave); padding-left: 4px; margin-top: 4px; }
 .mf-g-mais { justify-self: start; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px; min-height: 36px; }
 .mf-g-linha .fx-tirar:disabled { opacity: .3; }
+.mf-sit-linha { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.mf-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.mf-acoes .botao-link, .mf-confirma .botao-link, .mf-mais .botao-link { font-size: 13px; }
+.mf-confirma { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border-radius: 12px; background: #fff7ea; border: 1px solid #f3dcb8; }
+.mf-confirma span { font-size: 13px; font-weight: 600; flex: 1 1 100%; }
+.mf-confirma .entrada { flex: 1 1 180px; min-width: 0; }
+.mf-mais summary { list-style: none; cursor: pointer; }
+.mf-mais summary::-webkit-details-marker { display: none; }
+.mf-coluna.devolvendo header b { color: #5a6b78; }
+@media (min-width: 701px) { .mf-modelo-bloco .mf-peca { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } }

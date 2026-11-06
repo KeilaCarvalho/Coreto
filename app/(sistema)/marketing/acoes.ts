@@ -45,10 +45,11 @@ export async function mudarItem(_: EstadoAcao, dados: FormData): Promise<EstadoA
   const id = Number(dados.get("id"));
   const situacao = String(dados.get("situacao") ?? "");
   const obs = String(dados.get("observacao") ?? "").trim() || null;
-  if (!Number.isInteger(id) || !["com_ela", "devolvido", "deu"].includes(situacao)) return { erro: "Situação inválida." };
+  if (!Number.isInteger(id) || !["com_ela", "devolvendo", "doando", "devolvido", "deu"].includes(situacao)) return { erro: "Situação inválida." };
   const supabase = await supabaseServidor();
   const { error } = await supabase.rpc("mudar_item_fotos", { p_item: id, p_situacao: situacao, p_obs: obs });
   if (error) return { erro: mensagem(error.message) };
   atualizar();
-  return { ok: situacao === "devolvido" ? "Marcada como devolvida." : situacao === "deu" ? "Marcada como doada." : "Voltou para com ela." };
+  const ok: Record<string, string> = { devolvendo: "Devolução avisada.", doando: "Doação avisada.", devolvido: "Devolução confirmada.", deu: "Doação confirmada.", com_ela: "Voltou para com ela." };
+  return { ok: ok[situacao] };
 }

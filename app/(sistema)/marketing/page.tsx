@@ -37,7 +37,8 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
   const comEla = itens.filter((i) => i.situacao === "com_ela");
   const sessoesMes = sessoes.filter((s) => s.data >= inicioMes);
   const itensMes = itens.filter((i) => sessoesMes.some((s) => s.id === i.sessao_id));
-  const pode = sessao.pode("marketing", "editar");
+  const podeAvisar = sessao.pode("marketing", "editar");
+  const podeConfirmar = sessao.pode("marketing", "aprovar");
   const sessaoDe = (id: number) => sessoes.find((s) => s.id === id);
 
   const Peca = ({ i, comSessao = false }: { i: Item; comSessao?: boolean }) => {
@@ -52,7 +53,7 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
           {i.quantidade > 1 && <span className="mf-qtd">×{i.quantidade}</span>}
         </div>
         {comSessao && i.observacao && <span className="mini">{i.observacao}</span>}
-        <SituacaoItem id={i.id} situacao={i.situacao} pode={pode} />
+        <SituacaoItem id={i.id} situacao={i.situacao} podeAvisar={podeAvisar} podeConfirmar={podeConfirmar} />
       </div>
     );
   };
@@ -78,11 +79,12 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
         <section className="painel"><Vazio titulo="Nenhuma saída para fotos ainda" texto="Toque em “Nova saída para fotos”, diga o evento e escreva as peças." /></section>
       ) : kanban ? (
         <div className="mf-kanban">
-          {(["com_ela", "devolvido", "deu"] as const).map((sit) => {
-            const col = itens.filter((i) => i.situacao === sit).sort((a, b) => b.id - a.id).slice(0, sit === "com_ela" ? 500 : 40);
+          {([["com_ela"], ["devolvendo", "doando"], ["devolvido"], ["deu"]] as const).map((sits) => {
+            const sit = sits[0];
+            const col = itens.filter((i) => (sits as readonly string[]).includes(i.situacao)).sort((a, b) => b.id - a.id).slice(0, sit === "com_ela" ? 500 : 40);
             return (
               <section key={sit} className={`mf-coluna ${sit}`}>
-                <header><b>{ROTULO[sit]}</b><span>{soma(col)}</span></header>
+                <header><b>{sit === "devolvendo" ? "Aguardando confirmação" : ROTULO[sit]}</b><span>{soma(col)}</span></header>
                 {col.length ? col.map((i) => <Peca key={i.id} i={i} comSessao />) : <p className="mini" style={{ padding: "4px 2px" }}>Nada aqui.</p>}
               </section>
             );
@@ -94,11 +96,12 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
             const doEvento = itens.filter((i) => i.sessao_id === s.id);
             const modelos = [...new Set(doEvento.map((i) => modeloDe(i)))].sort((a, b) => a.localeCompare(b));
             const fora = soma(doEvento.filter((i) => i.situacao === "com_ela"));
+            const avisadas = soma(doEvento.filter((i) => i.situacao === "devolvendo" || i.situacao === "doando"));
             return (
               <section key={s.id} className="painel mf-sessao">
                 <div className="painel-topo">
                   <div><h2>{s.evento}</h2><p>{dataCurta(s.data)} · {soma(doEvento)} {soma(doEvento) === 1 ? "peça" : "peças"}{s.observacao ? ` · ${s.observacao}` : ""}</p></div>
-                  <span className={`etiqueta ${fora ? "alerta" : "ok"}`}>{fora ? `${fora} com ela` : "Tudo resolvido"}</span>
+                  <span className={`etiqueta ${fora ? "alerta" : avisadas ? "neutra" : "ok"}`}>{fora ? `${fora} com ela` : avisadas ? `${avisadas} para confirmar` : "Tudo resolvido"}</span>
                 </div>
                 <div className="mf-modelos-lista">
                   {modelos.map((m) => (
