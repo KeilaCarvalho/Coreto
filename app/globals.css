@@ -1271,3 +1271,34 @@ details > summary::-webkit-details-marker { display: none; }
 @media (min-width: 701px) {
   .mf-modelo-bloco .mf-peca { grid-template-columns: minmax(0, 1fr) 300px; align-items: center; }
 }
+
+/* =====================================================================
+   Toque e materiais no estilo Apple (guia apple-design):
+   resposta no toque, sem atraso, vidro translúcido, tipografia por tamanho
+   ===================================================================== */
+html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; font-optical-sizing: auto; }
+.botao, .botao-link, .icone-botao, .abas a, .abas-app a, .abas-app button, .kpi[href], .menu-link, .mf-seg button, .mf-passo button, .chip, .fx-seta, .linha-clicavel {
+  transition: transform .1s ease-out, background-color .15s ease, box-shadow .15s ease, color .15s ease;
+}
+.botao:active, .botao-link:active, .icone-botao:active, .abas a:active, .menu-link:active, .mf-seg button:active, .mf-passo button:active, .chip:active, .fx-seta:active { transform: scale(.97); }
+a.kpi:active, .linha-clicavel:active { transform: scale(.985); }
+h1, .cabecalho h1 { letter-spacing: -0.02em; line-height: 1.12; }
+h2 { letter-spacing: -0.01em; line-height: 1.2; }
+.mini, .ajuda, small { letter-spacing: 0.01em; }
+@media (max-width: 900px) {
+  .barra-movel, .abas-app { background: rgba(255, 255, 255, 0.62); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
+  .abas-app span { font-weight: 600; letter-spacing: 0.01em; }
+  .menu, .fx-janela { transition-timing-function: cubic-bezier(.32, .72, 0, 1); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .barra-movel, .abas-app, .menu-fundo { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: #fff !important; }
+  .menu-fundo { background: rgba(13, 30, 31, 0.55) !important; }
+}
+@media (prefers-contrast: more) {
+  .barra-movel, .abas-app { background: #fff; border-color: var(--tinta); }
+  .painel, .kpi { border: 1px solid var(--linha-forte); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .botao:active, .botao-link:active, .icone-botao:active, a.kpi:active, .linha-clicavel:active { transform: none; }
+  .menu { transition: opacity .2s ease !important; }
+}
