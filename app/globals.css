@@ -355,6 +355,17 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   .topo { display: none; }
   .conteudo { gap: 0; }
   .pagina { border-radius: 0; padding: 18px 16px 40px; background: var(--canvas); box-shadow: none; }
+  /* Nada pode ficar mais largo que a tela: o celular abre já encaixado, sem precisar dar zoom. */
+  html, body { overflow-x: hidden; }
+  .app, .conteudo, .pagina { max-width: 100vw; overflow-x: clip; }
+  .pagina > * { max-width: 100%; }
+  .cabecalho { gap: 14px; }
+  .cabecalho > div:first-child { min-width: 0; width: 100%; }
+  .cabecalho .acoes { width: 100%; }
+  .cabecalho .acoes > * { flex: 1 1 140px; }
+  .cabecalho .acoes .botao { justify-content: center; padding-left: 14px; padding-right: 14px; }
+  .aviso { align-items: flex-start; }
+  .aviso > span { min-width: 0; overflow-wrap: anywhere; }
   .grade-2, .campos.duas, .campos.tres { grid-template-columns: minmax(0, 1fr); }
   .painel-inicio > * { grid-column: 1 / -1 !important; }
   .entrar { grid-template-columns: minmax(0, 1fr); padding: 0; gap: 0; }
