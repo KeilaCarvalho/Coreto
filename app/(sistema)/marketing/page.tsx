@@ -10,6 +10,7 @@ import { FormSaidaFotos } from "@/components/marketing/form-saida";
 import { SituacaoItem } from "@/components/marketing/situacao-item";
 import { ROTULO } from "@/lib/fotos";
 import { ExcluirFotos } from "@/components/marketing/excluir";
+import { EditarItem, EditarSessao } from "@/components/marketing/editar";
 import { hojeSP } from "@/lib/tarefas";
 import { dataCurta } from "@/lib/formatos";
 
@@ -55,7 +56,12 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
         </div>
         {comSessao && i.observacao && <span className="mini">{i.observacao}</span>}
         <SituacaoItem id={i.id} situacao={i.situacao} podeAvisar={podeAvisar} podeConfirmar={podeConfirmar} />
-        {podeConfirmar && <ExcluirFotos item={i.id} rotulo="Excluir peça" />}
+        {(podeAvisar || podeConfirmar) && (
+          <div className="mf-acoes mf-rodape">
+            {podeAvisar && <EditarItem id={i.id} peca={i.peca ?? ""} cor={i.cor ?? ""} tamanho={i.tamanho ?? ""} quantidade={i.quantidade} />}
+            {podeConfirmar && <ExcluirFotos item={i.id} rotulo="Excluir peça" />}
+          </div>
+        )}
       </div>
     );
   };
@@ -105,7 +111,12 @@ export default async function PecasParaFotos({ searchParams }: { searchParams: P
                   <div><h2>{s.evento}</h2><p>{dataCurta(s.data)} · {soma(doEvento)} {soma(doEvento) === 1 ? "peça" : "peças"}{s.observacao ? ` · ${s.observacao}` : ""}</p></div>
                   <span className={`etiqueta ${fora ? "alerta" : avisadas ? "neutra" : "ok"}`}>{fora ? `${fora} para devolver` : avisadas ? `${avisadas} para confirmar` : "Tudo resolvido"}</span>
                 </div>
-                {podeConfirmar && <div style={{ padding: "0 18px" }}><ExcluirFotos sessao={s.id} rotulo="Excluir sessão" /></div>}
+                {(podeAvisar || podeConfirmar) && (
+                  <div className="mf-acoes" style={{ padding: "0 18px" }}>
+                    {podeAvisar && <EditarSessao id={s.id} evento={s.evento} data={s.data} observacao={s.observacao ?? ""} />}
+                    {podeConfirmar && <ExcluirFotos sessao={s.id} rotulo="Excluir sessão" />}
+                  </div>
+                )}
                 <div className="mf-modelos-lista">
                   {modelos.map((m) => (
                     <div key={m} className="mf-modelo-bloco">

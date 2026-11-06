@@ -1323,3 +1323,7 @@ h2 { letter-spacing: -0.01em; line-height: 1.2; }
 .mf-excluir { font-size: 12.5px; color: #b42318 !important; justify-self: start; }
 .mf-confirma-excluir { background: #fff1f0; border-color: #f5c2bd; }
 .botao.perigo { background: #d92d20; color: #fff; }
+.mf-editar { font-size: 12.5px; }
+.mf-rodape { gap: 14px; }
+.mf-edita { display: grid; gap: 6px; width: 100%; padding: 10px; border-radius: 12px; background: var(--superficie); border: 1px solid var(--linha); }
+.mf-e-linha { grid-template-columns: minmax(0, 1fr) 64px 56px; }

@@ -78,3 +78,38 @@ export async function excluirFotos(_: EstadoAcao, dados: FormData): Promise<Esta
   }
   return { erro: "Nada para excluir." };
 }
+
+/** Corrige nome, cor, tamanho ou quantidade de uma peça (quem lança pode). */
+export async function editarItem(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const id = Number(dados.get("id"));
+  const peca = String(dados.get("peca") ?? "").trim();
+  const cor = String(dados.get("cor") ?? "").trim() || null;
+  const tamanho = String(dados.get("tamanho") ?? "").trim().toUpperCase() || null;
+  const quantidade = Math.floor(Number(dados.get("quantidade")));
+  if (!Number.isInteger(id)) return { erro: "Peça inválida." };
+  if (!peca) return { erro: "A peça precisa de nome." };
+  if (!(quantidade >= 1 && quantidade <= 500)) return { erro: "Quantidade inválida." };
+  const supabase = await supabaseServidor();
+  const { data, error } = await supabase.from("fotos_itens").update({ peca, cor, tamanho, quantidade, atualizado_em: new Date().toISOString() }).eq("id", id).select("id");
+  if (error) return { erro: mensagem(error.message) };
+  if (!data?.length) return { erro: "Seu perfil não pode editar." };
+  atualizar();
+  return { ok: "Peça atualizada." };
+}
+
+/** Corrige o evento, a data ou a anotação da sessão. */
+export async function editarSessao(_: EstadoAcao, dados: FormData): Promise<EstadoAcao> {
+  const id = Number(dados.get("id"));
+  const evento = String(dados.get("evento") ?? "").trim();
+  const data = String(dados.get("data") ?? "");
+  const observacao = String(dados.get("observacao") ?? "").trim() || null;
+  if (!Number.isInteger(id)) return { erro: "Sessão inválida." };
+  if (!evento) return { erro: "Informe o evento." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { erro: "Informe a data." };
+  const supabase = await supabaseServidor();
+  const { data: r, error } = await supabase.from("fotos_sessoes").update({ evento, data, observacao }).eq("id", id).select("id");
+  if (error) return { erro: mensagem(error.message) };
+  if (!r?.length) return { erro: "Seu perfil não pode editar." };
+  atualizar();
+  return { ok: "Sessão atualizada." };
+}
