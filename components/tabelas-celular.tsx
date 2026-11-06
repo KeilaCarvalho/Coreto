@@ -13,7 +13,7 @@ export function TabelasNoCelular() {
   useEffect(() => {
     const rotular = () => {
       document.querySelectorAll<HTMLTableElement>("table.tabela").forEach((tabela) => {
-        if (tabela.querySelector("tbody input, tbody select, tbody textarea")) return;
+        if (tabela.querySelector("tbody input:not([type=hidden]), tbody select, tbody textarea")) return;
         tabela.classList.add("em-cartoes");
         const nomes = Array.from(tabela.querySelectorAll("thead th")).map((th) => th.textContent?.trim() ?? "");
         tabela.querySelectorAll("tbody tr").forEach((tr) => {

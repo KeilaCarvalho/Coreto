@@ -1097,3 +1097,17 @@ details > summary::-webkit-details-marker { display: none; }
   .tabela.em-cartoes tfoot tr { margin: 4px 0 14px; }
 }
 @media (max-width: 360px) { .tabela.em-cartoes tr { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .tabela.em-cartoes td[data-rotulo="Produto"], .tabela.em-cartoes td[data-rotulo="Andamento"], .tabela.em-cartoes td[data-rotulo="Descrição"], .tabela.em-cartoes td[data-rotulo="Observação"] { grid-column: 1 / -1; }
+  .tabela.em-cartoes .andamento { width: 100%; display: grid; gap: 6px; }
+  .tabela.em-cartoes .andamento .trilho-lote { width: 100%; }
+  .tabela.em-cartoes .item strong { white-space: normal; }
+  .tabela.em-cartoes tfoot tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 12px; padding: 14px 16px; background: var(--tinta); color: #fff; }
+  .tabela.em-cartoes tfoot td { color: inherit; font-weight: 700; text-align: left !important; }
+}
+@media (max-width: 520px) {
+  /* Cartão de destaque ocupa a linha toda; números cabem sem cortar */
+  .kpis > .kpi.destaque:first-child { grid-column: 1 / -1; }
+  .kpis .kpi-valor, .fx-kpis .kpi-valor, .fx-fechamento .kpi-valor { font-size: clamp(20px, 6.4vw, 26px); white-space: nowrap; overflow: visible; text-overflow: clip; letter-spacing: -0.03em; }
+  .kpis .kpi.destaque:first-child .kpi-valor { font-size: clamp(28px, 9vw, 36px); }
+}
