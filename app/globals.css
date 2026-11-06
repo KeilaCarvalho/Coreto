@@ -1175,3 +1175,5 @@ details > summary::-webkit-details-marker { display: none; }
   .medidor svg, .fx-medidor svg { max-width: 170px; }
   .painel { border-radius: 18px; }
 }
+.roteiro .grande { font-size: 26px; margin: 8px 0 2px; }
+@media (max-width: 520px) { .roteiro { padding: 16px; } .roteiro .grande { font-size: 22px; } }
