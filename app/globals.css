@@ -1177,3 +1177,15 @@ details > summary::-webkit-details-marker { display: none; }
 }
 .roteiro .grande { font-size: 26px; margin: 8px 0 2px; }
 @media (max-width: 520px) { .roteiro { padding: 16px; } .roteiro .grande { font-size: 22px; } }
+
+/* Carregando (troca de tela) */
+.carregando { display: grid; gap: 14px; }
+.esq { border-radius: 16px; background: linear-gradient(90deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.9) 50%, rgba(255,255,255,.55) 100%); background-size: 200% 100%; animation: esq-brilho 1.1s linear infinite; }
+.esq-titulo { height: 30px; width: 55%; }
+.esq-linha { height: 14px; width: 80%; }
+.esq-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.esq-cartao { height: 92px; border-radius: 20px; }
+.esq-painel { height: 240px; border-radius: 22px; }
+@keyframes esq-brilho { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .esq { animation: none; } }
+.abas-app a:active, .abas-app button:active { transform: scale(.94); }

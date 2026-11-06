@@ -13,7 +13,9 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
   const caminho = usePathname();
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
-  useEffect(() => setAberto(false), [caminho]);
+  // Aba tocada fica marcada na hora, sem esperar a tela carregar.
+  const [indo, setIndo] = useState<string | null>(null);
+  useEffect(() => { setAberto(false); setIndo(null); }, [caminho]);
   // Celular: menu aberto trava a rolagem da página e fecha no Esc.
   useEffect(() => {
     if (!aberto) return;
@@ -65,14 +67,14 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
         <nav className="menu-rolagem">
           <div className="menu-grupo">
             <p className="menu-grupo-nome">Geral</p>
-            <Link href="/" className="menu-link" aria-current={caminho === "/" ? "page" : undefined}><Icone nome="inicio" />Início</Link>
-            {tarefas && <Link href="/tarefas" className="menu-link" aria-current={atual("/tarefas")}><Icone nome="tarefas" />Minhas tarefas</Link>}
+            <Link href="/" onClick={() => setAberto(false)} className="menu-link" aria-current={caminho === "/" ? "page" : undefined}><Icone nome="inicio" />Início</Link>
+            {tarefas && <Link href="/tarefas" onClick={() => setAberto(false)} className="menu-link" aria-current={atual("/tarefas")}><Icone nome="tarefas" />Minhas tarefas</Link>}
           </div>
           {grupos.map((grupo) => (
             <div className="menu-grupo" key={grupo.rotulo}>
               <p className="menu-grupo-nome">{grupo.rotulo}</p>
               {grupo.itens.map((item) => (
-                <Link key={item.href} href={item.href} aria-current={atual(item.href)} className={`menu-link${item.fase ? " em-breve" : ""}`}>
+                <Link key={item.href} href={item.href} onClick={() => setAberto(false)} aria-current={atual(item.href)} className={`menu-link${item.fase ? " em-breve" : ""}`}>
                   <Icone nome={item.icone} />{item.rotulo}
                   {item.fase && <span className="fase" title={`Chega na fase ${item.fase.slice(1)}`}>{item.fase}</span>}
                 </Link>
@@ -119,9 +121,9 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
         </header>
         <main className="pagina" id="conteudo">{children}</main>
         <nav className="abas-app" aria-label="Navegação">
-          <Link href="/" aria-current={caminho === "/" ? "page" : undefined}><Icone nome="inicio" /><span>Início</span></Link>
-          {abas.map((a) => <Link key={a.href} href={a.href} aria-current={atual(a.href)}><Icone nome={a.icone} /><span>{a.rotulo}</span></Link>)}
-          <button type="button" onClick={() => setAberto(true)} aria-expanded={aberto} aria-current={!abaAtiva || aberto ? "page" : undefined}><Icone nome="menu" /><span>Mais</span></button>
+          <Link href="/" onClick={() => setIndo("/")} aria-current={(indo ? indo === "/" : caminho === "/") ? "page" : undefined}><Icone nome="inicio" /><span>Início</span></Link>
+          {abas.map((a) => <Link key={a.href} href={a.href} onClick={() => setIndo(a.href)} aria-current={(indo ? indo === a.href : !!atual(a.href)) ? "page" : undefined}><Icone nome={a.icone} /><span>{a.rotulo}</span></Link>)}
+          <button type="button" onClick={() => setAberto(true)} aria-expanded={aberto} aria-current={!indo && (!abaAtiva || aberto) ? "page" : undefined}><Icone nome="menu" /><span>Mais</span></button>
         </nav>
         <TabelasNoCelular />
       </div>
