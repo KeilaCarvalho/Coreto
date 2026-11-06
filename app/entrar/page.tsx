@@ -6,7 +6,7 @@ import { criarAcesso, entrar, pedirNovaSenha } from "@/app/acoes/auth";
 import { lerSessao } from "@/lib/sessao";
 import { AvisoLinkDoEmail } from "@/components/entrar/aviso-link";
 
-export const metadata = { title: "Entrar" };
+export const metadata = { title: { absolute: "Sistema Coreto" } };
 
 export default async function PaginaEntrar({ searchParams }: { searchParams: Promise<{ modo?: string; aviso?: string }> }) {
   if (await lerSessao()) redirect("/");

@@ -5,7 +5,8 @@ import "./globals.css";
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--fonte-carregada", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Coreto", template: "%s · Coreto" },
+  title: { default: "Sistema Coreto", template: "%s · Sistema Coreto" },
+  openGraph: { title: "Sistema Coreto", description: "Sistema de gestão da Coreto", siteName: "Sistema Coreto" },
   description: "Sistema de gestão da Coreto",
   robots: { index: false, follow: false },
 };
