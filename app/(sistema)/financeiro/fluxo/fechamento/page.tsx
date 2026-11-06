@@ -85,7 +85,7 @@ export default async function Fechamento({ searchParams }: { searchParams: Promi
         titulo={`Fechamento de ${mesPorExtenso(mes).split(" ")[0]}`}
         descricao="O mês fechado: o que vendeu, as contas, o saldo dos bancos e o que ficou a receber. Daqui sai o PDF do fechamento."
         acoes={<>
-          <BotoesPdf dados={dados} fechamento={mes} />
+          <BotoesPdf dados={dados} fechamento={mes} enviar={sessao.pode("financeiro", "criar")} />
           {podeEditar && <Link className="botao" href={`${base}&contas=1`} scroll={false}><Icone nome="lapis" />Ajustar contas do mês</Link>}
         </>}
       />

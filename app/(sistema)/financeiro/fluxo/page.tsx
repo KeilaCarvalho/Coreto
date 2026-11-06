@@ -194,7 +194,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
         </div>
         <div className="acoes">
           <Link className="botao leve" href="/financeiro/fluxo/fechamento"><Icone nome="calendario" />Fechar mês</Link>
-          <BotoesPdf dados={salvoDados} />
+          <BotoesPdf dados={salvoDados} enviar={sessao.pode("financeiro", "criar")} />
           {podeLancar && <Link className="botao" href={lancar()} scroll={false}><Icone nome={dia ? "lapis" : "mais"} />{dia ? "Editar lançamento" : "Lançar dia"}</Link>}
         </div>
       </header>

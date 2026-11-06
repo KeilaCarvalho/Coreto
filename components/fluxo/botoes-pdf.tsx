@@ -5,7 +5,7 @@ import { Icone } from "@/components/icone";
 import type { DadosFluxo } from "@/lib/fluxo";
 
 /** Baixar o PDF do dia ou mandar para a Deborah pelo compartilhamento do celular (WhatsApp). */
-export function BotoesPdf({ dados, fechamento }: { dados: DadosFluxo | null; fechamento?: string }) {
+export function BotoesPdf({ dados, fechamento, enviar = true }: { dados: DadosFluxo | null; fechamento?: string; enviar?: boolean }) {
   const [gerando, setGerando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
 
@@ -63,7 +63,7 @@ export function BotoesPdf({ dados, fechamento }: { dados: DadosFluxo | null; fec
   return (
     <>
       <button type="button" className="botao leve" onClick={baixarPdf} disabled={!dados || gerando} title={titulo}><Icone nome="baixar" />{gerando ? "Gerando…" : "Baixar PDF"}</button>
-      <button type="button" className="botao whatsapp" onClick={enviarDeborah} disabled={!dados || gerando} title={titulo}><Icone nome="whatsapp" />Enviar para a Deborah</button>
+      {enviar && <button type="button" className="botao whatsapp" onClick={enviarDeborah} disabled={!dados || gerando} title={titulo}><Icone nome="whatsapp" />Enviar para a Deborah</button>}
       {aviso && <p className={`aviso ${aviso.tipo}`} role="status" style={{ flexBasis: "100%", margin: 0 }}><Icone nome={aviso.tipo === "ok" ? "certo" : "alerta"} />{aviso.texto}</p>}
     </>
   );
