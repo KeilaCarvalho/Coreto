@@ -50,9 +50,9 @@ export function AnaliseContas({ contas, mes, hoje }: { contas: ContaPagar[]; mes
   return (
     <>
       <div className="cp-mes">
-        <Link className="botao leve pequeno" href={`?mes=${anterior}`} aria-label="Mês anterior">‹</Link>
+        <Link className="botao leve pequeno" href={`?aba=analise&mes=${anterior}`} aria-label="Mês anterior">‹</Link>
         <strong>{MESES[m - 1]} {a}</strong>
-        <Link className="botao leve pequeno" href={`?mes=${seguinte}`} aria-label="Próximo mês">›</Link>
+        <Link className="botao leve pequeno" href={`?aba=analise&mes=${seguinte}`} aria-label="Próximo mês">›</Link>
       </div>
 
       <div className="kpis fx-kpis fx-fechamento">
@@ -118,7 +118,7 @@ export function AnaliseContas({ contas, mes, hoje }: { contas: ContaPagar[]; mes
               {meses.map(([k, v]) => {
                 const [ka, km] = k.split("-").map(Number);
                 return (
-                  <Link key={k} href={`?mes=${k}-01`} className={`cp-mes-barra${k === mes.slice(0, 7) ? " atual" : ""}${k > hoje.slice(0, 7) ? " futuro" : ""}`} title={`${MESES[km - 1]} ${ka}: ${reais(v.pago + v.aberto)}`}>
+                  <Link key={k} href={`?aba=analise&mes=${k}-01`} className={`cp-mes-barra${k === mes.slice(0, 7) ? " atual" : ""}${k > hoje.slice(0, 7) ? " futuro" : ""}`} title={`${MESES[km - 1]} ${ka}: ${reais(v.pago + v.aberto)}`}>
                     <span className="cp-sem-valor">{curto(v.pago + v.aberto)}</span>
                     <span className="cp-sem-trilho">
                       <i className="aberto" style={{ height: `${(v.aberto / maxMes) * 100}%` }} />

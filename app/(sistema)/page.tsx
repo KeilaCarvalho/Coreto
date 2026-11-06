@@ -32,7 +32,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const inicioJanela = `${diaSP(seteDias)}T00:00:00-03:00`;
 
   const vazio = { data: null } as const;
-  const veFinanceiro = sessao.pode("financeiro");
+  const veFinanceiro = sessao.pode("financeiro", "criar");
   const limiteCobranca = diaSP(new Date(agora.getTime() + 3 * 864e5));
   const cobrancaR = veFinanceiro
     ? await supabase.from("contas_pagar").select("vencimento, em_aberto").or(FILTRO_BANCOS).gt("em_aberto", 0).lte("vencimento", limiteCobranca)
