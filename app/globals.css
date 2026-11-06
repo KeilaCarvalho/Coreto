@@ -1238,7 +1238,7 @@ details > summary::-webkit-details-marker { display: none; }
 .mf-coluna.devolvido header b { color: #1f8a4c; }
 .mf-coluna .mf-peca { background: var(--superficie); }
 @media (max-width: 700px) {
-  .mf-kanban { grid-template-columns: repeat(3, 82vw); scroll-snap-type: x mandatory; margin: 0 -16px; padding: 0 16px 8px; }
+  .mf-kanban { grid-template-columns: repeat(3, 80vw); scroll-snap-type: x mandatory; padding: 0 0 8px; scroll-padding: 0; }
   .mf-coluna { scroll-snap-align: start; }
   .mf-modelos-lista { padding: 0 0 4px; }
 }
