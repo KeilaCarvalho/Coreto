@@ -118,7 +118,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Barra do celular */
 .barra-movel { display: none; }
-.menu-fundo, .menu-fechar, .menu-sair { display: none; }
+.menu-fundo, .menu-fechar, .menu-sair, .abas-app, .menu-alca { display: none; }
 @keyframes fundo-entra { from { opacity: 0; } to { opacity: 1; } }
 
 /* ---------- Cabeçalho de página ---------- */
@@ -1111,3 +1111,38 @@ details > summary::-webkit-details-marker { display: none; }
   .kpis .kpi-valor, .fx-kpis .kpi-valor, .fx-fechamento .kpi-valor { font-size: clamp(20px, 6.4vw, 26px); white-space: nowrap; overflow: visible; text-overflow: clip; letter-spacing: -0.03em; }
   .kpis .kpi.destaque:first-child .kpi-valor { font-size: clamp(28px, 9vw, 36px); }
 }
+
+/* =====================================================================
+   Celular com jeito de app de iPhone: barra de abas embaixo, "Mais" abre
+   o menu como folha de baixo para cima, janelas viram folhas, áreas seguras.
+   ===================================================================== */
+@media (max-width: 900px) {
+  .barra-movel { grid-template-columns: 1fr auto; margin: 0; top: 0; border-radius: 0 0 22px 22px; padding: calc(8px + env(safe-area-inset-top)) 14px 10px 16px; }
+  .pagina { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .abas-app { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 44; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.92); backdrop-filter: saturate(1.6) blur(16px); -webkit-backdrop-filter: saturate(1.6) blur(16px); border-top: 1px solid rgba(0, 60, 62, 0.08); box-shadow: 0 -6px 24px rgba(0, 60, 62, 0.08); }
+  .abas-app a, .abas-app button { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 50px; border: 0; background: none; padding: 4px 2px; border-radius: 14px; color: var(--tenue); font: 600 10.5px/1.1 var(--fonte); text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .abas-app .icone { width: 24px; height: 24px; }
+  .abas-app span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .abas-app [aria-current="page"] { color: var(--verde-700); }
+  .abas-app [aria-current="page"] .icone { color: var(--tinta); background: var(--marca); border-radius: 10px; padding: 3px; width: 34px; height: 30px; margin-bottom: -6px; }
+  /* "Mais": o menu sobe de baixo, como folha do iPhone */
+  .menu { top: auto; bottom: 0; left: 0; right: 0; width: 100%; height: auto; max-height: 86dvh; border-radius: 26px 26px 0 0; transform: translateY(105%); transition: transform 0.26s cubic-bezier(.2,.8,.2,1); padding-bottom: env(safe-area-inset-bottom); }
+  .app.menu-aberto .menu { transform: none; box-shadow: 0 -12px 40px rgba(0, 40, 42, 0.28); }
+  .menu-alca { display: block; width: 40px; height: 5px; border-radius: 99px; background: var(--linha-forte); margin: 8px auto 0; }
+  .menu-marca { padding: 10px 20px 8px; }
+  .menu-fechar { top: 16px; }
+  .menu-rolagem { overflow-y: auto; }
+  .menu-link { min-height: 46px; }
+  /* Janelas laterais viram folhas de baixo */
+  .fx-janela-fundo { align-items: flex-end; }
+  .fx-janela, .fx-janela.larga { width: 100%; height: auto; max-height: 92dvh; border-radius: 24px 24px 0 0; animation: folha-sobe .26s cubic-bezier(.2,.8,.2,1); box-shadow: 0 -12px 40px rgba(0, 40, 42, 0.3); overflow: hidden; }
+  .fx-janela-topo { border-radius: 24px 24px 0 0; padding: 14px 16px 12px; position: relative; }
+  .fx-janela-topo::before { content: ""; position: absolute; top: 6px; left: 50%; width: 40px; height: 5px; margin-left: -20px; border-radius: 99px; background: var(--linha-forte); }
+  .fx-janela-corpo { padding: 16px 14px calc(20px + env(safe-area-inset-bottom)); }
+  .janela-generica .formulario-rodape { margin: 22px -14px -20px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); }
+  /* Toques confortáveis */
+  .botao { min-height: 44px; }
+  .icone-botao { min-width: 40px; min-height: 40px; }
+}
+@keyframes folha-sobe { from { transform: translateY(40%); opacity: .4; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .menu, .fx-janela { transition: none !important; animation: none !important; } }

@@ -25,6 +25,16 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
   }, [aberto]);
   const iniciais = nome.split(/\s+/).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
   const atual = (href: string) => (caminho === href || caminho.startsWith(href + "/") ? "page" : undefined);
+  // Celular: barra de abas embaixo (como app de iPhone). Início + 3 telas mais usadas que a pessoa pode ver + "Mais".
+  const todos = grupos.flatMap((g) => g.itens).filter((i) => !i.fase);
+  const PREFERIDAS: { href: string; rotulo: string }[] = [
+    { href: "/financeiro/fluxo", rotulo: "Fluxo" }, { href: "/financeiro/contas", rotulo: "Contas" },
+    { href: "/comercial/clientes", rotulo: "Clientes" }, { href: "/producao/recebimentos", rotulo: "Facção" },
+    { href: "/estoque/saldos", rotulo: "Estoque" }, { href: "/comercial/vendas", rotulo: "Vendas" },
+  ];
+  const abas = PREFERIDAS.map((p) => { const i = todos.find((t) => t.href === p.href); return i ? { ...i, rotulo: p.rotulo } : null; })
+    .filter((x): x is NonNullable<typeof x> => !!x).slice(0, 3);
+  const abaAtiva = abas.some((a) => atual(a.href)) || caminho === "/";
 
   function buscar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -50,6 +60,7 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
           <img className="flor" src="/coreto-flor-turquesa.png" alt="" />
           <img className="nome" src="/coreto-nome-escuro.png" alt="Coreto" />
         </Link>
+        <span className="menu-alca" aria-hidden="true" />
         <button type="button" className="menu-fechar" onClick={() => setAberto(false)} aria-label="Fechar menu"><Icone nome="fechar" tamanho={20} /></button>
         <nav className="menu-rolagem">
           <div className="menu-grupo">
@@ -78,9 +89,6 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
       {aberto && <button type="button" className="menu-fundo" aria-label="Fechar menu" onClick={() => setAberto(false)} />}
       <div className="conteudo">
         <div className="barra-movel">
-          <button type="button" className="barra-movel-menu" onClick={() => setAberto((v) => !v)} aria-label={aberto ? "Fechar menu" : "Abrir menu"} aria-expanded={aberto}>
-            <Icone nome="menu" tamanho={22} />
-          </button>
           <Link href="/" className="barra-movel-marca" aria-label="Coreto, início">
             <img className="flor" src="/coreto-flor-turquesa.png" alt="" />
             <img className="nome" src="/coreto-nome-escuro.png" alt="Coreto" />
@@ -110,6 +118,11 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
           </div>
         </header>
         <main className="pagina" id="conteudo">{children}</main>
+        <nav className="abas-app" aria-label="Navegação">
+          <Link href="/" aria-current={caminho === "/" ? "page" : undefined}><Icone nome="inicio" /><span>Início</span></Link>
+          {abas.map((a) => <Link key={a.href} href={a.href} aria-current={atual(a.href)}><Icone nome={a.icone} /><span>{a.rotulo}</span></Link>)}
+          <button type="button" onClick={() => setAberto(true)} aria-expanded={aberto} aria-current={!abaAtiva || aberto ? "page" : undefined}><Icone nome="menu" /><span>Mais</span></button>
+        </nav>
         <TabelasNoCelular />
       </div>
     </div>
