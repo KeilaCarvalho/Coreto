@@ -21,6 +21,7 @@ const Fluxo = z.object({
   contasPagas: z.number().finite().min(0, "Contas pagas não pode ser negativo."),
   observacao: z.string().max(2000),
   contasPadrao: z.array(z.string().trim().min(1).max(80)).max(40).nullable().optional(),
+  formas: z.array(z.string().trim().min(1).max(80)).max(40).optional(),
 });
 
 const hojeSP = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
@@ -59,6 +60,11 @@ export async function salvarFluxo(_: EstadoAcao, dados: FormData): Promise<Estad
   let erro: { message: string } | null = dia.error ?? mes.error ?? mesC.error;
   if (!erro && f.contasPadrao) {
     const r = await supabase.from("fluxo_config").update({ contas_padrao: [...new Set(f.contasPadrao)] }).eq("unico", true);
+    erro = r.error;
+  }
+  // Guarda as formas de pagamento como ficaram (inclusive renomeadas ou tiradas) para os próximos dias.
+  if (!erro && f.formas?.length) {
+    const r = await supabase.from("fluxo_config").update({ formas_padrao: [...new Set(f.formas)] }).eq("unico", true);
     erro = r.error;
   }
   if (erro) return { erro: erro.message.includes("row-level security") ? "Seu perfil não pode lançar no fluxo financeiro." : erro.message };

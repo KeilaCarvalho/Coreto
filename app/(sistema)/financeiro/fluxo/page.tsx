@@ -101,7 +101,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
     supabase.from("fluxo_dias").select("data, vendas, saldos, a_receber").lt("data", data).order("data", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("fluxo_dias").select("data, vendas").gte("data", desde).lte("data", fimCal).order("data"),
     supabase.from("pessoas").select("nome, apelido").eq("e_vendedora", true).is("arquivado_em", null).order("nome"),
-    supabase.from("fluxo_config").select("contas_padrao").maybeSingle(),
+    supabase.from("fluxo_config").select("contas_padrao, formas_padrao").maybeSingle(),
     supabase.from("fluxo_meses").select("contas_a_pagar, contas_pagas").eq("mes", mesContasRef).maybeSingle(),
   ]);
   const contasMes = contasR as { contas_a_pagar: number; contas_pagas: number } | null;
@@ -130,7 +130,10 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
     ...l.filter((x) => !contasPadrao.includes(x.nome)),
   ];
   const nomesVendas = anterior ? lerLinhas(anterior.vendas).map((v) => v.nome) : [];
-  const formas = [...new Set([...FORMAS_PAGAMENTO, ...nomesVendas])];
+  // Formas de pagamento: as que ficaram no último lançamento (guardadas ao salvar); sem isso, a lista padrão.
+  const brutoFormas: unknown = (configR as { formas_padrao?: unknown } | null)?.formas_padrao;
+  const formasGuardadas = Array.isArray(brutoFormas) ? brutoFormas.filter((n): n is string => typeof n === "string" && !!n.trim()) : [];
+  const formas = [...new Set([...(formasGuardadas.length ? formasGuardadas : FORMAS_PAGAMENTO), ...nomesVendas])];
   const paraJanela: DadosFluxo = salvoDados ? {
     ...salvoDados,
     saldos: comPadrao(salvoDados.saldos),

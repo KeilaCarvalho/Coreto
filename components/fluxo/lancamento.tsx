@@ -114,6 +114,7 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: {
     saldos: limpa(saldos), aReceber: limpa(aReceber), vendedoras: limpa(vendedoras),
     contasAPagar: r2(num(contasAPagar)), contasPagas: r2(num(contasPagas)), observacao: inicial.observacao,
     contasPadrao: guardar && contasMudaram ? nomesContas : null,
+    formas: [...new Set(vendasLimpas.map((v) => v.nome))],
   });
   const colunas = `minmax(0,1fr) ${inicial.diasVenda.map(() => "minmax(92px,120px)").join(" ")} minmax(92px,120px) 34px`;
   const ir = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
