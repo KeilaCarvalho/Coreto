@@ -84,8 +84,29 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: {
   const [guardarContas, setGuardarContas] = useState<boolean | null>(null);
   const [estado, enviar, salvando] = useActionState(salvar, null);
 
+  // Rascunho no navegador: o que foi digitado não se perde se a página recarregar ou o salvar falhar.
+  const chaveRascunho = `coreto-fluxo-rascunho-${inicial.data}`;
+  const [recuperado, setRecuperado] = useState(false);
   useEffect(() => {
-    if (estado?.ok) router.replace(`${urlDoDia}&salvo=1`, { scroll: false });
+    try {
+      const r = JSON.parse(localStorage.getItem(chaveRascunho) ?? "null");
+      if (r && Date.now() - r.t < 3 * 864e5) {
+        setVendas(r.vendas); setSaldos(r.saldos); setAReceber(r.aReceber); setVendedoras(r.vendedoras);
+        setContasAPagar(r.contasAPagar); setContasPagas(r.contasPagas); setRecuperado(true);
+      }
+    } catch { /* sem rascunho */ }
+  }, [chaveRascunho]);
+  const [mexeu, setMexeu] = useState(false);
+  useEffect(() => {
+    if (!mexeu) return;
+    try { localStorage.setItem(chaveRascunho, JSON.stringify({ t: Date.now(), vendas, saldos, aReceber, vendedoras, contasAPagar, contasPagas })); } catch { /* navegador sem espaço */ }
+  }, [mexeu, vendas, saldos, aReceber, vendedoras, contasAPagar, contasPagas, chaveRascunho]);
+
+  useEffect(() => {
+    if (estado?.ok) {
+      try { localStorage.removeItem(chaveRascunho); } catch { /* ok */ }
+      router.replace(`${urlDoDia}&salvo=1`, { scroll: false });
+    }
   }, [estado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -121,7 +142,7 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: {
 
   return (
     <div className="fx-janela-fundo" onMouseDown={(e) => { if (e.target === e.currentTarget) fechar(); }}>
-      <form className="fx-janela" action={enviar} role="dialog" aria-modal="true" aria-labelledby="fx-janela-titulo">
+      <form className="fx-janela" action={enviar} role="dialog" aria-modal="true" aria-labelledby="fx-janela-titulo" onInput={() => setMexeu(true)} onClick={() => setMexeu(true)}>
         <input type="hidden" name="dados" value={pacote} />
         <div className="fx-janela-topo">
           <div>
@@ -136,6 +157,7 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: {
 
         <div className="fx-janela-corpo" ref={corpo}>
           {estado?.erro && <p className="aviso erro" role="alert"><Icone nome="alerta" />{estado.erro}</p>}
+          {recuperado && !estado && <p className="aviso ok" role="status"><Icone nome="certo" />Recuperei o que você tinha digitado e ainda não estava salvo.</p>}
           {novo && <p className="aviso alerta"><Icone nome="alerta" />Os nomes das contas, do que tem a receber e das vendedoras vieram do último dia lançado. Confira os valores.</p>}
 
           <section className="fx-bloco" id="b-vendas">
