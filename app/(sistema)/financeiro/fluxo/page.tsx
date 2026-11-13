@@ -133,7 +133,8 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   // Formas de pagamento: as que ficaram no último lançamento (guardadas ao salvar); sem isso, a lista padrão.
   const brutoFormas: unknown = (configR as { formas_padrao?: unknown } | null)?.formas_padrao;
   const formasGuardadas = Array.isArray(brutoFormas) ? brutoFormas.filter((n): n is string => typeof n === "string" && !!n.trim()) : [];
-  const formas = [...new Set([...(formasGuardadas.length ? formasGuardadas : FORMAS_PAGAMENTO), ...nomesVendas])];
+  // Com a lista guardada, só ela vale (nome antigo de um dia anterior não volta a aparecer).
+  const formas = formasGuardadas.length ? [...new Set(formasGuardadas)] : [...new Set([...FORMAS_PAGAMENTO, ...nomesVendas])];
   // Sempre na mesma sequência guardada (a do último lançamento salvo).
   const posicao = (nome: string) => { const i = formas.indexOf(nome); return i < 0 ? 999 : i; };
   const ordemFormas = <T extends { nome: string }>(l: T[]) => [...l].sort((x, y) => posicao(x.nome) - posicao(y.nome));
