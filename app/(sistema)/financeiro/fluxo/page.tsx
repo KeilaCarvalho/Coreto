@@ -134,10 +134,13 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   const brutoFormas: unknown = (configR as { formas_padrao?: unknown } | null)?.formas_padrao;
   const formasGuardadas = Array.isArray(brutoFormas) ? brutoFormas.filter((n): n is string => typeof n === "string" && !!n.trim()) : [];
   const formas = [...new Set([...(formasGuardadas.length ? formasGuardadas : FORMAS_PAGAMENTO), ...nomesVendas])];
+  // Sempre na mesma sequência guardada (a do último lançamento salvo).
+  const posicao = (nome: string) => { const i = formas.indexOf(nome); return i < 0 ? 999 : i; };
+  const ordemFormas = <T extends { nome: string }>(l: T[]) => [...l].sort((x, y) => posicao(x.nome) - posicao(y.nome));
   const paraJanela: DadosFluxo = salvoDados ? {
     ...salvoDados,
     saldos: comPadrao(salvoDados.saldos),
-    vendasDia: [...salvoDados.vendasDia, ...formas.filter((f) => !salvoDados.vendasDia.some((v) => v.nome === f)).map((nome) => ({ nome, valor: 0, dias: periodo.map(() => 0) }))],
+    vendasDia: ordemFormas([...salvoDados.vendasDia, ...formas.filter((f) => !salvoDados.vendasDia.some((v) => v.nome === f)).map((nome) => ({ nome, valor: 0, dias: periodo.map(() => 0) }))]),
   } : {
     data, diasVenda: periodo,
     vendasDia: formas.map((nome) => ({ nome, valor: 0, dias: periodo.map(() => 0) })),
