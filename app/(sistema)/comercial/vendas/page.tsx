@@ -206,7 +206,7 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
           {produtos.length ? (
             <div className="tabela-rolagem">
               <table className="tabela">
-                <thead><tr><th>#</th><th>Produto</th><th>Classe</th><th className="num">Peças</th><th className="num">Do mês</th><th className="num">Custo</th><th className="num">Venda</th></tr></thead>
+                <thead><tr><th>#</th><th>Produto</th><th>Classe</th><th className="num">Peças</th><th className="num">Do mês</th><th className="num">Venda</th></tr></thead>
                 <tbody>
                   {produtos.map((p, i) => (
                     <tr key={p.codigo}>
@@ -215,7 +215,6 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
                       <td>{p.classe && <span className={`etiqueta ${p.classe === "A" ? "ok" : p.classe === "B" ? "info" : "neutra"}`}>{p.classe}</span>}</td>
                       <td className="num"><strong>{numero(p.quantidade)}</strong></td>
                       <td className="num">{n(p.percentual).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</td>
-                      <td className="num">{reais(n(p.custo))}</td>
                       <td className="num">{reais(n(p.venda))}</td>
                     </tr>
                   ))}
