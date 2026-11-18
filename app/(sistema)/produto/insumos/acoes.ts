@@ -163,3 +163,21 @@ export async function editarInsumo(_: EstadoAcao, dados: FormData): Promise<Esta
   revalidatePath("/produto/precificacao");
   return { ok: `Item “${lido.data.nome}” salvo.` };
 }
+
+/** Lê o PDF da nota fiscal (DANFE) e devolve fornecedor, número, data e itens para preencher a tela. */
+export async function lerNotaFiscal(dados: FormData): Promise<{ ok: true; nota: import("@/lib/nota-pdf").LeituraNota } | { ok: false; erro: string }> {
+  const sb = await supabaseServidor();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return { ok: false, erro: "Entre de novo no sistema." };
+  const arquivo = dados.get("arquivo");
+  if (!(arquivo instanceof File) || !arquivo.size) return { ok: false, erro: "Nenhum arquivo." };
+  if (!/pdf/i.test(arquivo.type) && !/\.pdf$/i.test(arquivo.name)) return { ok: false, erro: "Só consigo ler PDF. Foto: preencha os itens à mão." };
+  try {
+    const { lerNotaPdf } = await import("@/lib/nota-pdf");
+    const nota = await lerNotaPdf(new Uint8Array(await arquivo.arrayBuffer()), arquivo.name);
+    if (!nota.itens.length) return { ok: false, erro: "Não achei os itens nesse PDF. Preencha à mão." };
+    return { ok: true, nota };
+  } catch {
+    return { ok: false, erro: "Não consegui ler esse PDF. Preencha à mão." };
+  }
+}

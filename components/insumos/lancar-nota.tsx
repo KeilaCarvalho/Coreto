@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icone } from "@/components/icone";
 import { num } from "@/components/ficha-custo";
+import { lerNotaFiscal } from "@/app/(sistema)/produto/insumos/acoes";
 
 export type InsumoSalvo = { nome: string; tipo: "tecido" | "aviamento" | "outro"; unidade: string; ultimo_preco: number | null; ultimo_preco_em: string | null };
 type Linha = { nome: string; tipo: InsumoSalvo["tipo"]; unidade: string; quantidade: string; valor: string };
@@ -28,6 +29,32 @@ export function CamposNota({ insumos, hoje, inicial }: { insumos: InsumoSalvo[];
   const [linhas, setLinhas] = useState<Linha[]>(inicial?.itens.length
     ? inicial.itens.map((i) => ({ nome: i.nome, tipo: i.tipo, unidade: i.unidade, quantidade: inicial.sem_nota && i.quantidade === 1 ? "" : campo(i.quantidade), valor: campo(i.valor_unitario) }))
     : [nova()]);
+  const [leitura, setLeitura] = useState<{ tipo: "lendo" | "ok" | "erro"; texto: string } | null>(null);
+  const escolherArquivo = async (f: File | undefined) => {
+    setArquivo(f?.name ?? null);
+    setLeitura(null);
+    if (!f || !(/pdf/i.test(f.type) || /\.pdf$/i.test(f.name))) return;
+    setLeitura({ tipo: "lendo", texto: "Lendo a nota…" });
+    const fd = new FormData();
+    fd.append("arquivo", f);
+    try {
+      const r = await lerNotaFiscal(fd);
+      if (!r.ok) { setLeitura({ tipo: "erro", texto: r.erro }); return; }
+      const n = r.nota;
+      if (n.fornecedor) setFornecedor((v) => v || n.fornecedor);
+      if (n.numero) setNumero((v) => v || n.numero);
+      if (n.data && n.data <= hoje) setData(n.data);
+      setLinhas(n.itens.map((i) => {
+        const s = achar(i.nome);
+        return { nome: s?.nome ?? i.nome, tipo: s?.tipo ?? i.tipo, unidade: s?.unidade ?? i.unidade, quantidade: campo(i.quantidade), valor: campo(i.valor_unitario) };
+      }));
+      const soma = n.itens.reduce((t, i) => t + i.total, 0);
+      const bate = Math.abs(soma - n.total) < 0.05;
+      setLeitura({ tipo: bate ? "ok" : "erro", texto: `Li ${n.itens.length} ${n.itens.length === 1 ? "item" : "itens"} da nota (${brl(soma)}).${bate ? "" : ` A nota diz ${brl(n.total)}: confira se faltou algum.`} Confira os tipos antes de salvar.` });
+    } catch {
+      setLeitura({ tipo: "erro", texto: "Não consegui ler o PDF agora. Preencha à mão." });
+    }
+  };
   const achar = (nome: string) => insumos.find((i) => i.nome.trim().toLowerCase() === nome.trim().toLowerCase());
 
   const mudar = (k: number, campo: keyof Linha, valor: string) => setLinhas((ls) => ls.map((l, j) => {
@@ -67,11 +94,12 @@ export function CamposNota({ insumos, hoje, inicial }: { insumos: InsumoSalvo[];
         </div>
         {!semNota && (
           <label className="anexo-nota">
-            <input type="file" name="arquivo" accept="application/pdf,image/*" onChange={(e) => setArquivo(e.target.files?.[0]?.name ?? null)} />
+            <input type="file" name="arquivo" accept="application/pdf,image/*" onChange={(e) => escolherArquivo(e.target.files?.[0])} />
             <Icone nome="arquivo" />
             <span><b>{arquivo ?? (inicial?.temArquivo ? "Trocar o PDF ou a foto da nota" : "Anexar PDF ou foto da nota")}</b><small>{arquivo ? "Toque para trocar" : inicial?.temArquivo ? "O arquivo atual continua se você não trocar" : "No celular, dá para tirar a foto na hora"}</small></span>
           </label>
         )}
+        {!semNota && leitura && <p className={`nota-leitura ${leitura.tipo}`} role="status">{leitura.texto}</p>}
       </div>
 
       <div className="bloco-janela">
