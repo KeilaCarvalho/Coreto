@@ -54,7 +54,7 @@ export default async function Catalogo({ searchParams }: { searchParams: Promise
         </div>
         {produtos.length ? (
           <div className="tabela-rolagem">
-            <table className="tabela">
+            <table className="tabela tabela-catalogo">
               <thead><tr><th>Referência</th><th>Produto</th><th>Cores</th><th className="num">Variantes</th>{sessao.pode("estoque") && <th className="num">Em estoque</th>}<th className="num">Preço</th></tr></thead>
               <tbody>
                 {produtos.map((p) => {

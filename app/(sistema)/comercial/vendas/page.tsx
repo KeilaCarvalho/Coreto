@@ -167,10 +167,10 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
             <ul className="fx-lista">
               {comissoes.map((c, i) => (
                 <li key={c.codigo}>
-                  <div className="fx-equipe" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) auto" }}>
+                  <div className="fx-equipe fx-equipe-vd">
                     <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                       <span className={`marcador ${i === 0 ? "escuro" : ""}`}>{i + 1}º</span>
-                      <span style={{ minWidth: 0 }}><b style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.vendedora}</b><span className="mini">{numero(c.qtd_vendas)} vendas · ticket {reais(n(c.ticket_medio))}</span></span>
+                      <span style={{ minWidth: 0 }}><b className="fx-nome">{c.vendedora.toLowerCase().replace(/(^|\s)\S/g, (l) => l.toUpperCase())}</b><span className="mini">{numero(c.qtd_vendas)} vendas · ticket {reais(n(c.ticket_medio))}</span></span>
                     </span>
                     <span className={`fx-trilho ${i === 0 ? "primeira" : ""}`}><i style={{ width: `${Math.max(2, (n(c.vendas) / maiorVendedora) * 100)}%` }} /></span>
                     <span className="fx-valor">{reais(n(c.vendas))}{!semComissao && <small style={{ color: "var(--suave)" }}>comissão {reais(n(c.valor_pagar))}</small>}</span>
