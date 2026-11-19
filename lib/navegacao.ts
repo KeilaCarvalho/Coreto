@@ -18,7 +18,7 @@ export const MENU: GrupoMenu[] = [
   ] },
   { rotulo: "Produção", itens: [
     { rotulo: "Chegada da facção", href: "/producao/recebimentos", modulo: "producao", icone: "entrada" },
-    { rotulo: "Quadro de produção", href: "/em-breve/quadro", modulo: "producao", icone: "quadro", fase: "F2" },
+    { rotulo: "Quadro de produção", href: "/producao/quadro", modulo: "producao", icone: "quadro" },
     { rotulo: "Facções e corte", href: "/em-breve/faccoes", modulo: "producao", icone: "faccao", fase: "F2" },
   ] },
   { rotulo: "Estoque", itens: [
