@@ -69,6 +69,61 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
     });
   }
 
+  // Arrastar com o mouse (ou caneta): o cartão segue o ponteiro e mostra onde vai cair.
+  const soltouAgora = useRef(false);
+  const fantasma = useRef<HTMLElement | null>(null);
+  function comecar(e: React.PointerEvent<HTMLElement>, o: Op) {
+    if (!podeEditar || e.button !== 0 || e.pointerType === "touch") return;
+    const origem = e.currentTarget;
+    const x0 = e.clientX, y0 = e.clientY;
+    const caixa = origem.getBoundingClientRect();
+    let ativo = false;
+    let destino: { coluna: string; antes: string | null } | null = null;
+    const rolagem = origem.closest(".qd-colunas") as HTMLElement | null;
+    let rolar = 0;
+    const timer = window.setInterval(() => { if (rolar && rolagem) rolagem.scrollLeft += rolar; }, 16);
+    const mexe = (ev: PointerEvent) => {
+      if (!ativo) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+        ativo = true;
+        setArrastando(o.id);
+        const f = origem.cloneNode(true) as HTMLElement;
+        f.classList.add("qd-fantasma");
+        f.style.width = `${caixa.width}px`;
+        document.body.appendChild(f);
+        fantasma.current = f;
+        document.body.classList.add("qd-arrastando");
+      }
+      const f = fantasma.current!;
+      f.style.transform = `translate(${ev.clientX - (x0 - caixa.left)}px, ${ev.clientY - (y0 - caixa.top)}px) rotate(2deg)`;
+      if (rolagem) { const r = rolagem.getBoundingClientRect(); rolar = ev.clientX > r.right - 60 ? 14 : ev.clientX < r.left + 60 ? -14 : 0; }
+      const el = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null;
+      const col = el?.closest<HTMLElement>("[data-coluna]");
+      if (!col) { destino = null; setAlvo(null); return; }
+      const cartoes = [...col.querySelectorAll<HTMLElement>("[data-op]")].filter((c) => c.dataset.op !== o.id);
+      const depois = cartoes.find((c) => { const r = c.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
+      destino = { coluna: col.dataset.coluna!, antes: depois?.dataset.op ?? null };
+      setAlvo(destino);
+    };
+    const fim = () => {
+      window.removeEventListener("pointermove", mexe);
+      window.removeEventListener("pointerup", fim);
+      window.removeEventListener("pointercancel", fim);
+      window.clearInterval(timer);
+      fantasma.current?.remove(); fantasma.current = null;
+      document.body.classList.remove("qd-arrastando");
+      if (ativo) {
+        soltouAgora.current = true;
+        window.setTimeout(() => { soltouAgora.current = false; }, 50);
+        if (destino) mover(o.id, destino.coluna, destino.antes);
+      }
+      setArrastando(null); setAlvo(null);
+    };
+    window.addEventListener("pointermove", mexe);
+    window.addEventListener("pointerup", fim);
+    window.addEventListener("pointercancel", fim);
+  }
+
   function novo(coluna: string) {
     setAberto({ numero: proximoNumero, titulo: "", tecido: null, faccao: null, quantidade: null, prazo: null, etiqueta: null, observacao: null, coluna_id: coluna });
   }
@@ -106,8 +161,7 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
             <section
               key={c.id}
               className={`qd-coluna${c.id === colunaAtualCel?.id ? " atual" : ""}${alvo?.coluna === c.id && arrastando ? " alvo" : ""}`}
-              onDragOver={(e) => { if (!arrastando) return; e.preventDefault(); if (alvo?.coluna !== c.id || (e.target as HTMLElement).closest(".qd-cartao") == null) setAlvo((a) => (a?.coluna === c.id && a.antes ? a : { coluna: c.id, antes: null })); }}
-              onDrop={(e) => { e.preventDefault(); if (arrastando && alvo) mover(arrastando, alvo.coluna, alvo.antes); setArrastando(null); setAlvo(null); }}
+              data-coluna={c.id}
             >
               <div className="qd-coluna-topo">
                 <span><i style={{ background: c.cor ?? "var(--marca)" }} />{c.nome}</span>
@@ -120,11 +174,10 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
                     <article
                       key={o.id}
                       className={`qd-cartao${arrastando === o.id ? " arrastando" : ""}${alvo?.antes === o.id ? " antes" : ""}`}
-                      draggable={podeEditar}
-                      onDragStart={(e) => { setArrastando(o.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", o.id); }}
-                      onDragEnd={() => { setArrastando(null); setAlvo(null); }}
-                      onDragOver={(e) => { if (!arrastando || arrastando === o.id) return; e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); const depois = e.clientY > r.top + r.height / 2; const idx = lista.findIndex((x) => x.id === o.id); setAlvo({ coluna: c.id, antes: depois ? (lista[idx + 1]?.id ?? null) : o.id }); }}
-                      onClick={() => setAberto({ ...o })}
+                      data-op={o.id}
+                      data-arrasta={podeEditar ? "1" : undefined}
+                      onPointerDown={(e) => comecar(e, o)}
+                      onClick={() => { if (!soltouAgora.current) setAberto({ ...o }); }}
                       tabIndex={0}
                       onKeyDown={(e) => { if (e.key === "Enter") setAberto({ ...o }); }}
                     >

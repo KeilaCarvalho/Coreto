@@ -18,13 +18,13 @@ type Sinal = { tipo: "urgente" | "atencao" | "ok"; icone: NomeIcone; titulo: str
 /** Linha de tendência (sparkline) com área suave. */
 function Linha({ valores, cor = "var(--marca)" }: { valores: number[]; cor?: string }) {
   if (valores.length < 2) return <span className="ind-linha" />;
-  const max = Math.max(...valores), min = Math.min(...valores), w = 96, h = 34;
+  const max = Math.max(...valores), min = Math.min(...valores), w = 200, h = 30;
   const pts = valores.map((v, i) => [(i / (valores.length - 1)) * w, h - 3 - ((v - min) / (max - min || 1)) * (h - 6)]);
   const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
   return (
-    <svg className="ind-linha" viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+    <svg className="ind-linha" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
       <path d={`${d} L${w} ${h} L0 ${h} Z`} fill={cor} opacity="0.12" />
-      <path d={d} fill="none" stroke={cor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={cor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -36,7 +36,7 @@ function Indicador({ titulo, icone, valor, linha, selo, nota, href, cor }: {
     <>
       <div className="ind-titulo"><span className="ico"><Icone nome={icone} /></span>{titulo}</div>
       <div className="ind-valor">{valor}</div>
-      {linha ? <Linha valores={linha} cor={cor} /> : <span />}
+      {linha ? <Linha valores={linha} cor={cor} /> : null}
       <div className="ind-rodape">{selo && <span className={`selo ${selo.tipo}`}>{selo.texto}</span>}{nota}</div>
     </>
   );

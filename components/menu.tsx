@@ -31,8 +31,9 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
   const todos = grupos.flatMap((g) => g.itens).filter((i) => !i.fase);
   const PREFERIDAS: { href: string; rotulo: string }[] = [
     { href: "/financeiro/fluxo", rotulo: "Fluxo" }, { href: "/financeiro/contas", rotulo: "Contas" },
+    { href: "/producao/quadro", rotulo: "Produção" }, { href: "/comercial/vendas", rotulo: "Vendas" },
     { href: "/comercial/clientes", rotulo: "Clientes" }, { href: "/producao/recebimentos", rotulo: "Facção" },
-    { href: "/estoque/saldos", rotulo: "Estoque" }, { href: "/comercial/vendas", rotulo: "Vendas" }, { href: "/marketing", rotulo: "Fotos" },
+    { href: "/estoque/saldos", rotulo: "Estoque" }, { href: "/marketing", rotulo: "Fotos" },
   ];
   const abas = PREFERIDAS.map((p) => { const i = todos.find((t) => t.href === p.href); return i ? { ...i, rotulo: p.rotulo } : null; })
     .filter((x): x is NonNullable<typeof x> => !!x).slice(0, 3);

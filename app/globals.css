@@ -1600,3 +1600,9 @@ a.ind:hover { color: var(--tinta); box-shadow: 0 0 0 1px var(--linha-forte), 0 4
 .ini-inds { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
 .etapa-linha.valor { grid-template-columns: 110px minmax(0, 1fr) 110px; }
 @media (max-width: 900px) { .ini-inds { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .etapa-linha.valor { grid-template-columns: 84px minmax(0, 1fr) 96px; } }
+.ind { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; }
+.ind-linha { width: 100%; height: 30px; margin-top: 6px; }
+.ind-valor { margin-top: 10px; }
+.qd-fantasma { position: fixed; left: 0; top: 0; z-index: 100; pointer-events: none; box-shadow: 0 16px 32px -8px rgba(16, 24, 40, 0.3), 0 0 0 1px rgba(16, 24, 40, 0.06) !important; opacity: .96; }
+body.qd-arrastando, body.qd-arrastando * { cursor: grabbing !important; user-select: none; }
+.qd-cartao[data-arrasta] { cursor: grab; touch-action: auto; }
