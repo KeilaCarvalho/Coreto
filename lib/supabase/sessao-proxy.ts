@@ -32,9 +32,10 @@ export async function atualizarSessao(request: NextRequest) {
     },
   );
 
-  const { data } = await supabase.auth.getUser();
+  // getClaims confere a assinatura do token aqui mesmo (chave pública em cache), sem ir ao servidor de login a cada clique.
+  const { data } = await supabase.auth.getClaims();
   const publica = ROTAS_PUBLICAS.some((rota) => request.nextUrl.pathname.startsWith(rota));
-  if (!data.user && !publica) {
+  if (!data?.claims && !publica) {
     const url = request.nextUrl.clone();
     url.pathname = "/entrar";
     url.search = "";

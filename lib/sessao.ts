@@ -14,18 +14,19 @@ export type Sessao = {
 /** Sessão do usuário logado, lida uma vez por requisição. */
 export const lerSessao = cache(async (): Promise<Sessao | null> => {
   const supabase = await supabaseServidor();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return null;
+  const { data: auth } = await supabase.auth.getClaims();
+  const usuarioId = auth?.claims?.sub;
+  if (!usuarioId) return null;
 
   const [{ data: pessoa }, { data: permissoes }] = await Promise.all([
-    supabase.from("pessoas").select("id, nome, email, perfil_id, acesso_ativo, perfis(nome)").eq("usuario_id", auth.user.id).maybeSingle(),
+    supabase.from("pessoas").select("id, nome, email, perfil_id, acesso_ativo, perfis(nome)").eq("usuario_id", usuarioId).maybeSingle(),
     supabase.rpc("minhas_permissoes"),
   ]);
 
   const conjunto = new Set<string>((permissoes ?? []).map((p: { modulo_id: string; acao: string }) => `${p.modulo_id}:${p.acao}`));
   const perfil = (pessoa as { perfis?: { nome: string } | null } | null)?.perfis;
   return {
-    usuarioId: auth.user.id,
+    usuarioId,
     pessoa: pessoa ? { id: pessoa.id, nome: pessoa.nome, email: pessoa.email, perfil_id: pessoa.perfil_id, acesso_ativo: pessoa.acesso_ativo } : null,
     perfilNome: perfil?.nome ?? null,
     permissoes: conjunto,
