@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { totalDoItem } from "@/lib/unidades";
 import { exigir } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { Cabecalho, Vazio } from "@/components/cabecalho";
@@ -18,7 +19,7 @@ type Linha = {
   id: string; referencia: string; nome: string; preco_venda: number | null; custo_previsto: number | null;
   fichas_custo: { simples: number; cartao: number; comissao: number; despesas_fixas: number; preco_sugerido: number | null } | null;
 };
-type Config = { simples: number; cartao: number; comissao: number; despesas_fixas: number; lucro_desejado: number; itens_padrao?: { descricao: string; quantidade: number; valor_unitario: number }[] };
+type Config = { simples: number; cartao: number; comissao: number; despesas_fixas: number; lucro_desejado: number; itens_padrao?: { descricao: string; quantidade: number; unidade?: string; valor_unitario: number }[] };
 
 const pct = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 const campo = (v: number) => String(v).replace(".", ",");
@@ -107,7 +108,7 @@ export default async function Precificacao({ searchParams }: { searchParams: Pro
             <h3 className="subtitulo" style={{ marginTop: 16 }}>Mão de obra e outros custos padrão</h3>
             {config.itens_padrao?.length ? (
               <ul className="lista-simples">
-                {config.itens_padrao.map((i, k) => <li key={k}>{i.descricao} <strong>{reais(Number(i.quantidade) * Number(i.valor_unitario))}</strong></li>)}
+                {config.itens_padrao.map((i, k) => <li key={k}>{i.descricao} <strong>{reais(totalDoItem(Number(i.quantidade), i.unidade, Number(i.valor_unitario)))}</strong></li>)}
               </ul>
             ) : <p className="mini">Ainda não tem. Ao precificar um modelo, marque “Guardar como padrão”.</p>}
             <p className="mini" style={{ marginTop: 8 }}>Para mudar, precifique um modelo e marque “Atualizar o padrão”.</p>

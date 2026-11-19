@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { totalDoItem } from "@/lib/unidades";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { exigir } from "@/lib/sessao";
@@ -82,7 +83,7 @@ export default async function FichaProduto({ params, searchParams }: { params: P
                     <td className="mini">{TIPO[i.tipo]}</td>
                     <td className="num">{String(i.quantidade).replace(".", ",")} {i.unidade}</td>
                     <td className="num">{reais(Number(i.valor_unitario))}</td>
-                    <td className="num"><strong>{reais(Number(i.quantidade) * Number(i.valor_unitario))}</strong></td>
+                    <td className="num"><strong>{reais(totalDoItem(Number(i.quantidade), i.unidade, Number(i.valor_unitario)))}</strong></td>
                   </tr>
                 ))}
               </tbody>

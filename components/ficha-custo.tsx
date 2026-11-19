@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Icone } from "@/components/icone";
 import type { InsumoSalvo } from "@/components/insumos/lancar-nota";
 
+import { avisoUnidade, totalDoItem } from "@/lib/unidades";
+
 export type ItemFicha = { tipo: "material" | "mao_de_obra" | "outro"; descricao: string; quantidade: string; unidade: string; valor_unitario: string };
 export type Taxas = { simples: string; cartao: string; comissao: string; despesas_fixas: string; lucro_desejado: string };
 
@@ -54,7 +56,7 @@ export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual, insumos =
     }
     return novo;
   }));
-  const totalItem = (i: ItemFicha) => num(i.quantidade) * num(i.valor_unitario);
+  const totalItem = (i: ItemFicha) => totalDoItem(num(i.quantidade), i.unidade, num(i.valor_unitario));
   const custoDe = (tipo: ItemFicha["tipo"]) => itens.filter((i) => i.tipo === tipo).reduce((t, i) => t + totalItem(i), 0);
   const custo = itens.reduce((t, i) => t + totalItem(i), 0);
   const somaTaxas = num(taxas.simples) + num(taxas.cartao) + num(taxas.comissao) + num(taxas.despesas_fixas);
@@ -94,6 +96,7 @@ export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual, insumos =
                   <b className="ficha-total">{brl(totalItem(it))}</b>
                   <button type="button" className="fx-tirar" onClick={() => setItens((l) => l.filter((_, j) => j !== i))} aria-label="Tirar item"><Icone nome="fechar" tamanho={16} /></button>
                 </div>
+                {avisoUnidade(it.unidade) && <small className="nota-dica">{avisoUnidade(it.unidade)}: {it.quantidade} {it.unidade} = {brl(totalItem(it))}</small>}
                 {s?.ultimo_preco != null && (
                   <small className="nota-dica">Última nota: {brl(Number(s.ultimo_preco))} por {s.unidade}{s.ultimo_preco_em ? ` em ${s.ultimo_preco_em.split("-").reverse().join("/")}` : ""}
                     {num(it.valor_unitario) !== Number(s.ultimo_preco) && <> · <button type="button" className="botao-link" onClick={() => mudar(i, "valor_unitario", String(Number(s.ultimo_preco)).replace(".", ","))}>usar esse preço</button></>}
