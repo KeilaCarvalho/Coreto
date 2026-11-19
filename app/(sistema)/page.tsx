@@ -159,8 +159,8 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
 
       <div className="ini-grade">
         <div className="c12 ini-inds">
-          {veFin && <Indicador titulo="Vendas do mês" icone="cifrao" valor={reais(vendasMes)} linha={meses.map((m) => m.valor)} selo={ritmo != null ? { texto: `${ritmo >= 0 ? "▲" : "▼"} ${Math.abs(ritmo)}%`, tipo: ritmo >= 0 ? "sobe" : "desce" } : undefined} nota={ritmo != null ? "no ritmo diário vs. mês passado" : "lançadas no fluxo"} href="/financeiro/fluxo" />}
-          {veFin && <Indicador titulo="Saldo nos bancos" icone="banco" valor={reais(saldoAtual)} linha={linhaSaldo} selo={saldoAnt != null ? { texto: `${saldoAtual >= saldoAnt ? "▲" : "▼"} ${reais(Math.abs(saldoAtual - saldoAnt))}`, tipo: saldoAtual >= saldoAnt ? "sobe" : "desce" } : undefined} nota={ultimoDia ? `em ${ultimoDia.data.slice(8, 10)}/${ultimoDia.data.slice(5, 7)}` : "sem fluxo lançado"} href="/financeiro/fluxo" cor="#2f7cf6" />}
+          {veFin && <Indicador titulo="Vendas do mês" icone="cifrao" valor={reais(vendasMes)} linha={meses.map((m) => m.valor)} selo={ritmo != null ? { texto: `${ritmo >= 0 ? "▲" : "▼"} ${Math.abs(ritmo)}%`, tipo: ritmo >= 0 ? "sobe" : "desce" } : undefined} nota={ritmo != null ? "vs. mês passado" : "lançadas no fluxo"} href="/financeiro/fluxo" />}
+          {veFin && <Indicador titulo="Saldo nos bancos" icone="banco" valor={reais(saldoAtual)} linha={linhaSaldo} selo={saldoAnt != null ? { texto: `${saldoAtual >= saldoAnt ? "▲" : "▼"} ${reais(Math.abs(saldoAtual - saldoAnt))}`, tipo: saldoAtual >= saldoAnt ? "sobe" : "desce" } : undefined} nota={ultimoDia ? `${ultimoDia.data.slice(8, 10)}/${ultimoDia.data.slice(5, 7)}` : "sem fluxo lançado"} href="/financeiro/fluxo" cor="#2f7cf6" />}
           {veFin && <Indicador titulo="A pagar em 7 dias" icone="calendario" valor={reais(totalSemana)} selo={atrasadas.length ? { texto: `${atrasadas.length} ${atrasadas.length === 1 ? "atrasada" : "atrasadas"}`, tipo: "desce" } : { texto: "em dia", tipo: "sobe" }} nota={`${contas.length} ${contas.length === 1 ? "conta" : "contas"}`} href="/financeiro/contas" />}
           {veProd ? <Indicador titulo="Em produção" icone="quadro" valor={`${numero(emProducao.length)} OPs`} selo={opsAtrasadas ? { texto: `${opsAtrasadas} atrasada${opsAtrasadas > 1 ? "s" : ""}`, tipo: "desce" } : undefined} nota={`${numero(emProducao.reduce((t, o) => t + (o.quantidade ?? 0), 0))} peças nas etapas`} href="/producao/quadro" />
             : veEstoque ? <Indicador titulo="Peças em estoque" icone="saldos" valor={numero(pecas)} nota="somando todos os locais" href="/estoque/saldos" /> : null}
@@ -179,7 +179,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
           </section>
         )}
 
-        <section className={`painel ${veFin ? "c5" : "c7"}`}>
+        <section className={`painel ini-sinais ${veFin ? "c5" : "c7"}`}>
           <div className="painel-topo"><div><h2>Pede atenção</h2><p>O que dá pra resolver agora</p></div>{sinais.length > 0 && <span className="etiqueta alerta">{sinais.length}</span>}</div>
           {sinais.length ? (
             <div className="sinais">

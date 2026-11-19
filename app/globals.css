@@ -1606,3 +1606,19 @@ a.ind:hover { color: var(--tinta); box-shadow: 0 0 0 1px var(--linha-forte), 0 4
 .qd-fantasma { position: fixed; left: 0; top: 0; z-index: 100; pointer-events: none; box-shadow: 0 16px 32px -8px rgba(16, 24, 40, 0.3), 0 0 0 1px rgba(16, 24, 40, 0.06) !important; opacity: .96; }
 body.qd-arrastando, body.qd-arrastando * { cursor: grabbing !important; user-select: none; }
 .qd-cartao[data-arrasta] { cursor: grab; touch-action: auto; }
+.ind-rodape { flex-wrap: wrap; row-gap: 4px; }
+@media (max-width: 900px) {
+  .ini-grade > * { order: 2; } .ini-grade > .ini-inds { order: 0; } .ini-grade > .ini-sinais { order: 1; }
+  .painel-topo { flex-wrap: nowrap; align-items: flex-start; }
+  .painel-topo > div:first-child { flex: 1; min-width: 0; }
+  .painel-topo > .botao { flex-shrink: 0; }
+  .sinal { grid-template-columns: auto minmax(0, 1fr); }
+  .sinal .botao { grid-column: 2; justify-self: start; }
+}
+.fx-janela { background: var(--canvas); }
+.qd-janela .fx-janela-corpo { background: var(--superficie); }
+.so-cel { display: none; }
+@media (max-width: 900px) { .so-pc { display: none; } .so-cel { display: inline; } }
+.qd-aviso { position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 90; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 12px; background: var(--tinta); color: #fff; font-size: 14px; font-weight: 600; box-shadow: var(--sombra-flutua); animation: folha-sobe .2s ease; white-space: nowrap; }
+.qd-aviso .icone { color: var(--marca); }
+@media (min-width: 901px) { .qd-aviso { bottom: 28px; } }

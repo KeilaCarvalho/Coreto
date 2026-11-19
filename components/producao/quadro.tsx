@@ -38,6 +38,8 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
   const [colunaCel, setColunaCel] = useState(colunas[0]?.id ?? "");
   const [aberto, setAberto] = useState<Rascunho | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  useEffect(() => { if (!aviso) return; const t = window.setTimeout(() => setAviso(null), 2600); return () => window.clearTimeout(t); }, [aviso]);
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [alvo, setAlvo] = useState<{ coluna: string; antes: string | null } | null>(null);
   const [, iniciar] = useTransition();
@@ -135,7 +137,7 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
       <header className="qd-topo">
         <div>
           <h1>Quadro de produção</h1>
-          <p>{ops.length} {ops.length === 1 ? "ordem" : "ordens"} de produção · arraste os cartões entre as etapas</p>
+          <p>{ops.length} {ops.length === 1 ? "ordem" : "ordens"} de produção<span className="so-pc"> · arraste os cartões entre as etapas</span><span className="so-cel"> · toque no cartão para mover</span></p>
         </div>
         <div className="qd-acoes">
           <label className="qd-busca"><Icone nome="busca" /><input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar OP, modelo, tecido…" aria-label="Buscar" /></label>
@@ -203,6 +205,8 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
         })}
       </div>
 
+      {aviso && <div className="qd-aviso" role="status"><Icone nome="certo" />{aviso}</div>}
+
       {aberto && (
         <JanelaOp
           rascunho={aberto}
@@ -212,7 +216,7 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
           podeArquivar={podeArquivar && !!aberto.id}
           fechar={() => setAberto(null)}
           aoSalvar={(op) => setOps((l) => (l.some((x) => x.id === op.id) ? l.map((x) => (x.id === op.id ? { ...x, ...op } : x)) : [...l, op]))}
-          aoMover={(id, coluna) => { mover(id, coluna, null); setColunaCel(coluna); }}
+          aoMover={(id, coluna) => { mover(id, coluna, null); setAberto(null); setAviso(`Movida para ${colunas.find((c) => c.id === coluna)?.nome ?? coluna}`); }}
           aoArquivar={(id) => setOps((l) => l.filter((x) => x.id !== id))}
         />
       )}

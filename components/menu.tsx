@@ -122,8 +122,8 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
         </header>
         <main className="pagina" id="conteudo">{children}</main>
         <nav className="abas-app" aria-label="Navegação">
-          <Link href="/" onClick={() => setIndo("/")} aria-current={(indo ? indo === "/" : caminho === "/") ? "page" : undefined}><Icone nome="inicio" /><span>Início</span></Link>
-          {abas.map((a) => <Link key={a.href} href={a.href} onClick={() => setIndo(a.href)} aria-current={(indo ? indo === a.href : !!atual(a.href)) ? "page" : undefined}><Icone nome={a.icone} /><span>{a.rotulo}</span></Link>)}
+          <Link href="/" prefetch onClick={() => setIndo("/")} aria-current={(indo ? indo === "/" : caminho === "/") ? "page" : undefined}><Icone nome="inicio" /><span>Início</span></Link>
+          {abas.map((a) => <Link key={a.href} href={a.href} prefetch onClick={() => setIndo(a.href)} aria-current={(indo ? indo === a.href : !!atual(a.href)) ? "page" : undefined}><Icone nome={a.icone} /><span>{a.rotulo}</span></Link>)}
           <button type="button" onClick={() => setAberto(true)} aria-expanded={aberto} aria-current={!indo && (!abaAtiva || aberto) ? "page" : undefined}><Icone nome="menu" /><span>Mais</span></button>
         </nav>
         <TabelasNoCelular />
