@@ -1622,3 +1622,58 @@ body.qd-arrastando, body.qd-arrastando * { cursor: grabbing !important; user-sel
 .qd-aviso { position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 90; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 12px; background: var(--tinta); color: #fff; font-size: 14px; font-weight: 600; box-shadow: var(--sombra-flutua); animation: folha-sobe .2s ease; white-space: nowrap; }
 .qd-aviso .icone { color: var(--marca); }
 @media (min-width: 901px) { .qd-aviso { bottom: 28px; } }
+
+/* ---------- Varredura v4: ajustes de telas antigas ---------- */
+/* Tabelas: menos espaço lateral, nome do produto sem quebrar palavra por palavra */
+.tabela th { padding: 10px 14px; }
+.tabela td { padding: 12px 14px; }
+.tabela td:first-child, .tabela th:first-child { padding-left: 18px; }
+.tabela td:last-child, .tabela th:last-child { padding-right: 18px; }
+@media (min-width: 701px) {
+  .tabela td:has(> strong), .tabela td:has(> .item), .tabela td:has(> a.linha-link) { min-width: 150px; }
+}
+.grade-lateral { grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; }
+@media (max-width: 1320px) { .grade-lateral { grid-template-columns: minmax(0, 1fr); } }
+
+/* Botões de tarefa do Resumo do dia (Lancei / Anexei / Paguei) */
+.cx-fazer { background: var(--superficie); color: var(--tinta); border: 1px solid var(--linha-forte); box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05); border-radius: 8px; }
+.cx-fazer:hover { background: var(--verde-50); border-color: var(--marca); }
+.cx-fazer:active { transform: scale(.97); box-shadow: none; }
+
+/* Escolhas em cartão (Tenho a nota / Sem nota, liberar…) */
+.escolha-liberar label, .escolha-liberar button { border: 1px solid var(--linha-forte); border-radius: 12px; }
+.escolha-liberar label:has(input:checked), .escolha-liberar button.marcada { border-color: var(--marca); background: var(--verde-50); box-shadow: 0 0 0 3px rgba(0, 194, 197, 0.16); }
+
+/* Gráficos de barras antigos (vendas, fluxo, estoque): sem listras, cantos suaves, turquesa */
+.fx-barra { border-radius: 6px 6px 3px 3px; background: var(--superficie-2); box-shadow: none; }
+.fx-barra i { border-radius: 6px 6px 3px 3px; background: #bfeced; }
+.fx-barra.maior i { background: var(--verde-700); }
+.fx-barra.atual i { background: var(--marca); }
+.fx-barra.vazia { background: var(--superficie-2); box-shadow: none; }
+.fx-barra .balao, .barra .balao { box-shadow: 0 0 0 1px var(--linha), 0 2px 6px -2px rgba(16,24,40,.12); border-radius: 6px; }
+.barra { border-radius: 6px 6px 3px 3px; background: var(--superficie-2) !important; box-shadow: none !important; }
+.barra i { border-radius: 6px 6px 3px 3px; background: var(--verde-700); }
+.barra i.media { background: #bfeced; }
+.barra i.clara { background: var(--marca); }
+/* Destaques sem contorno preto duro: fundo turquesa claro e borda turquesa */
+.calculo .destaque, .ficha-sugestao .destaque { background: var(--verde-50); border: 1px solid #9fe3e4; box-shadow: none; color: var(--tinta); }
+.calculo .destaque b, .ficha-sugestao .destaque b { color: var(--verde-700); }
+.calculo .destaque span, .calculo .destaque small, .ficha-sugestao .destaque span, .ficha-sugestao .destaque small { color: var(--suave); }
+.chip { border: 1px solid var(--linha-forte); border-radius: 8px; padding: 7px 12px; }
+.chip:hover { transform: none; box-shadow: none; background: var(--superficie-2); }
+.chip.marcada { background: var(--tinta); color: #fff; border-color: var(--tinta); box-shadow: none; }
+.tf-areas a { border-radius: 8px; }
+.tf-areas a.ativa { background: var(--tinta); color: #fff; border-color: var(--tinta); box-shadow: none; }
+.fx-dia.atual { background: var(--tinta); color: #fff; border-color: var(--tinta); box-shadow: none; }
+.fx-dia.atual small { color: var(--marca); }
+.trilho i.agora { background: var(--marca); }
+.trilho i.feito { background: var(--verde-700); }
+.barra-movel-menu { box-shadow: none; }
+.matriz td.vazia { background: var(--superficie-2); }
+.tf-cartao { border-left: 1px solid var(--linha); border-radius: 12px; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04); padding-left: 14px; }
+.tf-cartao::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--cor-area); }
+.tf-cartao:hover { transform: none; box-shadow: 0 0 0 1px var(--linha-forte), 0 4px 10px -4px rgba(16, 24, 40, 0.12); }
+.tf-cartao.alta { background: var(--superficie); }
+.tf-grupo.atrasadas { box-shadow: var(--sombra); }
+.tf-coluna { background: #eceff1; border: 0; border-radius: 14px; }
+.tf-coluna > header h3 { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; }

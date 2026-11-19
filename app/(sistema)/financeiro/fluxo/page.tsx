@@ -326,7 +326,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
 
             <section className="painel c4">
               <div className="painel-topo">
-                <div><h2>Contas do mês</h2><p><span style={{ textTransform: "capitalize" }}>{mesPorExtenso(mesContasRef)}</span> · <Link href="/financeiro/contas">vem do Conta Azul</Link></p></div>
+                <div><h2>Contas do mês</h2><p><span>{mesPorExtenso(mesContasRef).charAt(0).toUpperCase() + mesPorExtenso(mesContasRef).slice(1)}</span> · <Link href="/financeiro/contas">vem do Conta Azul</Link></p></div>
                 {podeLancar && <Editar href={lancar("b-contas-mes")} rotulo="Editar contas do mês" />}
               </div>
               <div className="fx-medidor"><Medidor pagas={t.contasPagas} aPagar={t.contasAPagar} /></div>
@@ -377,7 +377,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
       )}
 
       <section className="painel" style={{ marginTop: 16 }}>
-        <div className="painel-topo"><div><h2 style={{ textTransform: "capitalize" }}>{mesPorExtenso(data)}</h2><p>Verde: dia lançado. Laranja: dia útil sem lançamento. Sábado e domingo não têm lançamento.</p></div></div>
+        <div className="painel-topo"><div><h2>{mesPorExtenso(data).charAt(0).toUpperCase() + mesPorExtenso(data).slice(1)}</h2><p>Verde: dia lançado. Laranja: dia útil sem lançamento. Sábado e domingo não têm lançamento.</p></div></div>
         <div className="fx-dias">
           {diasCal.map((d) => {
             const fds = ehFimDeSemana(d);

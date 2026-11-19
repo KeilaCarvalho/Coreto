@@ -93,7 +93,7 @@ export default async function PaginaFolha({ searchParams }: { searchParams: Prom
 
       <div className="fx-navegador" style={{ marginBottom: 18 }}>
         <Link className="fx-seta" href={`/pessoas/folha?mes=${somarMes(mes, -1).slice(0, 7)}`} aria-label="Mês anterior"><Icone nome="esquerda" /></Link>
-        <span className="dia" style={{ textTransform: "capitalize" }}>{nomeMes(mes)} de {mes.slice(0, 4)}</span>
+        <span className="dia">{nomeMes(mes).charAt(0).toUpperCase() + nomeMes(mes).slice(1)} de {mes.slice(0, 4)}</span>
         {seguinte <= mesAtual
           ? <Link className="fx-seta" href={`/pessoas/folha?mes=${seguinte.slice(0, 7)}`} aria-label="Mês seguinte"><Icone nome="direita" /></Link>
           : <span className="fx-seta" aria-disabled="true"><Icone nome="direita" /></span>}
