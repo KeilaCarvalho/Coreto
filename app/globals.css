@@ -1737,3 +1737,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .tabela.em-cartoes td form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .tabela.em-cartoes td form .entrada, .tabela.em-cartoes td form select { flex: 1 1 160px; min-width: 0; }
 }
+@media (max-width: 900px) {
+  .filtros:has(> select ~ .entrada), .filtros:has(> .entrada ~ select) { flex-wrap: wrap !important; }
+  .filtros:has(> select ~ .entrada) > select, .filtros:has(> .entrada ~ select) > select { flex: 1 1 100%; max-width: none; }
+}
+.fx-nome { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
