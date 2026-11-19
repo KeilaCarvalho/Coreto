@@ -1732,3 +1732,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .cabecalho .acoes .botao { width: 100%; white-space: normal; line-height: 1.2; text-align: center; min-height: 42px; padding: 6px 10px; font-size: 14px; }
   .cabecalho .acoes .botao.secundario, .cabecalho .acoes .botao.leve { font-size: 13.5px; }
 }
+@media (max-width: 700px) {
+  .tabela.em-cartoes td:has(input:not([type=hidden]), select, textarea) { grid-column: 1 / -1; }
+  .tabela.em-cartoes td form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .tabela.em-cartoes td form .entrada, .tabela.em-cartoes td form select { flex: 1 1 160px; min-width: 0; }
+}

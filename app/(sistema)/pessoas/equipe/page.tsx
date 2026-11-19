@@ -25,7 +25,7 @@ export default async function Equipe() {
         <section className="painel">
           {equipe.length ? (
             <div className="tabela-rolagem">
-              <table className="tabela">
+              <table className="tabela cartoes-sempre">
                 <thead><tr><th>Nome</th><th>Cargo</th><th>Telefone</th><th>Nome nos relatórios</th><th>No sistema</th></tr></thead>
                 <tbody>
                   {equipe.map((p) => (

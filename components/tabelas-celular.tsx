@@ -15,7 +15,7 @@ export function TabelasNoCelular() {
       document.querySelectorAll<HTMLTableElement>("table.tabela").forEach((tabela) => {
         // Fica como tabela só se tiver campo para digitar fora de um "abrir mais" (details), como as grades de quantidade.
         const campos = tabela.querySelectorAll("tbody input:not([type=hidden]), tbody select, tbody textarea");
-        if (Array.from(campos).some((c) => !c.closest("details"))) return;
+        if (!tabela.classList.contains("cartoes-sempre") && Array.from(campos).some((c) => !c.closest("details"))) return;
         tabela.classList.add("em-cartoes");
         const nomes = Array.from(tabela.querySelectorAll("thead th")).map((th) => th.textContent?.trim() ?? "");
         tabela.querySelectorAll("tbody tr").forEach((tr) => {

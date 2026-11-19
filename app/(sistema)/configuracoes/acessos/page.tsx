@@ -37,7 +37,7 @@ export default async function Acessos() {
         <section className="painel">
           <div className="painel-topo"><div><h2>Pessoas com login</h2></div></div>
           <div className="tabela-rolagem">
-            <table className="tabela">
+            <table className="tabela cartoes-sempre">
               <thead><tr><th>Pessoa</th><th>Situação</th><th>Perfil e acesso</th></tr></thead>
               <tbody>
                 {lista.map((p) => (
