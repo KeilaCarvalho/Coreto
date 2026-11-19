@@ -215,7 +215,15 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
           podeMover={podeEditar && !!aberto.id}
           podeArquivar={podeArquivar && !!aberto.id}
           fechar={() => setAberto(null)}
-          aoSalvar={(op) => setOps((l) => (l.some((x) => x.id === op.id) ? l.map((x) => (x.id === op.id ? { ...x, ...op } : x)) : [...l, op]))}
+          aoSalvar={(op, pedido) => {
+            const antes = ops;
+            setOps((l) => (l.some((x) => x.id === op.id) ? l.map((x) => (x.id === op.id ? { ...x, ...op } : x)) : [...l, op]));
+            setAviso(antes.some((x) => x.id === op.id) ? "OP salva" : "OP criada");
+            pedido.then((res) => {
+              if (!res.ok) { setOps(antes); setErro(res.erro); return; }
+              if (res.id && res.id !== op.id) setOps((l) => l.map((x) => (x.id === op.id ? { ...x, id: res.id! } : x)));
+            });
+          }}
           aoMover={(id, coluna) => { mover(id, coluna, null); setAberto(null); setAviso(`Movida para ${colunas.find((c) => c.id === coluna)?.nome ?? coluna}`); }}
           aoArquivar={(id) => setOps((l) => l.filter((x) => x.id !== id))}
         />
@@ -226,11 +234,11 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
 
 function JanelaOp({ rascunho, colunas, podeEditar, podeMover, podeArquivar, fechar, aoSalvar, aoMover, aoArquivar }: {
   rascunho: Rascunho; colunas: Coluna[]; podeEditar: boolean; podeMover: boolean; podeArquivar: boolean;
-  fechar: () => void; aoSalvar: (op: Op) => void; aoMover: (id: string, coluna: string) => void; aoArquivar: (id: string) => void;
+  fechar: () => void; aoSalvar: (op: Op, pedido: ReturnType<typeof salvarOp>) => void; aoMover: (id: string, coluna: string) => void; aoArquivar: (id: string) => void;
 }) {
   const [r, setR] = useState(rascunho);
   const [erro, setErro] = useState<string | null>(null);
-  const [salvando, setSalvando] = useState(false);
+  const salvando = false;
   const [confirmar, setConfirmar] = useState(false);
   const primeiro = useRef<HTMLInputElement>(null);
   const novo = !r.id;
@@ -250,12 +258,11 @@ function JanelaOp({ rascunho, colunas, podeEditar, podeMover, podeArquivar, fech
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     if (!podeEditar) return fechar();
-    setSalvando(true); setErro(null);
-    const res = await salvarOp(r);
-    setSalvando(false);
-    if (!res.ok) { setErro(res.erro); return; }
+    if (!r.titulo.trim()) { setErro("Escreva o modelo."); return; }
+    // Fecha na hora e mostra o cartão; o servidor confirma por trás (se der erro, aparece o aviso).
     const agora = new Date().toISOString();
-    aoSalvar({ ...(r as Op), id: res.id!, ordem: (r as Op).ordem ?? Number.MAX_SAFE_INTEGER, movido_em: (r as Op).movido_em ?? agora, criado_em: (r as Op).criado_em ?? agora });
+    const temp = r.id ?? `novo-${Date.now()}`;
+    aoSalvar({ ...(r as Op), id: temp, ordem: (r as Op).ordem ?? Number.MAX_SAFE_INTEGER, movido_em: (r as Op).movido_em ?? agora, criado_em: (r as Op).criado_em ?? agora }, salvarOp(r));
     fechar();
   }
 
