@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Kpi } from "@/components/painel";
+import { CalendarioContas } from "@/components/calendario-contas";
 import { semanaDoMes, type ContaPagar } from "@/lib/contas-pagar";
-import { dataCurta, reais } from "@/lib/formatos";
+import { reais } from "@/lib/formatos";
 
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const SEMANAS = ["1 a 7", "8 a 14", "15 a 21", "22 a 28", "29 a 31"];
-const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const curto = (v: number) => (v >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: v >= 10000 ? 0 : 1 })}k` : String(Math.round(v)));
 const mil = (v: number) => (v >= 1000 ? `R$ ${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil` : reais(v));
 
@@ -84,20 +84,16 @@ export function AnaliseContas({ contas, mes, hoje }: { contas: ContaPagar[]; mes
         </section>
 
         <section className="painel col-5">
-          <div className="painel-topo"><div><h2>Calendário de vencimentos</h2><p>Quanto mais escuro, mais sai no dia.</p></div></div>
-          <div className="cp-cal">
-            {DIAS.map((d) => <span key={d} className="cp-cal-dia">{d}</span>)}
-            {Array.from({ length: primeiro }, (_, i) => <span key={`v${i}`} />)}
-            {porDia.map((v, i) => {
+          <div className="painel-topo"><div><h2>Calendário de vencimentos</h2><p>Quanto mais escuro, mais sai no dia. Toque num dia para ver as contas.</p></div></div>
+          <CalendarioContas
+            primeiro={primeiro}
+            hoje={hoje}
+            dias={porDia.map((v, i) => {
               const dia = `${mes.slice(0, 7)}-${String(i + 1).padStart(2, "0")}`;
-              const nivel = v ? Math.min(4, Math.ceil((v / maxDia) * 4)) : 0;
-              return (
-                <span key={dia} className={`cp-cal-cel n${nivel}${dia === hoje ? " hoje" : ""}`} title={v ? `${dataCurta(dia)}: ${reais(v)}` : undefined}>
-                  <b>{i + 1}</b>{v > 0 && <small>{curto(v)}</small>}
-                </span>
-              );
+              const l = doMes.filter((c) => c.vencimento === dia).sort((x, y) => Number(y.valor) - Number(x.valor));
+              return { dia, total: v, aberto: soma(l, "em_aberto"), contas: l.map((c) => ({ fornecedor: c.fornecedor || c.descricao, valor: Number(c.valor), aberto: Number(c.em_aberto) })) };
             })}
-          </div>
+          />
         </section>
 
         <section className="painel col-5">

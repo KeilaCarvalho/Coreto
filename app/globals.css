@@ -1771,3 +1771,22 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .painel-topo .legenda { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 4px; }
   .painel-topo .legenda span { font-size: 12px; margin: 0; }
 }
+
+/* Calendário de vencimentos: dia tocável e leitura do dia escolhido */
+.cp-cal button.cp-cal-cel { border: 0; font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.cp-cal-cel.sel { box-shadow: 0 0 0 2px var(--superficie), 0 0 0 4px var(--tinta); }
+.cp-cal-cel.hoje.sel { box-shadow: inset 0 0 0 2px var(--tinta), 0 0 0 2px var(--superficie), 0 0 0 4px var(--tinta); }
+.cp-cal-leitura { margin: -6px 22px 20px; padding: 12px 14px; border-radius: 12px; background: var(--superficie-2); }
+.cp-cal-leitura-topo { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.cp-cal-leitura-topo span { font-size: 13px; color: var(--suave); }
+.cp-cal-leitura-topo strong { font-size: 18px; letter-spacing: -0.02em; }
+.cp-cal-leitura-topo em { font-style: normal; font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 6px; background: #fff4e0; color: #9a5b07; }
+.cp-cal-leitura-topo em.atraso { background: #fdecea; color: #b42318; }
+.cp-cal-leitura-topo em.pago { background: #e8f6ee; color: #1d7a4e; }
+.cp-cal-leitura ul { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.cp-cal-leitura li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: baseline; font-size: 13px; }
+.cp-cal-leitura li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tinta); }
+.cp-cal-leitura li b { font-weight: 600; }
+.cp-cal-leitura li small { font-size: 11px; color: #1d7a4e; font-weight: 600; }
+.cp-cal-leitura li.mais { display: block; color: var(--suave); font-size: 12px; }
+@media (max-width: 700px) { .cp-cal-leitura { margin: -4px 12px 16px; } }
