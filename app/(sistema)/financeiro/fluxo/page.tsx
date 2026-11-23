@@ -1,3 +1,4 @@
+import { BarrasDias } from "@/components/barras-dias";
 import Link from "next/link";
 import { Suspense } from "react";
 import { exigir } from "@/lib/sessao";
@@ -262,20 +263,20 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
               </div>
               {maiorBarra > 0 ? (
                 <>
-                  <div className="fx-barras">
-                    {barras.map((b) => {
+                  <BarrasDias
+                    total={totalBarras}
+                    inicial={[...barras].reverse().find((b) => periodo.includes(b.dia) && b.valor !== null)?.dia}
+                    barras={barras.map((b) => {
                       const atual = periodo.includes(b.dia);
-                      const maior = b.valor === maiorBarra && b.valor > 0;
-                      const cls = b.valor === null ? "vazia" : maior ? "maior" : atual ? "atual" : "";
-                      return (
-                        <div key={b.dia} className={`fx-barra ${cls}`} title={`${nomeDoDia(b.dia)} ${b.dia.slice(8, 10)}/${b.dia.slice(5, 7)}: ${b.valor === null ? "sem lançamento" : reais(b.valor)}`}>
-                          {b.valor !== null && <i style={{ height: `${Math.max(4, (b.valor / maiorBarra) * 100)}%` }} />}
-                          {(atual || maior) && b.valor !== null && <span className="balao" style={{ bottom: `${Math.max(4, (b.valor / maiorBarra) * 100)}%` }}>{curto(b.valor)}</span>}
-                        </div>
-                      );
+                      const maior = b.valor === maiorBarra && (b.valor ?? 0) > 0;
+                      return {
+                        dia: b.dia, valor: b.valor,
+                        classe: b.valor === null ? "vazia" : maior ? "maior" : atual ? "atual" : "",
+                        rotulo: ABREV[nomeDoDia(b.dia)], sub: b.dia.slice(8, 10),
+                        titulo: `${nomeDoDia(b.dia).charAt(0).toUpperCase()}${nomeDoDia(b.dia).slice(1)}, ${b.dia.slice(8, 10)}/${b.dia.slice(5, 7)}`,
+                      };
                     })}
-                  </div>
-                  <div className="fx-eixo">{barras.map((b) => <span key={b.dia}><small>{ABREV[nomeDoDia(b.dia)]}</small>{b.dia.slice(8, 10)}</span>)}</div>
+                  />
                 </>
               ) : <p className="fx-sem-grafico">Ainda não há vendas lançadas nos últimos dias.</p>}
             </section>
