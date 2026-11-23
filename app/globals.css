@@ -1767,3 +1767,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .bd-barras .fx-barra.sel:first-child .bd-valor { left: 0; transform: translate(0, -8px); }
   .bd-barras .fx-barra.sel:last-child .bd-valor { left: auto; right: 0; transform: translate(0, -8px); }
 }
+@media (max-width: 900px) {
+  .painel-topo .legenda { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 4px; }
+  .painel-topo .legenda span { font-size: 12px; margin: 0; }
+}
