@@ -1790,3 +1790,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
 .cp-cal-leitura li small { font-size: 11px; color: #1d7a4e; font-weight: 600; }
 .cp-cal-leitura li.mais { display: block; color: var(--suave); font-size: 12px; }
 @media (max-width: 700px) { .cp-cal-leitura { margin: -4px 12px 16px; } }
+@media (max-width: 900px) {
+  /* Valores dos números do topo sempre cabem no cartão (2 por linha) */
+  .kpis .kpi-valor, .kpis .kpi.destaque .kpi-valor, .fx-kpis .kpi-valor { font-size: min(20px, 5vw) !important; letter-spacing: -0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpis:has(> .kpi:nth-child(3):last-child) > .kpi:first-child .kpi-valor { font-size: 24px !important; }
+}
