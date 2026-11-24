@@ -1983,3 +1983,65 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
 @media (max-width: 900px) {
   .cp-cal-leitura li span { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
 }
+
+/* =====================================================================
+   Login v2 · fundo preto com a flor em traço turquesa e folha branca
+   ===================================================================== */
+.lg { --lg-preto: #0b0d0e; --lg-turq: #00ced1; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(420px, 1fr); background: var(--lg-preto); color: #fff; font-family: var(--fonte); }
+.lg-marca { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 48px 56px; isolation: isolate; }
+.lg-marca::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(60% 55% at 78% 42%, rgba(0, 206, 209, 0.22), transparent 70%), radial-gradient(40% 40% at 10% 100%, rgba(0, 206, 209, 0.10), transparent 70%); }
+.lg-flor { position: absolute; z-index: -1; color: var(--lg-turq); pointer-events: none; }
+.lg-flor.um { width: min(620px, 52vw); right: -12%; top: 46%; transform: translateY(-50%) rotate(8deg); opacity: 0.5; }
+.lg-flor.dois { width: 120px; left: 46%; top: 7%; opacity: 0.22; transform: rotate(22deg); }
+.lg-nome { width: 150px; height: auto; }
+.lg-frase { max-width: 460px; }
+.lg-selo { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 99px; background: rgba(0, 206, 209, 0.12); color: var(--lg-turq); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px; }
+.lg-selo::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--lg-turq); box-shadow: 0 0 0 4px rgba(0, 206, 209, 0.2); }
+.lg-frase h2 { font-size: clamp(30px, 3.4vw, 46px); line-height: 1.06; letter-spacing: -0.035em; font-weight: 700; color: #fff; text-wrap: balance; }
+.lg-frase p { margin-top: 14px; font-size: 15.5px; line-height: 1.55; color: rgba(255, 255, 255, 0.62); max-width: 38ch; }
+
+.lg-folha { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; padding: 40px; background: #fff; color: var(--tinta); border-radius: 32px 0 0 32px; }
+.lg-conteudo { width: 100%; max-width: 380px; }
+.lg-conteudo h1 { font-size: 30px; line-height: 1.1; font-weight: 700; letter-spacing: -0.03em; color: var(--tinta); }
+.lg-sub { margin: 8px 0 28px; color: var(--suave); font-size: 15px; line-height: 1.5; }
+.lg-conteudo .aviso { margin-bottom: 16px; }
+.lg-form { display: grid; gap: 18px; }
+.lg-campo { display: grid; gap: 8px; }
+.lg-rotulos { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.lg-rotulos label { font-size: 13.5px; font-weight: 600; color: var(--tinta); }
+.lg-esqueci { font-size: 13px; font-weight: 600; color: #00898c; text-decoration: none; }
+.lg-esqueci:hover { text-decoration: underline; text-underline-offset: 3px; }
+.lg-caixa { position: relative; display: flex; align-items: center; }
+.lg-caixa input { width: 100%; height: 54px; padding: 0 48px 0 46px; border: 1.5px solid #e3e7ea; border-radius: 14px; background: #f6f8f9; font: 500 16px var(--fonte); color: var(--tinta); transition: border-color .15s ease, background .15s ease, box-shadow .15s ease; -webkit-appearance: none; appearance: none; }
+.lg-caixa input:hover { border-color: #cfd6da; }
+.lg-caixa input:focus { outline: none; background: #fff; border-color: var(--lg-turq); box-shadow: 0 0 0 4px rgba(0, 206, 209, 0.18); }
+.lg-ic { position: absolute; left: 15px; width: 20px; height: 20px; fill: none; stroke: #8a9399; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; transition: stroke .15s ease; }
+.lg-caixa:focus-within .lg-ic { stroke: #00898c; }
+.lg-olho { position: absolute; right: 4px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; border-radius: 10px; cursor: pointer; color: #8a9399; }
+.lg-olho svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.lg-olho:hover, .lg-olho[aria-pressed="true"] { color: var(--tinta); }
+.lg-olho:focus-visible { outline: 2px solid var(--lg-turq); outline-offset: -2px; }
+.lg-ajuda { font-size: 12.5px; color: var(--suave); }
+.lg-form .botao { width: 100%; height: 54px; margin-top: 8px; border: 0; border-radius: 14px; background: var(--lg-preto); color: #fff; font: 700 16px var(--fonte); letter-spacing: -0.01em; box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.6); transition: background .15s ease, transform .1s ease; }
+.lg-form .botao:hover { background: #1d2224; color: #fff; }
+.lg-form .botao:active { transform: scale(0.985); }
+.lg-form .botao:disabled { opacity: 0.7; }
+.lg-rodape { margin-top: 22px; text-align: center; font-size: 14px; color: var(--suave); }
+.lg-rodape a { color: #00898c; font-weight: 700; text-decoration: none; }
+
+@media (max-width: 900px) {
+  .lg { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .lg-marca { min-height: 0; padding: calc(28px + env(safe-area-inset-top)) 24px 56px; gap: 40px; }
+  .lg-flor.um { width: 300px; right: -110px; top: -50px; transform: rotate(8deg); opacity: 0.55; }
+  .lg-flor.dois { display: none; }
+  .lg-nome { width: 124px; }
+  .lg-selo { margin-bottom: 12px; font-size: 11px; }
+  .lg-frase h2 { font-size: 27px; max-width: 13ch; }
+  .lg-frase p { display: none; }
+  .lg-folha { align-items: flex-start; margin-top: -28px; padding: 32px 24px calc(28px + env(safe-area-inset-bottom)); border-radius: 28px 28px 0 0; box-shadow: 0 -12px 30px -18px rgba(0, 0, 0, 0.5); }
+  .lg-conteudo { max-width: 440px; margin: 0 auto; }
+  .lg-conteudo h1 { font-size: 26px; }
+  .lg-sub { margin-bottom: 24px; font-size: 14.5px; }
+}
+@media (prefers-reduced-motion: reduce) { .lg-caixa input, .lg-form .botao, .lg-ic { transition: none; } }
+.lg-flor * { vector-effect: non-scaling-stroke; stroke-width: 1.6px; }
