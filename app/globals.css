@@ -1980,3 +1980,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .painel-topo > .filtros > .botao { flex: 0 0 auto; min-height: 36px; border-radius: 99px; }
   .fx-nome { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.25; }
 }
+@media (max-width: 900px) {
+  .cp-cal-leitura li span { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
+}
