@@ -64,7 +64,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const em7 = diaSP(new Date(agora.getTime() + 7 * 864e5));
   const vazio = { data: null, count: null } as const;
 
-  const [mesesR, vendMesR, diasR, contasR, cobrR, saldosR, colunasR, opsR, recR, fotosR, acessoR] = await Promise.all([
+  const [mesesR, vendMesR, diasR, contasR, cobrR, saldosR, colunasR, opsR, recR, fotosR, acessoR, hojeR] = await Promise.all([
     veFin ? sb.from("fluxo_meses").select("mes, vendas").gte("mes", seisMeses).order("mes") : vazio,
     veFin ? sb.from("vendas_mensais").select("mes, valor_total").gte("mes", seisMeses).order("mes") : vazio,
     veFin ? sb.from("fluxo_dias").select("data, saldos, vendas").order("data", { ascending: false }).limit(20) : vazio,
@@ -76,6 +76,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     sessao.pode("producao") || sessao.pode("produto") ? sb.from("recebimentos_resumo").select("situacao") .in("situacao", ["pronto", "sem_preco"]) : vazio,
     veFotos ? sb.from("fotos_itens").select("id", { count: "exact", head: true }).in("situacao", ["com_ela", "devolvendo", "doando"]) : vazio,
     administra ? sb.from("pessoas").select("nome").not("usuario_id", "is", null).eq("acesso_ativo", false).is("arquivado_em", null).limit(3) : vazio,
+    administra ? sb.from("acessos_dia").select("primeiro, ultimo, pessoas(nome)").eq("dia", hoje).order("primeiro") : vazio,
   ]);
 
   // Vendas por mês (fluxo financeiro; meses antigos vêm do relatório importado)
@@ -225,6 +226,20 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {administra && (
+          <section className="painel c12">
+            <div className="painel-topo"><div><h2>Quem usou o sistema hoje</h2><p>Primeiro e último horário de cada pessoa</p></div><Link className="botao secundario pequeno" href="/configuracoes/acessos">Ver acessos</Link></div>
+            {((hojeR.data ?? []) as unknown as { primeiro: string; ultimo: string; pessoas: { nome: string } | null }[]).length ? (
+              <div className="hoje-acessos">
+                {((hojeR.data ?? []) as unknown as { primeiro: string; ultimo: string; pessoas: { nome: string } | null }[]).map((x, i) => {
+                  const h = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+                  return <span key={i} className="hoje-acesso"><span className="avatar-mini">{(x.pessoas?.nome ?? "?").charAt(0)}</span><b>{(x.pessoas?.nome ?? "—").split(" ")[0]}</b><small>{h(x.primeiro)}{h(x.ultimo) !== h(x.primeiro) ? `–${h(x.ultimo)}` : ""}</small></span>;
+                })}
+              </div>
+            ) : <p className="sinal-vazio">Ninguém entrou ainda hoje.</p>}
           </section>
         )}
 

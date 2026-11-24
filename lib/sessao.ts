@@ -21,6 +21,7 @@ export const lerSessao = cache(async (): Promise<Sessao | null> => {
   const [{ data: pessoa }, { data: permissoes }] = await Promise.all([
     supabase.from("pessoas").select("id, nome, email, perfil_id, acesso_ativo, perfis(nome)").eq("usuario_id", usuarioId).maybeSingle(),
     supabase.rpc("minhas_permissoes"),
+    supabase.rpc("registrar_acesso"), // anota quando a pessoa usou o sistema (no máximo a cada 2 min)
   ]);
 
   const conjunto = new Set<string>((permissoes ?? []).map((p: { modulo_id: string; acao: string }) => `${p.modulo_id}:${p.acao}`));

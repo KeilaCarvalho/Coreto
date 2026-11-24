@@ -1796,3 +1796,20 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .kpis:has(> .kpi:nth-child(3):last-child) > .kpi:first-child .kpi-valor { font-size: 24px !important; }
 }
 .marcador.banco { font-weight: 800; border: 0; box-shadow: none; }
+
+/* Acessos: quem usou o sistema */
+.acesso-quando { color: var(--suave); font-size: 13px; white-space: nowrap; }
+.acesso-agora { color: #1d7a4e; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.acesso-agora::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #22a06b; margin-right: 6px; vertical-align: 1px; }
+.acessos-dias { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; padding: 4px 18px 18px; }
+.acessos-dia { border: 1px solid var(--linha); border-radius: 12px; padding: 12px 14px; }
+.acessos-dia h3 { font-size: 13px; font-weight: 600; text-transform: capitalize; color: var(--suave); margin-bottom: 8px; }
+.acessos-dia ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.acessos-dia li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 13.5px; }
+.acessos-dia li b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acessos-dia li > span:last-child { color: var(--suave); font-size: 12.5px; white-space: nowrap; }
+.avatar-mini { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--tinta); color: var(--marca); font-size: 12px; font-weight: 700; }
+@media (max-width: 700px) { .acessos-dias { padding: 4px 12px 14px; } }
+.hoje-acessos { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 16px 16px; }
+.hoje-acesso { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border: 1px solid var(--linha); border-radius: 99px; font-size: 13.5px; }
+.hoje-acesso small { color: var(--suave); font-size: 12px; }

@@ -6,7 +6,21 @@ import { preCadastrarAcesso, salvarAcesso } from "../acoes";
 
 export const metadata = { title: "Acessos" };
 
-type Pessoa = { id: string; nome: string; email: string | null; perfil_id: string | null; acesso_ativo: boolean; usuario_id: string | null };
+type Pessoa = { id: string; nome: string; email: string | null; perfil_id: string | null; acesso_ativo: boolean; usuario_id: string | null; ultimo_acesso: string | null };
+type AcessoDia = { dia: string; primeiro: string; ultimo: string; vezes: number; pessoas: { nome: string } | null };
+
+const horaSP = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+const diaSP = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+function quando(iso: string | null) {
+  if (!iso) return "Nunca entrou";
+  const d = new Date(iso);
+  if (Date.now() - d.getTime() < 5 * 60e3) return "Agora há pouco";
+  const hoje = diaSP(new Date()), ontem = diaSP(new Date(Date.now() - 864e5)), dia = diaSP(d);
+  if (dia === hoje) return `Hoje às ${horaSP(iso)}`;
+  if (dia === ontem) return `Ontem às ${horaSP(iso)}`;
+  return `${dia.slice(8, 10)}/${dia.slice(5, 7)} às ${horaSP(iso)}`;
+}
+const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 const ACOES = ["ver", "criar", "editar", "aprovar"] as const;
 
 function resumo(acoes: Set<string>) {
@@ -20,12 +34,16 @@ function resumo(acoes: Set<string>) {
 export default async function Acessos() {
   const sessao = await exigir("configuracoes");
   const supabase = await supabaseServidor();
-  const [{ data: pessoas }, { data: perfis }, { data: modulos }, { data: permissoes }] = await Promise.all([
-    supabase.from("pessoas").select("id, nome, email, perfil_id, acesso_ativo, usuario_id").is("arquivado_em", null).or("usuario_id.not.is.null,email.not.is.null").order("acesso_ativo").order("nome"),
+  const desde = new Date(Date.now() - 13 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const [{ data: pessoas }, { data: perfis }, { data: modulos }, { data: permissoes }, { data: acessos }] = await Promise.all([
+    supabase.from("pessoas").select("id, nome, email, perfil_id, acesso_ativo, usuario_id, ultimo_acesso").is("arquivado_em", null).or("usuario_id.not.is.null,email.not.is.null").order("acesso_ativo").order("nome"),
     supabase.from("perfis").select("id, nome, descricao").order("nome"),
     supabase.from("modulos").select("id, nome").order("ordem"),
     supabase.from("perfil_permissoes").select("perfil_id, modulo_id, acao"),
+    supabase.from("acessos_dia").select("dia, primeiro, ultimo, vezes, pessoas(nome)").gte("dia", desde).order("dia", { ascending: false }).order("primeiro"),
   ]);
+  const porDia = new Map<string, AcessoDia[]>();
+  for (const a of (acessos ?? []) as unknown as AcessoDia[]) porDia.set(a.dia, [...(porDia.get(a.dia) ?? []), a]);
   const lista = (pessoas ?? []) as Pessoa[];
   const podeEditar = sessao.pode("configuracoes", "editar");
   const acoesDe = (perfil: string, modulo: string) => new Set((permissoes ?? []).filter((p) => p.perfil_id === perfil && p.modulo_id === modulo).map((p) => p.acao as string));
@@ -38,7 +56,7 @@ export default async function Acessos() {
           <div className="painel-topo"><div><h2>Pessoas com login</h2></div></div>
           <div className="tabela-rolagem">
             <table className="tabela cartoes-sempre">
-              <thead><tr><th>Pessoa</th><th>Situação</th><th>Perfil e acesso</th></tr></thead>
+              <thead><tr><th>Pessoa</th><th>Situação</th><th>Último acesso</th><th>Perfil e acesso</th></tr></thead>
               <tbody>
                 {lista.map((p) => (
                   <tr key={p.id}>
@@ -48,6 +66,7 @@ export default async function Acessos() {
                         : p.acesso_ativo ? <span className="etiqueta ok">Liberado</span>
                         : <span className="etiqueta alerta">Aguardando liberação</span>}
                     </td>
+                    <td className={p.ultimo_acesso && Date.now() - new Date(p.ultimo_acesso).getTime() < 15 * 60e3 ? "acesso-agora" : "acesso-quando"}>{p.usuario_id ? quando(p.ultimo_acesso) : "—"}</td>
                     <td>
                       {podeEditar ? (
                         <FormAcao acao={salvarAcesso}>
@@ -91,6 +110,33 @@ export default async function Acessos() {
           </section>
         )}
       </div>
+
+      {podeEditar && (
+        <section className="painel" style={{ marginTop: 20 }}>
+          <div className="painel-topo"><div><h2>Quem usou o sistema</h2><p>Últimos 14 dias · primeiro e último horário em que cada pessoa mexeu no sistema</p></div></div>
+          {porDia.size ? (
+            <div className="acessos-dias">
+              {[...porDia].map(([dia, lista]) => {
+                const [a, m, d] = dia.split("-").map(Number);
+                return (
+                  <div key={dia} className="acessos-dia">
+                    <h3>{SEMANA[new Date(Date.UTC(a, m - 1, d)).getUTCDay()]}, {String(d).padStart(2, "0")}/{String(m).padStart(2, "0")}</h3>
+                    <ul>
+                      {lista.map((x, i) => (
+                        <li key={i}>
+                          <span className="avatar-mini">{(x.pessoas?.nome ?? "?").charAt(0).toUpperCase()}</span>
+                          <b>{x.pessoas?.nome ?? "—"}</b>
+                          <span>{horaSP(x.primeiro)}{x.ultimo !== x.primeiro && horaSP(x.ultimo) !== horaSP(x.primeiro) ? ` até ${horaSP(x.ultimo)}` : ""}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          ) : <p className="sinal-vazio">A partir de agora, cada vez que alguém usar o sistema aparece aqui.</p>}
+        </section>
+      )}
 
       <section className="painel" style={{ marginTop: 20 }}>
         <div className="painel-topo"><div><h2>O que cada perfil pode fazer</h2><p>As permissões são checadas no banco de dados, em toda leitura e gravação.</p></div></div>
