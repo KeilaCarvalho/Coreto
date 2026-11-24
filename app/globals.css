@@ -1972,3 +1972,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .abas-app [aria-current="page"] span { font-weight: 700; }
   .abas-app [aria-current="page"] .icone { background: var(--verde-50); color: var(--verde-700); width: 22px; height: 22px; padding: 4px 16px; border-radius: 99px; }
 }
+
+/* Celular v6: filtros em chips roláveis e nomes de fornecedor sem corte */
+@media (max-width: 900px) {
+  .painel-topo > .filtros { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; width: 100%; padding-bottom: 2px; }
+  .painel-topo > .filtros::-webkit-scrollbar { display: none; }
+  .painel-topo > .filtros > .botao { flex: 0 0 auto; min-height: 36px; border-radius: 99px; }
+  .fx-nome { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.25; }
+}
