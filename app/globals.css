@@ -1795,3 +1795,4 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .kpis .kpi-valor, .kpis .kpi.destaque .kpi-valor, .fx-kpis .kpi-valor { font-size: min(20px, 5vw) !important; letter-spacing: -0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .kpis:has(> .kpi:nth-child(3):last-child) > .kpi:first-child .kpi-valor { font-size: 24px !important; }
 }
+.marcador.banco { font-weight: 800; border: 0; box-shadow: none; }

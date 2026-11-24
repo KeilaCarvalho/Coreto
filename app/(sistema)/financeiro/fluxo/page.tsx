@@ -1,4 +1,5 @@
 import { BarrasDias } from "@/components/barras-dias";
+import { corBanco } from "@/lib/bancos";
 import Link from "next/link";
 import { Suspense } from "react";
 import { exigir } from "@/lib/sessao";
@@ -184,7 +185,6 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   const lancar = (secao = "1") => `${base}&lancar=${secao}`;
   const t = salvoDados ? totaisFluxo(salvoDados) : null;
   const saldoAnterior = anterior ? somar(lerLinhas(anterior.saldos)) : null;
-  const saldosAnteriores = new Map(lerLinhas(anterior?.saldos).map((l) => [l.nome, l.valor]));
 
   return (
     <>
@@ -304,19 +304,16 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
 
             <section className="painel c4">
               <div className="painel-topo">
-                <div><h2>Saldo nos bancos</h2><p>{anterior ? "Comparado com o último lançamento" : "Saldo de cada conta"}</p></div>
+                <div><h2>Saldo nos bancos</h2><p>Saldo de cada conta</p></div>
                 {podeLancar && <Editar href={lancar("b-bancos")} rotulo="Editar saldos" />}
               </div>
               <ul className="fx-lista">
-                {salvoDados.saldos.map((l, i) => {
-                  const antes = saldosAnteriores.get(l.nome);
-                  const dif = antes === undefined ? null : l.valor - antes;
+                {salvoDados.saldos.map((l) => {
+                  const cor = corBanco(l.nome);
                   return (
                     <li key={l.nome}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}><span className={`marcador ${MARCADORES[i % MARCADORES.length]}`}>{iniciais(l.nome)}</span><b style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{l.nome}</b></span>
-                      <span className="fx-valor">{reais(l.valor)}
-                        {dif !== null && <small className={dif > 0 ? "sobe" : dif < 0 ? "desce" : "igual"}>{dif > 0 ? "+" : dif < 0 ? "−" : ""}{dif === 0 ? "sem mudança" : reais(Math.abs(dif))}</small>}
-                      </span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}><span className="marcador banco" style={{ background: cor.fundo, color: cor.texto }}>{iniciais(l.nome)}</span><b style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{l.nome}</b></span>
+                      <span className="fx-valor">{reais(l.valor)}</span>
                     </li>
                   );
                 })}

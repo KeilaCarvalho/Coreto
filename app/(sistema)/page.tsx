@@ -5,6 +5,7 @@ import { supabaseServidor } from "@/lib/supabase/server";
 import { Icone, type NomeIcone } from "@/components/icone";
 import { hojeExtenso, horaSP, numero, reais } from "@/lib/formatos";
 import { FILTRO_BANCOS, diasPara } from "@/lib/contas-pagar";
+import { corBanco } from "@/lib/bancos";
 
 export const metadata = { title: "Início" };
 
@@ -219,7 +220,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
               {bancos.map((b) => (
                 <div key={b.nome} className="etapa-linha valor">
                   <span>{b.nome}</span>
-                  <span className="etapa-barra"><i style={{ width: `${Math.max(2, (Math.max(0, b.valor) / Math.max(1, bancos[0].valor)) * 100)}%`, background: "var(--marca)" }} /></span>
+                  <span className="etapa-barra"><i style={{ width: `${Math.max(2, (Math.max(0, b.valor) / Math.max(1, bancos[0].valor)) * 100)}%`, background: corBanco(b.nome).fundo }} /></span>
                   <b>{reais(b.valor)}</b>
                 </div>
               ))}
