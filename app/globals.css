@@ -1900,3 +1900,64 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .conf-tabela input { width: 46px; }
   .conf-rodape .botao { flex: 1 1 100%; }
 }
+
+/* =====================================================================
+   Celular v5: tela sempre na largura do aparelho, sem zoom ao tocar em campo
+   (iOS dá zoom em campos com letra menor que 16px) e janelas sem "sambar".
+   ===================================================================== */
+@media (max-width: 900px) {
+  html, body { overflow-x: clip; max-width: 100%; }
+  .app, .conteudo, .pagina { max-width: 100vw; overflow-x: clip; }
+  input, select, textarea, .entrada, .fx-in, .busca input, .qd-busca input { font-size: 16px !important; }
+  input[type="checkbox"], input[type="radio"] { font-size: inherit !important; }
+  /* Nada dentro das telas pode ficar mais largo que a tela */
+  .pagina :is(div, section, form, fieldset, label, article, header, nav, ul, li),
+  .fx-janela :is(div, section, form, fieldset, label, article, header, nav, ul, li) { min-width: 0; }
+  .tabela-rolagem { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  img, svg, video { max-width: 100%; }
+  h1, h2, h3, strong, b { overflow-wrap: anywhere; }
+
+  /* Janelas (bottom sheet): presas à largura da tela */
+  .fx-janela { left: 0 !important; right: 0 !important; width: 100% !important; max-width: 100vw !important; overflow-x: hidden; }
+  .fx-janela-corpo { overflow-x: hidden; padding-left: 16px; padding-right: 16px; }
+  .fx-janela-topo { gap: 10px; padding-left: 16px; padding-right: 12px; }
+  .fx-janela-topo > div { min-width: 0; flex: 1; }
+  .fx-janela-topo h2 { font-size: 18px; line-height: 1.25; }
+  .fx-janela-topo .icone-botao { flex-shrink: 0; }
+  .campos.duas, .campos.tres { grid-template-columns: minmax(0, 1fr) !important; }
+
+  /* Grade da OP: cabe na tela (cor maior, tamanhos iguais, total e x estreitos) */
+  .gop-tabela { table-layout: fixed; width: 100%; font-size: 14px; }
+  .gop-tabela .gop-cor { width: 30%; min-width: 0; }
+  .gop-tabela th:nth-last-child(2), .gop-tabela td.gop-total { width: 42px; }
+  .gop-tabela th:last-child:empty, .gop-tabela td:last-child:has(.gop-tirar) { width: 26px; }
+  .gop-tabela td { padding: 2px; }
+  .gop-tabela input { min-width: 0; width: 100%; height: 42px; padding: 0 4px; }
+  .gop-tabela .gop-cor input { padding: 0 8px; }
+  .gop-tirar { width: 26px; }
+  .gop-acoes { gap: 8px; }
+  .gop-acoes .botao, .gop-acoes select, .campo .gop-acoes select { width: auto !important; flex: 1 1 0; min-height: 40px; height: 40px; }
+
+  /* Conferência: mesma ideia */
+  .conf-tabela { table-layout: fixed; width: 100%; }
+  .conf-tabela .conf-cor { width: 32%; min-width: 0; }
+  .conf-tabela th:last-child, .conf-tabela td.conf-total { width: 44px; }
+  .conf-tabela input { width: 100%; min-width: 0; height: 42px; }
+  .conf-tabela td { padding: 6px 2px; }
+
+  /* Ficha de custo e itens da nota: descrição numa linha, números embaixo */
+  .ficha-linha { grid-template-columns: 64px 64px minmax(0, 1fr) 30px !important; row-gap: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--linha); }
+  .ficha-linha > :first-child { grid-column: 1 / -1; }
+  .ficha-linha.cab { display: none; }
+  .ficha-linha .ficha-total { display: none; }
+
+  /* Botões e alvos de toque com pelo menos 44px (padrão da Apple) */
+  .botao { min-height: 44px; }
+  .botao.pequeno { min-height: 38px; }
+  .icone-botao { min-width: 40px; min-height: 40px; }
+
+  /* Abas e cabeçalhos que vazavam */
+  .abas { max-width: 100%; }
+  .cabecalho { flex-wrap: wrap; }
+  .cabecalho > div { min-width: 0; }
+}
