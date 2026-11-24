@@ -90,8 +90,8 @@ export function FichaCusto({ itensIniciais, taxasIniciais, precoAtual, insumos =
                 <div key={i}>
                 <div className="ficha-linha">
                   <input className="fx-in" list={g.tipo === "mao_de_obra" ? undefined : "insumos-ficha"} value={it.descricao} onChange={(e) => mudar(i, "descricao", e.target.value)} placeholder={g.exemplo} aria-label="Descrição" />
-                  <input className="fx-in valor" inputMode="decimal" value={it.quantidade} onChange={(e) => mudar(i, "quantidade", e.target.value)} aria-label="Quantidade" />
-                  <input className="fx-in" value={it.unidade} onChange={(e) => mudar(i, "unidade", e.target.value)} aria-label="Unidade" />
+                  <input className="fx-in valor" inputMode="decimal" value={it.quantidade} onChange={(e) => mudar(i, "quantidade", e.target.value)} placeholder="Qtd." aria-label="Quantidade" />
+                  <input className="fx-in" value={it.unidade} onChange={(e) => mudar(i, "unidade", e.target.value)} placeholder="Unid." aria-label="Unidade" />
                   <input className="fx-in valor" inputMode="decimal" value={it.valor_unitario} onChange={(e) => mudar(i, "valor_unitario", e.target.value)} placeholder="0,00" aria-label="Valor unitário" />
                   <b className="ficha-total">{brl(totalItem(it))}</b>
                   <button type="button" className="fx-tirar" onClick={() => setItens((l) => l.filter((_, j) => j !== i))} aria-label="Tirar item"><Icone nome="fechar" tamanho={16} /></button>
