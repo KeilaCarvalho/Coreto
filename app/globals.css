@@ -1961,3 +1961,14 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .cabecalho { flex-wrap: wrap; }
   .cabecalho > div { min-width: 0; }
 }
+
+/* Barra de abas do celular: indicador em pílula só atrás do ícone, nome sempre visível embaixo */
+@media (max-width: 900px) {
+  .abas-app { padding: 6px 4px calc(4px + env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.94); border-top: 1px solid var(--linha); box-shadow: none; }
+  .abas-app a, .abas-app button { gap: 4px; min-height: 56px; padding: 4px 2px 2px; border-radius: 12px; color: var(--suave); font: 500 11px var(--fonte); }
+  .abas-app .icone { box-sizing: content-box; width: 22px; height: 22px; padding: 4px 16px; margin: 0 !important; border-radius: 99px; background: transparent; color: inherit; transition: background .2s ease, color .2s ease; }
+  .abas-app span { font-size: 11px; line-height: 1.1; }
+  .abas-app [aria-current="page"] { color: var(--tinta); }
+  .abas-app [aria-current="page"] span { font-weight: 700; }
+  .abas-app [aria-current="page"] .icone { background: var(--verde-50); color: var(--verde-700); width: 22px; height: 22px; padding: 4px 16px; border-radius: 99px; }
+}
