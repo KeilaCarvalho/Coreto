@@ -73,7 +73,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     veEstoque ? sb.from("saldos_estoque").select("saldo") : vazio,
     veProd ? sb.from("producao_colunas").select("id, nome, cor, final").order("ordem") : vazio,
     veProd ? sb.from("producao_ops").select("coluna_id, prazo, quantidade").is("arquivado_em", null) : vazio,
-    sessao.pode("producao") || sessao.pode("produto") ? sb.from("recebimentos_resumo").select("situacao") .in("situacao", ["pronto", "sem_preco"]) : vazio,
+    sessao.pode("faccao") ? sb.from("recebimentos_resumo").select("situacao") .in("situacao", ["pronto", "sem_preco"]) : vazio,
     veFotos ? sb.from("fotos_itens").select("id", { count: "exact", head: true }).in("situacao", ["com_ela", "devolvendo", "doando"]) : vazio,
     administra ? sb.from("pessoas").select("nome").not("usuario_id", "is", null).eq("acesso_ativo", false).is("arquivado_em", null).limit(3) : vazio,
     administra ? sb.from("acessos_dia").select("primeiro, ultimo, pessoas(nome)").eq("dia", hoje).order("primeiro") : vazio,
@@ -141,7 +141,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     { href: "/financeiro/contas", icone: "banco", rotulo: "Contas a pagar", ok: veFin },
     { href: "/producao/quadro", icone: "quadro", rotulo: "Quadro de produção", ok: veProd },
     { href: "/comercial/vendas", icone: "cifrao", rotulo: "Vendas", ok: sessao.pode("comercial", "aprovar") },
-    { href: "/producao/recebimentos", icone: "entrada", rotulo: "Chegada da facção", ok: veProd },
+    { href: "/producao/recebimentos", icone: "entrada", rotulo: "Chegada da facção", ok: sessao.pode("faccao") },
     { href: "/estoque/saldos", icone: "saldos", rotulo: "Estoque", ok: veEstoque },
   ];
 

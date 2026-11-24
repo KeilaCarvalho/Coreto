@@ -37,12 +37,12 @@ const FILTROS = [
 const hojeSP = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 
 export default async function Recebimentos({ searchParams }: { searchParams: Promise<{ ver?: string; registrar?: string; produto?: string; obs?: string }> }) {
-  const sessao = await exigir("producao");
+  const sessao = await exigir("faccao");
   const { ver = "abertos", registrar, produto: produtoId, obs } = await searchParams;
   const supabase = await supabaseServidor();
-  const podeRegistrar = sessao.pode("producao", "criar") || sessao.pode("estoque", "criar");
+  const podeRegistrar = sessao.pode("faccao", "criar") || sessao.pode("estoque", "criar");
   const podePrecificar = sessao.pode("produto", "editar");
-  const podeEditar = sessao.pode("producao", "editar") || sessao.pode("estoque", "criar");
+  const podeEditar = sessao.pode("faccao", "editar") || sessao.pode("estoque", "criar");
 
   const { data } = await supabase.from("recebimentos_resumo")
     .select("id, numero, recebido_em, referencia, produto_nome, faccao_nome, recebido, liberado, aguardando, situacao, pendente, pendencia, observacao")

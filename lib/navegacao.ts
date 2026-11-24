@@ -1,4 +1,4 @@
-export type Modulo = "produto" | "producao" | "estoque" | "comercial" | "marketing" | "financeiro" | "pessoas" | "configuracoes" | "tarefas" | "resumo" | "relatorios";
+export type Modulo = "produto" | "producao" | "faccao" | "estoque" | "comercial" | "marketing" | "financeiro" | "pessoas" | "configuracoes" | "tarefas" | "resumo" | "relatorios";
 export type Acao = "ver" | "criar" | "editar" | "aprovar";
 
 import type { NomeIcone } from "@/components/icone";
@@ -17,9 +17,9 @@ export const MENU: GrupoMenu[] = [
     { rotulo: "Notas e insumos", href: "/produto/insumos", modulo: "produto", acao: "editar", icone: "arquivo" },
   ] },
   { rotulo: "Produção", itens: [
-    { rotulo: "Chegada da facção", href: "/producao/recebimentos", modulo: "producao", icone: "entrada" },
+    { rotulo: "Chegada da facção", href: "/producao/recebimentos", modulo: "faccao", icone: "entrada" },
     { rotulo: "Quadro de produção", href: "/producao/quadro", modulo: "producao", icone: "quadro" },
-    { rotulo: "Facções e corte", href: "/em-breve/faccoes", modulo: "producao", icone: "faccao", fase: "F2" },
+    { rotulo: "Facções e corte", href: "/em-breve/faccoes", modulo: "faccao", icone: "faccao", fase: "F2" },
   ] },
   { rotulo: "Estoque", itens: [
     { rotulo: "Saldos", href: "/estoque/saldos", modulo: "estoque", icone: "saldos" },

@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 export default async function Lote({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ registrado?: string; acao?: string }> }) {
-  const sessao = await exigir("producao");
+  const sessao = await exigir("faccao");
   const { id } = await params;
   const { registrado, acao } = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -62,8 +62,8 @@ export default async function Lote({ params, searchParams }: { params: Promise<{
   const linhasLiberar = linhas.filter((l) => tamanhos.some((t) => paraLiberar[`${l.corId}|${t}`]));
   const movimentos = (movR ?? []) as unknown as Mov[];
   const s = SITUACAO[lote.situacao] ?? SITUACAO.vazio;
-  const podeLiberar = sessao.pode("producao", "aprovar");
-  const podeEditar = sessao.pode("producao", "editar") || sessao.pode("estoque", "criar");
+  const podeLiberar = sessao.pode("faccao", "aprovar");
+  const podeEditar = sessao.pode("faccao", "editar") || sessao.pode("estoque", "criar");
   const podePrecificar = sessao.pode("produto", "editar");
   const linkPrecificar = `/producao/recebimentos/${lote.id}?acao=precificar`;
   const base = `/producao/recebimentos/${lote.id}`;
