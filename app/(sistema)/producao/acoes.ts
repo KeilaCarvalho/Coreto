@@ -96,3 +96,36 @@ export async function salvarObservacao(_: EstadoAcao, dados: FormData): Promise<
   atualizar(id);
   return { ok: observacao ? "Observação salva." : "Observação apagada." };
 }
+
+/** Conferência da chegada puxando a OP que a produção marcou como pronta. */
+export async function conferirOp(dados: {
+  op: string; produto: string; data: string; observacao: string; segurar: boolean;
+  itens: { variante_id: string; quantidade: number }[];
+  faltas: { cor: string; tamanho: string; quantidade: number; variante_id: string | null }[];
+}): Promise<{ ok: true; id: string } | { ok: false; erro: string }> {
+  if (!uuid.test(dados.op) || !uuid.test(dados.produto)) return { ok: false, erro: "Escolha o modelo do catálogo." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dados.data)) return { ok: false, erro: "Data inválida." };
+  const itens = dados.itens.filter((i) => uuid.test(i.variante_id) && Number.isInteger(i.quantidade) && i.quantidade > 0);
+  if (!itens.length) return { ok: false, erro: "Nenhuma peça chegou? Digite as quantidades que chegaram." };
+  const faltas = dados.faltas.filter((f) => f.quantidade > 0).map((f) => ({ ...f, cor: f.cor.slice(0, 60), tamanho: f.tamanho.slice(0, 6), variante_id: f.variante_id && uuid.test(f.variante_id) ? f.variante_id : null }));
+  const supabase = await supabaseServidor();
+  const { data: id, error } = await supabase.rpc("conferir_op", {
+    p_op: dados.op, p_produto: dados.produto, p_data: dados.data, p_observacao: dados.observacao.slice(0, 300) || null,
+    p_itens: itens, p_faltas: faltas, p_segurar: dados.segurar,
+  });
+  if (error) return { ok: false, erro: mensagemBanco(error.message) };
+  atualizar();
+  revalidatePath("/producao/quadro");
+  return { ok: true, id: id as string };
+}
+
+/** Dar baixa numa peça que faltou: chegou (toda ou parte) ou não vem mais. */
+export async function resolverPendencia(id: string, chegou: number, cancelar: boolean): Promise<{ ok: true } | { ok: false; erro: string }> {
+  if (!uuid.test(id)) return { ok: false, erro: "Pendência inválida." };
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.rpc("resolver_pendencia", { p_id: id, p_chegou: cancelar ? 0 : Math.floor(chegou), p_cancelar: cancelar });
+  if (error) return { ok: false, erro: mensagemBanco(error.message) };
+  atualizar();
+  revalidatePath("/producao/quadro");
+  return { ok: true };
+}

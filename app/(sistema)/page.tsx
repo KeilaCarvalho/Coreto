@@ -64,7 +64,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const em7 = diaSP(new Date(agora.getTime() + 7 * 864e5));
   const vazio = { data: null, count: null } as const;
 
-  const [mesesR, vendMesR, diasR, contasR, cobrR, saldosR, colunasR, opsR, recR, fotosR, acessoR, hojeR] = await Promise.all([
+  const [mesesR, vendMesR, diasR, contasR, cobrR, saldosR, colunasR, opsR, recR, fotosR, acessoR, hojeR, prontasR, faltasR] = await Promise.all([
     veFin ? sb.from("fluxo_meses").select("mes, vendas").gte("mes", seisMeses).order("mes") : vazio,
     veFin ? sb.from("vendas_mensais").select("mes, valor_total").gte("mes", seisMeses).order("mes") : vazio,
     veFin ? sb.from("fluxo_dias").select("data, saldos, vendas").order("data", { ascending: false }).limit(20) : vazio,
@@ -77,6 +77,8 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     veFotos ? sb.from("fotos_itens").select("id", { count: "exact", head: true }).in("situacao", ["com_ela", "devolvendo", "doando"]) : vazio,
     administra ? sb.from("pessoas").select("nome").not("usuario_id", "is", null).eq("acesso_ativo", false).is("arquivado_em", null).limit(3) : vazio,
     administra ? sb.from("acessos_dia").select("primeiro, ultimo, pessoas(nome)").eq("dia", hoje).order("primeiro") : vazio,
+    sessao.pode("faccao", "criar") ? sb.from("producao_ops").select("id", { count: "exact", head: true }).not("pronta_em", "is", null).is("conferida_em", null).is("arquivado_em", null) : vazio,
+    veProd || sessao.pode("faccao") ? sb.from("producao_pendencias").select("quantidade").is("resolvido_em", null) : vazio,
   ]);
 
   // Vendas por mês (fluxo financeiro; meses antigos vêm do relatório importado)
@@ -124,6 +126,9 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   }
   const recs = (recR.data ?? []) as { situacao: string }[];
   const semPreco = recs.filter((r) => r.situacao === "sem_preco").length, prontos = recs.filter((r) => r.situacao === "pronto").length;
+  if (prontasR.count) sinais.push({ tipo: "ok", icone: "entrada", titulo: `${prontasR.count} ${prontasR.count === 1 ? "OP pronta" : "OPs prontas"} para conferir`, texto: "A produção avisou que está pronto para entregar", href: "/producao/recebimentos", acao: "Conferir" });
+  const pecasFaltando = ((faltasR.data ?? []) as { quantidade: number }[]).reduce((t, f) => t + f.quantidade, 0);
+  if (pecasFaltando) sinais.push({ tipo: "atencao", icone: "alerta", titulo: `${pecasFaltando} ${pecasFaltando === 1 ? "peça faltou" : "peças faltaram"} da facção`, texto: "Pendências das conferências de chegada", href: sessao.pode("faccao") ? "/producao/recebimentos" : "/producao/quadro", acao: "Ver" });
   if (semPreco) sinais.push({ tipo: "atencao", icone: "entrada", titulo: `${semPreco} ${semPreco === 1 ? "chegada" : "chegadas"} da facção sem preço`, texto: "Precifique para liberar para a loja", href: "/producao/recebimentos", acao: "Precificar" });
   if (prontos) sinais.push({ tipo: "ok", icone: "entrada", titulo: `${prontos} ${prontos === 1 ? "chegada pronta" : "chegadas prontas"} para liberar`, texto: "Já têm preço, falta liberar as peças", href: "/producao/recebimentos", acao: "Liberar" });
   if (opsAtrasadas) sinais.push({ tipo: "urgente", icone: "quadro", titulo: `${opsAtrasadas} ${opsAtrasadas === 1 ? "OP atrasada" : "OPs atrasadas"}`, texto: "Prazo vencido no quadro de produção", href: "/producao/quadro", acao: "Ver quadro" });

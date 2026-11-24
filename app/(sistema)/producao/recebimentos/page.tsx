@@ -10,6 +10,7 @@ import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { GradeQuantidades } from "@/components/grade-quantidades";
 import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
 import { CampoFaccao, EscolherModelo } from "@/components/recebimento/campos";
+import { PendenciaBaixa } from "@/components/recebimento/pendencia-baixa";
 import { montarGrade, ordenarTamanhos, SITUACAO, type VarianteGrade } from "@/lib/grade";
 import { dataCurta, numero, reais } from "@/lib/formatos";
 import { registrarRecebimento, salvarObservacao } from "../acoes";
@@ -53,6 +54,15 @@ export default async function Recebimentos({ searchParams }: { searchParams: Pro
   const conta = (s: string) => todos.filter((l) => l.situacao === s).length;
   const pendentes = todos.filter((l) => l.pendente && l.aguardando > 0);
 
+  // Integração com a produção: OPs avisadas como prontas e peças que faltaram nas conferências.
+  const [{ data: prontasD }, { data: faltasD }] = await Promise.all([
+    supabase.from("producao_ops").select("id, numero, titulo, faccao, tamanhos, entrega, pronta_em").not("pronta_em", "is", null).is("conferida_em", null).is("arquivado_em", null).order("pronta_em"),
+    supabase.from("producao_pendencias").select("id, modelo, cor, tamanho, quantidade, criado_em, recebimento_id, producao_ops(numero)").is("resolvido_em", null).order("criado_em"),
+  ]);
+  const prontas = (prontasD ?? []) as { id: string; numero: number | null; titulo: string; faccao: string | null; tamanhos: string[]; entrega: { cor: string; q: Record<string, number> }[] | null; pronta_em: string }[];
+  const faltas = (faltasD ?? []) as unknown as { id: string; modelo: string; cor: string; tamanho: string; quantidade: number; criado_em: string; recebimento_id: string | null; producao_ops: { numero: number | null } | null }[];
+  const totalEntrega = (e: { q: Record<string, number> }[] | null) => (e ?? []).reduce((t, l) => t + Object.values(l.q).reduce((a, b) => a + (Number(b) || 0), 0), 0);
+
   // Dados da janela "Registrar chegada" (só quando ela está aberta)
   let produtos: { id: string; referencia: string; nome: string }[] = [];
   let faccoes: { id: string; nome: string }[] = [];
@@ -89,6 +99,40 @@ export default async function Recebimentos({ searchParams }: { searchParams: Pro
         <Kpi titulo="Pendentes" valor={numero(conta("pendente"))} nota="faltou peça da facção" href="/producao/recebimentos?ver=pendente" />
         <Kpi titulo="Prontos para liberar" valor={numero(conta("pronto"))} nota="com preço e nada pendente" href="/producao/recebimentos?ver=pronto" />
       </div>
+
+      {prontas.length > 0 && (
+        <section className="painel" style={{ marginBottom: 16 }}>
+          <div className="painel-topo"><div><h2>Prontas para entregar</h2><p>A produção avisou que estas OPs estão prontas. Confira quando chegarem.</p></div><span className="etiqueta info">{prontas.length}</span></div>
+          <div className="prontas-lista">
+            {prontas.map((o) => (
+              <div key={o.id} className="pronta-cartao">
+                <div>
+                  <b>{o.numero != null ? `OP ${o.numero} · ` : ""}{o.titulo}</b>
+                  <span>{totalEntrega(o.entrega)} peças{o.faccao ? ` · ${o.faccao}` : ""} · avisada {dataCurta(o.pronta_em.slice(0, 10))}</span>
+                </div>
+                {podeRegistrar && <Link className="botao pequeno" href={`/producao/recebimentos/conferir/${o.id}`}>Conferir</Link>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {faltas.length > 0 && (
+        <section className="painel" style={{ marginBottom: 16 }}>
+          <div className="painel-topo"><div><h2>Peças que faltaram</h2><p>Vieram a menos na conferência. A produção também vê esta lista.</p></div><span className="etiqueta alerta">{faltas.reduce((t, f) => t + f.quantidade, 0)} peças</span></div>
+          <ul className="faltas-lista">
+            {faltas.map((f) => (
+              <li key={f.id}>
+                <div>
+                  <b>{f.producao_ops?.numero != null ? `OP ${f.producao_ops.numero} · ` : ""}{f.modelo}</b>
+                  <span>{f.cor} · {f.tamanho} · <em>{f.quantidade} {f.quantidade === 1 ? "peça" : "peças"}</em> · desde {dataCurta(f.criado_em.slice(0, 10))}</span>
+                </div>
+                <PendenciaBaixa id={f.id} quantidade={f.quantidade} podeLancar={podeEditar} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {pendentes.length > 0 && (
         <section className="painel" style={{ marginBottom: 16 }}>

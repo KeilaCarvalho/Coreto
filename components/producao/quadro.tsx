@@ -2,13 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Icone } from "@/components/icone";
-import { arquivarOp, moverOp, salvarOp } from "@/app/(sistema)/producao/quadro/acoes";
+import { arquivarOp, marcarPronta, moverOp, salvarOp } from "@/app/(sistema)/producao/quadro/acoes";
+import { GradeOp, totalGradeOp, type LinhaGradeOp } from "@/components/producao/grade-op";
 
 export type Coluna = { id: string; nome: string; ordem: number; cor: string | null; final: boolean };
 export type Op = {
   id: string; numero: number | null; titulo: string; tecido: string | null; faccao: string | null; quantidade: number | null;
   prazo: string | null; etiqueta: string | null; observacao: string | null; coluna_id: string; ordem: number; movido_em: string; criado_em: string;
+  data_corte: string | null; cortador: string | null; composicao: string | null; matriz: string | null;
+  tamanhos: string[]; grade: LinhaGradeOp[]; entrega: LinhaGradeOp[] | null; pronta_em: string | null; conferida_em: string | null;
 };
+export type Pendencia = { id: string; op_id: string | null; modelo: string; cor: string; tamanho: string; quantidade: number; criado_em: string; numero: number | null };
 
 const ETIQUETAS: { id: string; nome: string; cor: string }[] = [
   { id: "amarelo", nome: "Amarelo", cor: "#f5b400" },
@@ -29,9 +33,10 @@ const nomeOp = (o: Pick<Op, "numero" | "titulo">) => (o.numero != null ? `OP ${o
 
 type Rascunho = Omit<Op, "id" | "ordem" | "movido_em" | "criado_em"> & { id?: string };
 
-export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArquivar }: {
-  colunas: Coluna[]; ops: Op[]; podeCriar: boolean; podeEditar: boolean; podeArquivar: boolean;
+export function Quadro({ colunas, ops: inicial, pendencias, podeCriar, podeEditar, podeArquivar }: {
+  colunas: Coluna[]; ops: Op[]; pendencias: Pendencia[]; podeCriar: boolean; podeEditar: boolean; podeArquivar: boolean;
 }) {
+  const [vista, setVista] = useState<"quadro" | "pendencias">("quadro");
   const [ops, setOps] = useState(inicial);
   useEffect(() => setOps(inicial), [inicial]);
   const [busca, setBusca] = useState("");
@@ -127,7 +132,8 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
   }
 
   function novo(coluna: string) {
-    setAberto({ numero: proximoNumero, titulo: "", tecido: null, faccao: null, quantidade: null, prazo: null, etiqueta: null, observacao: null, coluna_id: coluna });
+    setAberto({ numero: proximoNumero, titulo: "", tecido: null, faccao: null, quantidade: null, prazo: null, etiqueta: null, observacao: null, coluna_id: coluna,
+      data_corte: hojeISO(), cortador: null, composicao: null, matriz: null, tamanhos: ["PP", "P", "M", "G"], grade: [{ cor: "", q: {} }], entrega: null, pronta_em: null, conferida_em: null });
   }
 
   const colunaAtualCel = colunas.find((c) => c.id === colunaCel) ?? colunas[0];
@@ -146,6 +152,15 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
       </header>
 
       {erro && <p className="aviso erro" role="alert" onClick={() => setErro(null)}><Icone nome="alerta" />{erro}</p>}
+
+      <div className="abas qd-vistas" role="tablist">
+        <button type="button" role="tab" aria-selected={vista === "quadro"} className={vista === "quadro" ? "ativa" : ""} onClick={() => setVista("quadro")}>Quadro</button>
+        <button type="button" role="tab" aria-selected={vista === "pendencias"} className={vista === "pendencias" ? "ativa" : ""} onClick={() => setVista("pendencias")}>
+          Pendências da facção{pendencias.length > 0 && <b className="qd-conta">{pendencias.reduce((t, p) => t + p.quantidade, 0)}</b>}
+        </button>
+      </div>
+
+      {vista === "pendencias" ? <ListaPendencias pendencias={pendencias} /> : <>
 
       {/* Celular: uma etapa por vez, escolhida nas abas */}
       <nav className="qd-abas" aria-label="Etapas">
@@ -188,7 +203,9 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
                       <h3>{o.titulo}</h3>
                       <div className="qd-cartao-info">
                         {o.tecido && <span className="qd-chip">{o.tecido}</span>}
-                        {o.quantidade != null && <span className="qd-chip">{o.quantidade} pç</span>}
+                        {(totalGradeOp(o.grade, o.tamanhos) || o.quantidade) ? <span className="qd-chip">{totalGradeOp(o.grade, o.tamanhos) || o.quantidade} pç</span> : null}
+                        {o.conferida_em ? <span className="qd-chip ok"><Icone nome="certo" tamanho={12} />Conferida</span>
+                          : o.pronta_em ? <span className="qd-chip pronta"><Icone nome="certo" tamanho={12} />Pronta p/ entregar</span> : null}
                         {o.faccao && <span className="qd-chip leve"><Icone nome="faccao" tamanho={12} />{o.faccao}</span>}
                         {o.prazo && <span className={`qd-chip${atrasada ? " atraso" : " leve"}`}><Icone nome="calendario" tamanho={12} />{dataCurta(o.prazo)}</span>}
                         {o.observacao && <span className="qd-chip leve" title="Tem observação"><Icone nome="ficha" tamanho={12} /></span>}
@@ -204,6 +221,8 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
           );
         })}
       </div>
+
+      </>}
 
       {aviso && <div className="qd-aviso" role="status"><Icone nome="certo" />{aviso}</div>}
 
@@ -226,17 +245,28 @@ export function Quadro({ colunas, ops: inicial, podeCriar, podeEditar, podeArqui
           }}
           aoMover={(id, coluna) => { mover(id, coluna, null); setAberto(null); setAviso(`Movida para ${colunas.find((c) => c.id === coluna)?.nome ?? coluna}`); }}
           aoArquivar={(id) => setOps((l) => l.filter((x) => x.id !== id))}
+          aoPronta={(id, entrega) => {
+            const antes = ops;
+            setOps((l) => l.map((x) => (x.id === id ? { ...x, entrega, pronta_em: entrega ? new Date().toISOString() : null } : x)));
+            setAberto(null);
+            setAviso(entrega ? "Avisado: pronta para entregar" : "Aviso de pronta desfeito");
+            marcarPronta(id, entrega).then((res) => { if (!res.ok) { setOps(antes); setErro(res.erro); } });
+          }}
         />
       )}
     </div>
   );
 }
 
-function JanelaOp({ rascunho, colunas, podeEditar, podeMover, podeArquivar, fechar, aoSalvar, aoMover, aoArquivar }: {
+function JanelaOp({ rascunho, colunas, podeEditar, podeMover, podeArquivar, fechar, aoSalvar, aoMover, aoArquivar, aoPronta }: {
   rascunho: Rascunho; colunas: Coluna[]; podeEditar: boolean; podeMover: boolean; podeArquivar: boolean;
   fechar: () => void; aoSalvar: (op: Op, pedido: ReturnType<typeof salvarOp>) => void; aoMover: (id: string, coluna: string) => void; aoArquivar: (id: string) => void;
+  aoPronta: (id: string, entrega: LinhaGradeOp[] | null) => void;
 }) {
   const [r, setR] = useState(rascunho);
+  const [modoPronta, setModoPronta] = useState(false);
+  const [entrega, setEntrega] = useState<LinhaGradeOp[]>(() => (rascunho.entrega ?? rascunho.grade ?? []).map((l) => ({ cor: l.cor, q: { ...l.q } })));
+  const totalCorte = totalGradeOp(r.grade, r.tamanhos);
   const [erro, setErro] = useState<string | null>(null);
   const salvando = false;
   const [confirmar, setConfirmar] = useState(false);
@@ -259,10 +289,15 @@ function JanelaOp({ rascunho, colunas, podeEditar, podeMover, podeArquivar, fech
     e.preventDefault();
     if (!podeEditar) return fechar();
     if (!r.titulo.trim()) { setErro("Escreva o modelo."); return; }
+    const grade = r.grade.filter((l) => l.cor.trim() || Object.keys(l.q).length).map((l) => ({ cor: l.cor.trim(), q: l.q }));
+    if (grade.some((l) => !l.cor)) { setErro("Escreva o nome da cor em todas as linhas da grade."); return; }
+    const dados: Rascunho = { ...r, grade, quantidade: grade.length ? totalGradeOp(grade, r.tamanhos) : r.quantidade };
     // Fecha na hora e mostra o cartão; o servidor confirma por trás (se der erro, aparece o aviso).
     const agora = new Date().toISOString();
-    const temp = r.id ?? `novo-${Date.now()}`;
-    aoSalvar({ ...(r as Op), id: temp, ordem: (r as Op).ordem ?? Number.MAX_SAFE_INTEGER, movido_em: (r as Op).movido_em ?? agora, criado_em: (r as Op).criado_em ?? agora }, salvarOp(r));
+    const temp = dados.id ?? `novo-${Date.now()}`;
+    const { entrega: _e, pronta_em: _p, conferida_em: _c, ...envio } = dados;
+    void _e; void _p; void _c;
+    aoSalvar({ ...(dados as Op), id: temp, ordem: (r as Op).ordem ?? Number.MAX_SAFE_INTEGER, movido_em: (r as Op).movido_em ?? agora, criado_em: (r as Op).criado_em ?? agora }, salvarOp(envio));
     fechar();
   }
 
@@ -293,16 +328,51 @@ function JanelaOp({ rascunho, colunas, podeEditar, podeMover, podeArquivar, fech
             </div>
           )}
 
+          {!novo && (r.conferida_em ? (
+            <p className="aviso ok"><Icone nome="certo" />Conferida na chegada em {dataCurta(r.conferida_em.slice(0, 10))}. As peças que faltaram estão em Pendências da facção.</p>
+          ) : r.pronta_em && !modoPronta ? (
+            <div className="qd-pronta">
+              <div><strong>Pronta para entregar</strong><span>Avisada em {dataCurta(r.pronta_em.slice(0, 10))} · {totalGradeOp(r.entrega, r.tamanhos)} peças</span></div>
+              {podeEditar && <><button type="button" className="botao leve pequeno" onClick={() => setModoPronta(true)}>Corrigir</button><button type="button" className="botao leve pequeno" onClick={() => aoPronta(r.id!, null)}>Desfazer</button></>}
+            </div>
+          ) : modoPronta ? (
+            <div className="qd-pronta-form">
+              <strong>Quantas peças estão prontas para entregar?</strong>
+              <p>Já vem preenchido com o corte. Ajuste o que estiver diferente.</p>
+              <GradeOp linhas={entrega} tamanhos={r.tamanhos} aoMudar={setEntrega} referencia={r.grade} />
+              <div className="qd-pronta-botoes">
+                <button type="button" className="botao secundario" onClick={() => setModoPronta(false)}>Voltar</button>
+                <button type="button" className="botao" disabled={!totalGradeOp(entrega, r.tamanhos)}
+                  onClick={() => aoPronta(r.id!, entrega.filter((l) => l.cor.trim() && totalGradeOp([l], r.tamanhos) > 0))}>
+                  Avisar: {totalGradeOp(entrega, r.tamanhos)} peças prontas
+                </button>
+              </div>
+            </div>
+          ) : podeEditar && totalCorte > 0 ? (
+            <button type="button" className="botao qd-botao-pronta" onClick={() => setModoPronta(true)}><Icone nome="certo" />Pronta p/ entregar</button>
+          ) : null)}
+
+          {!modoPronta && <>
           <fieldset disabled={!podeEditar} className="qd-campos">
             <div className="campos duas">
               <div className="campo"><label htmlFor="op-num">Nº da OP</label><input id="op-num" inputMode="numeric" value={r.numero ?? ""} onChange={(e) => muda("numero", e.target.value.replace(/\D/g, "") ? Number(e.target.value.replace(/\D/g, "")) : null)} /></div>
-              <div className="campo"><label htmlFor="op-qtd">Quantidade</label><input id="op-qtd" inputMode="numeric" value={r.quantidade ?? ""} placeholder="Peças" onChange={(e) => muda("quantidade", e.target.value.replace(/\D/g, "") ? Number(e.target.value.replace(/\D/g, "")) : null)} /></div>
+              <div className="campo"><label htmlFor="op-corte">Data do corte</label><input id="op-corte" type="date" value={r.data_corte ?? ""} onChange={(e) => muda("data_corte", e.target.value || null)} /></div>
             </div>
             <div className="campo"><label htmlFor="op-titulo">Modelo</label><input id="op-titulo" ref={primeiro} value={r.titulo} onChange={(e) => muda("titulo", e.target.value)} placeholder="Ex.: Vestido Mabelle" required /></div>
             <div className="campos duas">
-              <div className="campo"><label htmlFor="op-tecido">Tecido</label><input id="op-tecido" value={r.tecido ?? ""} onChange={(e) => muda("tecido", texto(e.target.value))} placeholder="Ex.: Linho" /></div>
-              <div className="campo"><label htmlFor="op-faccao">Facção</label><input id="op-faccao" value={r.faccao ?? ""} onChange={(e) => muda("faccao", texto(e.target.value))} placeholder="Opcional" /></div>
+              <div className="campo"><label htmlFor="op-cortador">Cortador</label><input id="op-cortador" value={r.cortador ?? ""} onChange={(e) => muda("cortador", texto(e.target.value))} placeholder="Ex.: Renato Borba" /></div>
+              <div className="campo"><label htmlFor="op-matriz">Matriz do tecido</label><input id="op-matriz" value={r.matriz ?? ""} onChange={(e) => muda("matriz", texto(e.target.value))} placeholder="Ex.: 2 m por peça" /></div>
             </div>
+            <div className="campos duas">
+              <div className="campo"><label htmlFor="op-tecido">Tecido</label><input id="op-tecido" value={r.tecido ?? ""} onChange={(e) => muda("tecido", texto(e.target.value))} placeholder="Ex.: Linho" /></div>
+              <div className="campo"><label htmlFor="op-comp">Composição</label><input id="op-comp" value={r.composicao ?? ""} onChange={(e) => muda("composicao", texto(e.target.value))} placeholder="Ex.: 100% viscose" /></div>
+            </div>
+            <div className="campo">
+              <span className="rotulo-campo">Grade do corte {totalCorte > 0 && <b className="qd-total-grade">{totalCorte} peças</b>}</span>
+              <GradeOp linhas={r.grade} tamanhos={r.tamanhos} somenteLer={!podeEditar}
+                aoMudar={(g) => muda("grade", g)} aoMudarTamanhos={(t) => muda("tamanhos", t)} />
+            </div>
+            <div className="campo"><label htmlFor="op-faccao">Facção</label><input id="op-faccao" value={r.faccao ?? ""} onChange={(e) => muda("faccao", texto(e.target.value))} placeholder="Para qual facção foi" /></div>
             <div className="campos duas">
               <div className="campo"><label htmlFor="op-prazo">Prazo</label><input id="op-prazo" type="date" value={r.prazo ?? ""} onChange={(e) => muda("prazo", e.target.value || null)} /></div>
               <div className="campo">
@@ -315,6 +385,7 @@ function JanelaOp({ rascunho, colunas, podeEditar, podeMover, podeArquivar, fech
             </div>
             <div className="campo"><label htmlFor="op-obs">Observação</label><textarea id="op-obs" rows={4} value={r.observacao ?? ""} onChange={(e) => muda("observacao", texto(e.target.value))} placeholder="Detalhes, pendências, o que falta…" /></div>
           </fieldset>
+          </>}
 
           <div className="qd-rodape">
             {podeArquivar && (confirmar
@@ -326,6 +397,22 @@ function JanelaOp({ rascunho, colunas, podeEditar, podeMover, podeArquivar, fech
           </div>
         </div>
       </form>
+    </div>
+  );
+}
+
+function ListaPendencias({ pendencias }: { pendencias: Pendencia[] }) {
+  if (!pendencias.length) return <section className="painel"><p className="sinal-vazio">Nenhuma peça pendente. Quando faltar peça na conferência da chegada, ela aparece aqui.</p></section>;
+  const porOp = new Map<string, Pendencia[]>();
+  for (const p of pendencias) { const k = `${p.numero ?? ""}|${p.modelo}`; porOp.set(k, [...(porOp.get(k) ?? []), p]); }
+  return (
+    <div className="qd-pend">
+      {[...porOp].map(([k, lista]) => (
+        <section key={k} className="painel qd-pend-op">
+          <div className="painel-topo"><div><h2>{lista[0].numero != null ? `OP ${lista[0].numero} · ` : ""}{lista[0].modelo}</h2><p>Faltou na chegada de {dataCurta(lista[0].criado_em.slice(0, 10))} · {lista.reduce((t, p) => t + p.quantidade, 0)} peças</p></div></div>
+          <ul>{lista.map((p) => <li key={p.id}><span>{p.cor}</span><b>{p.tamanho}</b><em>{p.quantidade} {p.quantidade === 1 ? "peça" : "peças"}</em></li>)}</ul>
+        </section>
+      ))}
     </div>
   );
 }
