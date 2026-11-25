@@ -88,3 +88,13 @@ export async function salvarContasDoMes(_: EstadoAcao, dados: FormData): Promise
   revalidatePath("/financeiro/fluxo/fechamento");
   return { ok: "Contas do mês salvas." };
 }
+
+/** Resultados → "Usar na precificação": troca o % de despesas fixas padrão das próximas fichas. */
+export async function usarFixasNaPrecificacao(dados: FormData) {
+  const p = Number(String(dados.get("percentual") ?? "").replace(",", "."));
+  if (!Number.isFinite(p) || p <= 0 || p >= 90) return;
+  const supabase = await supabaseServidor();
+  await supabase.from("config_precificacao").update({ despesas_fixas: Math.round(p * 100) / 100 }).eq("id", 1);
+  revalidatePath("/financeiro/resultados");
+  revalidatePath("/produto/precificacao");
+}
