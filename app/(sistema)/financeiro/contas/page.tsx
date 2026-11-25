@@ -47,7 +47,7 @@ export default async function ContasPagar({ searchParams }: { searchParams: Prom
   const [cobradasR, outrasR, fluxoR, ultimaR] = await Promise.all([
     supabase.from("contas_pagar").select("*").or(FILTRO_BANCOS).gt("em_aberto", 0).gte("vencimento", mes).lte("vencimento", fimMes).order("vencimento").order("fornecedor"),
     supabase.from("contas_pagar").select("conta, em_aberto, vencimento").gt("em_aberto", 0).gte("vencimento", mes).lte("vencimento", fimMes).not("conta", "ilike", "%santander%").not("conta", "ilike", "%caixa%"),
-    supabase.from("fluxo_dias").select("data, saldos").lte("data", hoje).order("data", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("fluxo_dias").select("data, saldos").lte("data", hoje).neq("saldos", "[]").order("data", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("contas_pagar").select("importado_em").order("importado_em", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const cobradas = (cobradasR.data ?? []) as ContaPagar[];

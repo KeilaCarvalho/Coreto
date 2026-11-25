@@ -9,8 +9,8 @@ import { BotoesPdf } from "@/components/fluxo/botoes-pdf";
 import { JanelaLancamento, type HeraFluxo } from "@/components/fluxo/lancamento";
 import { agruparFormas, somarPares, type DiaHera } from "@/lib/hera";
 import {
-  FORMAS_PAGAMENTO, dataPorExtenso, diaDaSemana, diasDeVenda, ehFimDeSemana, inicioDoMes, lerLinhas, lerVendas,
-  mesDoLancamento, mesPorExtenso, nomeDoDia, rotuloPeriodo, somar, somarDias, totaisFluxo, vendasPorDia, type DadosFluxo, type LinhaValor,
+  FORMAS_PAGAMENTO, dataPorExtenso, diaDaSemana, diasDeVenda, inicioDoMes, lerLinhas, lerVendas,
+  mesDoLancamento, mesPorExtenso, nomeDoDia, rotuloPeriodo, semLancamento, somar, somarDias, totaisFluxo, vendasAoVivo, vendasPorDia, type DadosFluxo, type LinhaValor,
 } from "@/lib/fluxo";
 import { reais } from "@/lib/formatos";
 import { salvarFluxo } from "../acoes";
@@ -32,10 +32,10 @@ const curto = (v: number) => {
 const pct = (parte: number, total: number) => (total ? Math.round((parte / total) * 100) : 0);
 const iniciais = (nome: string) => nome.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 
-/** Dia útil anterior/seguinte (pula sábado e domingo). */
+/** Dia anterior/seguinte com lançamento (pula domingo; antes da virada, também o sábado). */
 function diaUtil(data: string, passo: 1 | -1) {
   let d = somarDias(data, passo);
-  while (ehFimDeSemana(d)) d = somarDias(d, passo);
+  while (semLancamento(d)) d = somarDias(d, passo);
   return d;
 }
 
@@ -88,8 +88,9 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   const { data: pedida, salvo } = await searchParams;
   const hoje = hojeSP();
   let data = pedida && /^\d{4}-\d{2}-\d{2}$/.test(pedida) && pedida <= hoje ? pedida : hoje;
-  if (!pedida && ehFimDeSemana(data)) data = diaUtil(data, -1); // fim de semana: abre a sexta
-  const fimDeSemana = ehFimDeSemana(data);
+  if (!pedida && semLancamento(data)) data = diaUtil(data, -1); // dia sem lançamento: abre o anterior
+  const fimDeSemana = semLancamento(data);
+  const aoVivo = vendasAoVivo(data);
   const periodo = diasDeVenda(data);
   const mesRef = mesDoLancamento(data);        // vendas e equipe: mês do último dia de venda
   const mesContasRef = inicioDoMes(data);       // contas: mês do dia do lançamento
@@ -101,8 +102,8 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   const [{ data: diaR }, { data: mesR }, { data: anteriorR }, { data: periodoR }, { data: vendedorasR }, { data: configR }, { data: contasR }, { data: heraR }] = await Promise.all([
     supabase.from("fluxo_dias").select("data, vendas, saldos, a_receber, observacao, atualizado_em, quem:pessoas!atualizado_por(nome)").eq("data", data).maybeSingle(),
     supabase.from("fluxo_meses").select("mes, vendas, vendedoras, contas_a_pagar, contas_pagas").eq("mes", mesRef).maybeSingle(),
-    supabase.from("fluxo_dias").select("data, vendas, saldos, a_receber").lt("data", data).order("data", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("fluxo_dias").select("data, vendas").gte("data", desde).lte("data", fimCal).order("data"),
+    supabase.from("fluxo_dias").select("data, vendas, saldos, a_receber").lt("data", data).neq("saldos", "[]").order("data", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("fluxo_dias").select("data, vendas, saldos").gte("data", desde).lte("data", fimCal).order("data"),
     supabase.from("pessoas").select("nome, apelido").eq("e_vendedora", true).is("arquivado_em", null).order("nome"),
     supabase.from("fluxo_config").select("contas_padrao, formas_padrao").maybeSingle(),
     supabase.from("fluxo_meses").select("contas_a_pagar, contas_pagas").eq("mes", mesContasRef).maybeSingle(),
@@ -123,7 +124,9 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   const dia = diaR as unknown as Dia | null;
   const mes = mesR as unknown as Mes | null;
   const anterior = anteriorR as unknown as (DiaCurto & { saldos: unknown; a_receber: unknown }) | null;
-  const lancamentos = (periodoR ?? []) as DiaCurto[];
+  const lancamentos = (periodoR ?? []) as (DiaCurto & { saldos: unknown })[];
+  // Com as vendas ao vivo, o dia só está "lançado" quando os bancos foram preenchidos.
+  const completo = !!dia && lerLinhas(dia.saldos).length > 0;
 
   /* ---------- dados do dia (só o que foi salvo; vai para o PDF) ---------- */
   const salvoDados: DadosFluxo | null = dia ? {
@@ -152,7 +155,9 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   const ordemFormas = <T extends { nome: string }>(l: T[]) => [...l].sort((x, y) => posicao(x.nome) - posicao(y.nome));
   const paraJanela: DadosFluxo = salvoDados ? {
     ...salvoDados,
-    saldos: comPadrao(salvoDados.saldos),
+    // Dia só com as vendas do robô: bancos e a receber partem do último dia lançado.
+    saldos: comPadrao(salvoDados.saldos.length ? salvoDados.saldos : zerado(lerLinhas(anterior?.saldos))),
+    aReceber: salvoDados.aReceber.length || completo ? salvoDados.aReceber : lerLinhas(anterior?.a_receber),
     vendasDia: ordemFormas([...salvoDados.vendasDia, ...formas.filter((f) => !salvoDados.vendasDia.some((v) => v.nome === f)).map((nome) => ({ nome, valor: 0, dias: periodo.map(() => 0) }))]),
   } : {
     data, diasVenda: periodo,
@@ -184,7 +189,8 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   const totalBarras = barras.reduce((t, b) => t + (b.valor ?? 0), 0);
 
   /* ---------- calendário do mês ---------- */
-  const lancados = new Set(lancamentos.map((l) => l.data));
+  const lancados = new Set(lancamentos.filter((l) => lerLinhas(l.saldos).length > 0).map((l) => l.data));
+  const soVendas = new Set(lancamentos.filter((l) => !lancados.has(l.data) && lerLinhas(l.vendas).length > 0).map((l) => l.data));
   const diasCal: string[] = [];
   for (let d = inicioCal; d <= fimCal; d = somarDias(d, 1)) diasCal.push(d);
 
@@ -205,7 +211,9 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
             <Link className="fx-seta" href={`/financeiro/fluxo?data=${anteriorUtil}`} aria-label="Dia anterior"><Icone nome="esquerda" /></Link>
             <span className="dia">{dataPorExtenso(data)}</span>
             <Link className="fx-seta" href={`/financeiro/fluxo?data=${seguinteUtil}`} aria-label="Dia seguinte" aria-disabled={seguinteUtil > hoje}><Icone nome="direita" /></Link>
-            {!fimDeSemana && (dia
+            {!fimDeSemana && (dia && !completo
+              ? <span className="selo pendente"><i />Vendas ao vivo · faltam os bancos</span>
+              : dia
               ? <span className="selo ok"><i />Lançado{dia.quem ? ` por ${dia.quem.nome.split(" ")[0]}` : ""} às {new Date(dia.atualizado_em).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}</span>
               : <span className="selo pendente"><i />Ainda não lançado</span>)}
           </div>
@@ -213,7 +221,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
         <div className="acoes">
           <Link className="botao leve" href="/financeiro/fluxo/fechamento"><Icone nome="calendario" />Fechar mês</Link>
           <BotoesPdf dados={salvoDados} enviar={sessao.pode("financeiro", "criar")} />
-          {podeLancar && <Link className="botao" href={lancar()} scroll={false}><Icone nome={dia ? "lapis" : "mais"} />{dia ? "Editar lançamento" : "Lançar dia"}</Link>}
+          {podeLancar && <Link className="botao" href={lancar()} scroll={false}><Icone nome={completo ? "lapis" : "mais"} />{completo ? "Editar lançamento" : dia ? "Lançar bancos" : "Lançar dia"}</Link>}
         </div>
       </header>
 
@@ -223,14 +231,14 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
         <section className="painel fx-vazio">
           <span className="marcador areia"><Icone nome="calendario" tamanho={24} /></span>
           <h2>{nomeDoDia(data) === "sábado" ? "Sábado" : "Domingo"} não tem lançamento</h2>
-          <p>As vendas de sexta e de sábado entram juntas no lançamento de segunda-feira.</p>
+          <p>{aoVivo ? "A loja não abre no domingo." : "As vendas de sexta e de sábado entram juntas no lançamento de segunda-feira."}</p>
           {diaUtil(data, 1) <= hoje && <Link className="botao" href={`/financeiro/fluxo?data=${diaUtil(data, 1)}`}>Abrir segunda-feira</Link>}
         </section>
       ) : !salvoDados || !t ? (
         <section className="painel fx-vazio">
           <span className="marcador areia"><Icone nome="financeiro" tamanho={24} /></span>
           <h2>Este dia ainda não foi lançado</h2>
-          <p>Lance {rotuloPeriodo(periodo).toLowerCase()}, os saldos dos bancos e o que tem a receber. Os nomes das contas e das vendedoras do último dia já vêm preenchidos.</p>
+          <p>{aoVivo ? "As vendas do dia entram sozinhas pelo HeraDash assim que passam no caixa. Lance os saldos dos bancos e o que tem a receber." : `Lance ${rotuloPeriodo(periodo).toLowerCase()}, os saldos dos bancos e o que tem a receber. Os nomes das contas e das vendedoras do último dia já vêm preenchidos.`}</p>
           {podeLancar && <Link className="botao" href={lancar()} scroll={false}><Icone nome="mais" />Lançar dia</Link>}
         </section>
       ) : (
@@ -250,15 +258,15 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
             </div>
             <div className="kpi">
               <div className="kpi-topo"><span>Saldo em conta</span><span className="seta"><Icone nome="banco" tamanho={16} /></span></div>
-              <p className="kpi-valor"><Valor v={t.saldo} /></p>
-              <p className="kpi-nota">{saldoAnterior === null ? "somando todas as contas" : (
+              <p className="kpi-valor">{completo ? <Valor v={t.saldo} /> : "—"}</p>
+              <p className="kpi-nota">{!completo ? "falta lançar os bancos" : saldoAnterior === null ? "somando todas as contas" : (
                 <><span className={t.saldo >= saldoAnterior ? "sobe" : "desce"}>{t.saldo >= saldoAnterior ? "▲" : "▼"} {reais(Math.abs(t.saldo - saldoAnterior))}</span> desde o último lançamento</>
               )}</p>
             </div>
             <div className="kpi">
               <div className="kpi-topo"><span>Saldo após as contas</span><span className="seta"><Icone nome="cifrao" tamanho={16} /></span></div>
-              <p className="kpi-valor"><Valor v={t.sobra} /></p>
-              <p className="kpi-nota">saldo em conta − contas a pagar</p>
+              <p className="kpi-valor">{completo ? <Valor v={t.sobra} /> : "—"}</p>
+              <p className="kpi-nota">{completo ? "saldo em conta − contas a pagar" : "sai quando os bancos forem lançados"}</p>
             </div>
           </section>
 
@@ -385,16 +393,16 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
       )}
 
       <section className="painel" style={{ marginTop: 16 }}>
-        <div className="painel-topo"><div><h2>{mesPorExtenso(data).charAt(0).toUpperCase() + mesPorExtenso(data).slice(1)}</h2><p>Verde: dia lançado. Laranja: dia útil sem lançamento. Sábado e domingo não têm lançamento.</p></div></div>
+        <div className="painel-topo"><div><h2>{mesPorExtenso(data).charAt(0).toUpperCase() + mesPorExtenso(data).slice(1)}</h2><p>Verde: dia lançado. Azul: vendas do HeraDash, faltam os bancos. Laranja: sem lançamento.</p></div></div>
         <div className="fx-dias">
           {diasCal.map((d) => {
-            const fds = ehFimDeSemana(d);
+            const fds = semLancamento(d);
             const futuro = d > hoje;
-            const cls = ["fx-dia", d === data ? "atual" : "", fds ? "fds" : "", futuro ? "futuro" : "", !fds && !futuro ? (lancados.has(d) ? "lancado" : "faltou") : ""].join(" ");
+            const cls = ["fx-dia", d === data ? "atual" : "", fds ? "fds" : "", futuro ? "futuro" : "", !fds && !futuro ? (lancados.has(d) ? "lancado" : soVendas.has(d) ? "parcial" : "faltou") : ""].join(" ");
             const miolo = <><small>{ABREV[nomeDoDia(d)]}</small><b>{Number(d.slice(8, 10))}</b><i /></>;
             return fds || futuro
               ? <span key={d} className={cls} aria-hidden={futuro}>{miolo}</span>
-              : <Link key={d} className={cls} href={`/financeiro/fluxo?data=${d}`} aria-label={`${dataPorExtenso(d)}${lancados.has(d) ? ", lançado" : ", sem lançamento"}`}>{miolo}</Link>;
+              : <Link key={d} className={cls} href={`/financeiro/fluxo?data=${d}`} aria-label={`${dataPorExtenso(d)}${lancados.has(d) ? ", lançado" : soVendas.has(d) ? ", só vendas" : ", sem lançamento"}`}>{miolo}</Link>;
           })}
         </div>
       </section>

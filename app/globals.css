@@ -2076,3 +2076,4 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
 .fx-hera.feito { background: #ecfdf3; border-color: #c6f0d8; }
 .fx-hera .botao { flex: none; }
 @media (max-width: 700px) { .fx-hera { flex-wrap: wrap; } .fx-hera .botao { width: 100%; justify-content: center; } }
+.fx-dia.parcial i { background: var(--verde-500, #00b3b6); }

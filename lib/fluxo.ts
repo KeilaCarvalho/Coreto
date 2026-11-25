@@ -33,6 +33,8 @@ export const nomeDoDia = (iso: string) => DIAS_SEMANA[diaDaSemana(iso)];
 export const diaMes = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 export const ehFimDeSemana = (iso: string) => [0, 6].includes(diaDaSemana(iso));
 export const inicioDoMes = (data: string) => `${data.slice(0, 7)}-01`;
+/** Dia em que o Fluxo passou a ter as vendas do próprio dia (antes: as do dia anterior). */
+export const VIRADA_FLUXO = "2026-11-25";
 /** Mês a que o lançamento pertence: o do último dia de venda (na segunda, 2/11, as vendas de 30 e 31/10 ainda são de outubro). */
 export const mesDoLancamento = (data: string) => {
   const dias = diasDeVenda(data);
@@ -45,15 +47,23 @@ export const mesDoLancamento = (data: string) => {
  * Sábado e domingo não têm lançamento.
  */
 export function diasDeVenda(data: string): string[] {
+  // A partir da virada: cada dia leva as vendas do próprio dia (o robô do HeraDash grava ao vivo).
+  if (data > VIRADA_FLUXO) return diaDaSemana(data) === 0 ? [] : [data];
+  if (data === VIRADA_FLUXO) return [somarDias(data, -1), data]; // dia da virada: ontem (24) + hoje (25)
   const w = diaDaSemana(data);
   if (w === 1) return [somarDias(data, -3), somarDias(data, -2)];
   if (w >= 2 && w <= 5) return [somarDias(data, -1)];
   return [];
 }
 
-/** "Vendas de sexta e sábado" ou "Vendas de ontem". */
+/** "Vendas de sexta e sábado", "Vendas de ontem" (modelo antigo) ou "Vendas do dia". */
 export const rotuloPeriodo = (diasVenda: string[]) =>
-  diasVenda.length > 1 ? `Vendas de ${diasVenda.map(nomeDoDia).join(" e ")}` : "Vendas de ontem";
+  diasVenda.length > 1 ? `Vendas de ${diasVenda.map(nomeDoDia).join(" e ")}` : diasVenda[0] && diasVenda[0] >= VIRADA_FLUXO ? "Vendas do dia" : "Vendas de ontem";
+
+/** Dia sem lançamento: antes da virada, sábado e domingo; depois, só domingo (sábado tem venda). */
+export const semLancamento = (data: string) => (data >= VIRADA_FLUXO ? diaDaSemana(data) === 0 : ehFimDeSemana(data));
+/** Modelo novo do Fluxo: vendas do próprio dia, gravadas pelo robô; a pessoa completa bancos e contas. */
+export const vendasAoVivo = (data: string) => data >= VIRADA_FLUXO;
 
 /* ---------- totais ---------- */
 export const somar = (linhas: LinhaValor[]) => linhas.reduce((t, l) => t + (Number.isFinite(l.valor) ? l.valor : 0), 0);

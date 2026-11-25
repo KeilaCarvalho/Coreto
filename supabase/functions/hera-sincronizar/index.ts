@@ -139,6 +139,41 @@ async function atualizarFluxo(meses: string[], hoje: string) {
   }
 }
 
+/* ---------- Fluxo: vendas do próprio dia (a partir da virada de 25/11/2026) ---------- */
+const VIRADA_FLUXO = "2026-11-25";
+const diaDaSemana = (iso: string) => new Date(`${iso}T12:00:00Z`).getUTCDay();
+
+async function atualizarFluxoDias(dias: string[]) {
+  const alvo = dias.filter((d) => d >= VIRADA_FLUXO && diaDaSemana(d) !== 0);
+  if (!alvo.length) return;
+  const { data: config } = await sb.from("fluxo_config").select("formas_padrao").maybeSingle();
+  const ordemPadrao = Array.isArray(config?.formas_padrao) ? (config!.formas_padrao as string[]) : [];
+  for (const d of alvo) {
+    const colunas = d === VIRADA_FLUXO ? [somarDias(d, -1), d] : [d];
+    const { data: hd } = await sb.from("hera_dias").select("data, caixa").in("data", colunas);
+    const porColuna = colunas.map((c) => {
+      const m = new Map<string, number>();
+      for (const h of (hd ?? []) as { data: string; caixa: Par[] }[]) if (h.data === c) for (const p of h.caixa ?? []) { const n = formaDoTipo(p.x); m.set(n, (m.get(n) ?? 0) + p.y); }
+      return m;
+    });
+    const { data: atual } = await sb.from("fluxo_dias").select("vendas").eq("data", d).maybeSingle();
+    const nomesAntigos = ((atual?.vendas ?? []) as Linha[]).map((l) => l.nome);
+    const brutos = [...new Set(porColuna.flatMap((m) => [...m.keys()]))];
+    if (!brutos.length && !atual) continue; // ainda sem venda: não cria o dia
+    // Nome como já está no Fluxo/na lista padrão ("Cartão de Débito"); senão, o do robô.
+    const conhecidos = [...nomesAntigos, ...ordemPadrao];
+    const nomeFinal = (n: string) => conhecidos.find((k) => chave(k) === chave(n)) ?? n;
+    const vendas = brutos.map((n) => {
+      const valores = porColuna.map((m) => r2(m.get(n) ?? 0));
+      return { nome: nomeFinal(n), dias: valores, valor: r2(valores.reduce((t, v) => t + v, 0)) };
+    });
+    const pos = (nome: string) => { const i = conhecidos.findIndex((k) => chave(k) === chave(nome)); return i < 0 ? 999 : i; };
+    vendas.sort((a, b) => pos(a.nome) - pos(b.nome) || b.valor - a.valor);
+    const { error } = await sb.from("fluxo_dias").upsert({ data: d, vendas }, { onConflict: "data" });
+    if (error) throw new Error(`Fluxo do dia: ${error.message}`);
+  }
+}
+
 Deno.serve(async (req) => {
   const corpo = await req.json().catch(() => ({})) as { origem?: string; desde?: string; ate?: string };
   const origem = corpo.origem ?? "cron";
@@ -179,6 +214,7 @@ Deno.serve(async (req) => {
     // Só o mês corrente e o anterior (nas cargas de histórico o Fluxo antigo fica como está).
     const mesAtual = `${hoje.slice(0, 7)}-01`, mesAnterior = `${somarDias(mesAtual, -1).slice(0, 7)}-01`;
     await atualizarFluxo(meses.filter((m) => m === mesAtual || m === mesAnterior), hoje);
+    await atualizarFluxoDias(dias.filter((d) => d >= somarDias(hoje, -3)));
 
     const resumo = { lojas, dias: dias.length, meses: meses.length, hoje: linhasDia.filter((l) => l.data === hoje).map((l) => ({ loja: l.loja, faturamento: l.faturamento })) };
     await fechar(true, null, resumo);

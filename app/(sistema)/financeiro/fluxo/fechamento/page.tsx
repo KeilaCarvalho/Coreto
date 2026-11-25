@@ -55,7 +55,11 @@ export default async function Fechamento({ searchParams }: { searchParams: Promi
     supabase.from("fluxo_dias").select("data, saldos, a_receber").gte("data", mes).lte("data", somarDias(fim, 4)).order("data", { ascending: false }),
   ]);
   // Último lançamento que ainda traz vendas deste mês (em 2/11, o de sexta e sábado de outubro).
-  const ultimo = (diasR ?? []).find((d) => mesDoLancamento(d.data) === mes) as { data: string; saldos: unknown; a_receber: unknown } | undefined;
+  type DiaF = { data: string; saldos: unknown; a_receber: unknown };
+  const doMes = ((diasR ?? []) as DiaF[]).filter((d) => mesDoLancamento(d.data) === mes);
+  // Bancos e a receber: o último dia com os bancos lançados. Vendas: o último dia que tem (o robô grava ao vivo).
+  const ultimo = doMes.find((d) => lerLinhas(d.saldos).length > 0) ?? doMes[0];
+  const ultimoComVendas = doMes[0];
   const m = mesR as { vendas: unknown; vendedoras: unknown; contas_a_pagar: number; contas_pagas: number } | null;
 
   const dados: DadosFluxo | null = m || ultimo ? {
@@ -73,7 +77,7 @@ export default async function Fechamento({ searchParams }: { searchParams: Promi
   // O mês está completo quando o último lançamento traz o último dia de venda do mês (domingo não tem venda).
   let ultimoDiaVenda = fim;
   while (diaDaSemana(ultimoDiaVenda) === 0) ultimoDiaVenda = somarDias(ultimoDiaVenda, -1);
-  const vendasAte = ultimo ? diasDeVenda(ultimo.data).at(-1) ?? ultimo.data : null;
+  const vendasAte = ultimoComVendas ? diasDeVenda(ultimoComVendas.data).at(-1) ?? ultimoComVendas.data : null;
   const completo = !!vendasAte && vendasAte >= ultimoDiaVenda;
   const podeEditar = sessao.pode("financeiro", "editar") || sessao.pode("financeiro", "criar");
   const base = `/financeiro/fluxo/fechamento?mes=${mes.slice(0, 7)}`;
