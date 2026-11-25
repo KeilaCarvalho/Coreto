@@ -6,7 +6,8 @@ import { exigir } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { Icone } from "@/components/icone";
 import { BotoesPdf } from "@/components/fluxo/botoes-pdf";
-import { JanelaLancamento } from "@/components/fluxo/lancamento";
+import { JanelaLancamento, type HeraFluxo } from "@/components/fluxo/lancamento";
+import { agruparFormas, somarPares, type DiaHera } from "@/lib/hera";
 import {
   FORMAS_PAGAMENTO, dataPorExtenso, diaDaSemana, diasDeVenda, ehFimDeSemana, inicioDoMes, lerLinhas, lerVendas,
   mesDoLancamento, mesPorExtenso, nomeDoDia, rotuloPeriodo, somar, somarDias, totaisFluxo, vendasPorDia, type DadosFluxo, type LinhaValor,
@@ -97,7 +98,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
   const desde = [inicioCal, somarDias(data, -30)].sort()[0];
 
   const supabase = await supabaseServidor();
-  const [{ data: diaR }, { data: mesR }, { data: anteriorR }, { data: periodoR }, { data: vendedorasR }, { data: configR }, { data: contasR }] = await Promise.all([
+  const [{ data: diaR }, { data: mesR }, { data: anteriorR }, { data: periodoR }, { data: vendedorasR }, { data: configR }, { data: contasR }, { data: heraR }] = await Promise.all([
     supabase.from("fluxo_dias").select("data, vendas, saldos, a_receber, observacao, atualizado_em, quem:pessoas!atualizado_por(nome)").eq("data", data).maybeSingle(),
     supabase.from("fluxo_meses").select("mes, vendas, vendedoras, contas_a_pagar, contas_pagas").eq("mes", mesRef).maybeSingle(),
     supabase.from("fluxo_dias").select("data, vendas, saldos, a_receber").lt("data", data).order("data", { ascending: false }).limit(1).maybeSingle(),
@@ -105,7 +106,16 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
     supabase.from("pessoas").select("nome, apelido").eq("e_vendedora", true).is("arquivado_em", null).order("nome"),
     supabase.from("fluxo_config").select("contas_padrao, formas_padrao").maybeSingle(),
     supabase.from("fluxo_meses").select("contas_a_pagar, contas_pagas").eq("mes", mesContasRef).maybeSingle(),
+    supabase.from("hera_dias").select("data, loja, faturamento, caixa, vendedoras, atualizado_em").gte("data", mesRef).lte("data", periodo[periodo.length - 1] ?? data),
   ]);
+  // HeraDash: vendas de cada dia do período e o acumulado do mês até o último dia de venda.
+  const heraDias = (heraR ?? []) as DiaHera[];
+  const heraFluxo: HeraFluxo | null = periodo.length && periodo.every((d) => heraDias.some((h) => h.data === d)) ? {
+    dias: periodo.map((d) => agruparFormas(somarPares(heraDias.filter((h) => h.data === d).map((h) => h.caixa))).map((f) => ({ nome: f.nome, valor: f.valor }))),
+    mes: agruparFormas(somarPares(heraDias.map((h) => h.caixa))).map((f) => ({ nome: f.nome, valor: f.valor })),
+    vendedoras: somarPares(heraDias.map((h) => h.vendedoras)).map((v) => ({ nome: v.x, valor: Math.round(v.y * 100) / 100 })),
+    atualizado: heraDias.map((h) => h.atualizado_em).sort().at(-1) ?? null,
+  } : null;
   const contasMes = contasR as { contas_a_pagar: number; contas_pagas: number } | null;
   const brutoPadrao: unknown = (configR as { contas_padrao?: unknown } | null)?.contas_padrao;
   const contasPadrao: string[] = [];
@@ -391,7 +401,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
 
       {podeLancar && (
         <Suspense>
-          <JanelaLancamento contasPadrao={contasPadrao} key={data + (dia?.atualizado_em ?? "")} inicial={paraJanela} novo={!dia} salvar={salvarFluxo} />
+          <JanelaLancamento hera={heraFluxo} contasPadrao={contasPadrao} key={data + (dia?.atualizado_em ?? "")} inicial={paraJanela} novo={!dia} salvar={salvarFluxo} />
         </Suspense>
       )}
     </>

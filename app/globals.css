@@ -2045,3 +2045,34 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
 }
 @media (prefers-reduced-motion: reduce) { .lg-caixa input, .lg-form .botao, .lg-ic { transition: none; } }
 .lg-flor * { vector-effect: non-scaling-stroke; stroke-width: 1.6px; }
+
+/* HeraDash ao vivo */
+.hera-faixa { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px; margin-bottom: 14px; border-radius: 14px; background: var(--superficie); box-shadow: var(--sombra); }
+.hera-ponto { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #12b76a; box-shadow: 0 0 0 4px rgba(18, 183, 106, 0.16); }
+.hera-faixa.com-erro .hera-ponto { background: var(--alerta); box-shadow: 0 0 0 4px rgba(154, 91, 7, 0.16); }
+.hera-texto { flex: 1; min-width: 0; display: grid; gap: 1px; font-size: 13px; }
+.hera-texto b { font-size: 13.5px; }
+.hera-texto span { color: var(--suave); }
+.hera-faixa .botao { flex: none; }
+.hera-hoje .fx-lista small.mini { display: block; }
+.hera-vend span:first-child { color: var(--suave); }
+.hera-formas > li { display: block; padding: 0; }
+.hera-formas details > summary { list-style: none; display: grid; grid-template-columns: minmax(110px, 1fr) minmax(60px, 1.2fr) auto; align-items: center; gap: 12px; padding: 11px 22px; cursor: pointer; }
+.hera-formas details > summary::-webkit-details-marker { display: none; }
+.hera-formas details > summary > span:first-child { font-weight: 600; }
+.hera-formas .fx-valor { text-align: right; }
+.hera-formas .fx-valor small { display: block; font-size: 11.5px; color: var(--suave); font-weight: 500; }
+.hera-formas details ul { list-style: none; margin: 0 22px 10px; padding: 8px 12px; border-radius: 10px; background: var(--superficie-2); display: grid; gap: 6px; font-size: 13px; }
+.hera-formas details ul li { padding: 0; border: 0; font-size: 13px; display: flex; justify-content: space-between; gap: 12px; color: var(--suave); text-transform: capitalize; }
+@media (max-width: 700px) {
+  .hera-faixa { flex-wrap: wrap; }
+  .hera-faixa .botao { width: 100%; justify-content: center; }
+  .hera-formas details > summary { grid-template-columns: minmax(0, 1fr) auto; }
+  .hera-formas details > summary .fx-trilho { display: none; }
+}
+.fx-hera { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; padding: 12px 14px; border-radius: 12px; background: var(--verde-50); border: 1px solid var(--verde-100); }
+.fx-hera > span { flex: 1; min-width: 0; display: grid; gap: 2px; font-size: 13px; color: var(--suave); }
+.fx-hera > span b { color: var(--tinta); font-size: 13.5px; }
+.fx-hera.feito { background: #ecfdf3; border-color: #c6f0d8; }
+.fx-hera .botao { flex: none; }
+@media (max-width: 700px) { .fx-hera { flex-wrap: wrap; } .fx-hera .botao { width: 100%; justify-content: center; } }

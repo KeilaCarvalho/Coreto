@@ -174,3 +174,15 @@ export async function ligarVendedoraDoRelatorio(_: EstadoAcao, dados: FormData):
   atualizar();
   return { ok: `“${nomeRelatorio}” ligada a ${linhas[0].nome}. As clientes dela já estão na carteira.` };
 }
+
+/** Botão "Atualizar agora": chama a função que puxa os dados do HeraDash. */
+export async function atualizarHera(): Promise<{ ok: boolean; mensagem: string }> {
+  const supabase = await supabaseServidor();
+  const { data, error } = await supabase.functions.invoke("hera-sincronizar", { body: { origem: "botao" } });
+  if (error) return { ok: false, mensagem: "Não consegui falar com o HeraDash agora. Tente de novo em alguns minutos." };
+  const r = data as { ok?: boolean; erro?: string; pulado?: string };
+  revalidatePath("/comercial/vendas");
+  revalidatePath("/");
+  if (r?.pulado) return { ok: true, mensagem: "Os números acabaram de ser atualizados." };
+  return r?.ok ? { ok: true, mensagem: "Números do HeraDash atualizados." } : { ok: false, mensagem: r?.erro ?? "O HeraDash não respondeu." };
+}

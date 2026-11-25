@@ -9,6 +9,9 @@ import { dataPorExtenso, inicioDoMes, mesDoLancamento, mesPorExtenso, nomeDoDia,
 type Acao = (estado: EstadoAcao, dados: FormData) => Promise<EstadoAcao>;
 type LinhaTexto = { nome: string; valor: string };
 type LinhaVendaTexto = { nome: string; dias: string[]; mes: string };
+/** Vendas puxadas do HeraDash para preencher o lançamento. */
+export type HeraFluxo = { dias: { nome: string; valor: number }[][]; mes: { nome: string; valor: number }[]; vendedoras: { nome: string; valor: number }[]; atualizado: string | null };
+const chave = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 /** "1.234,56", "1234.56" ou "R$ 89,90" → número; vazio → 0. */
@@ -55,7 +58,7 @@ function Linhas({ linhas, mudar, rotulo, rotuloValor = "Valor" }: {
 }
 
 /** Janela lateral para lançar ou corrigir um dia. Abre com ?lancar= na URL (o valor é a seção para onde rolar). */
-export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: { inicial: DadosFluxo; novo: boolean; salvar: Acao; contasPadrao?: string[] }) {
+export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [], hera = null }: { inicial: DadosFluxo; novo: boolean; salvar: Acao; contasPadrao?: string[]; hera?: HeraFluxo | null }) {
   const router = useRouter();
   const params = useSearchParams();
   const secao = params.get("lancar");
@@ -83,6 +86,36 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: {
   const [contasPagas, setContasPagas] = useState(campo(inicial.contasPagas));
   const [guardarContas, setGuardarContas] = useState<boolean | null>(null);
   const [estado, enviar, salvando] = useActionState(salvar, null);
+  const [puxou, setPuxou] = useState(false);
+
+  /** Preenche vendas (por dia e no mês) e vendedoras com o que veio do caixa do HeraDash. */
+  function puxarDoHera() {
+    if (!hera) return;
+    const nomes = [...new Set([...vendas.map((v) => v.nome).filter(Boolean), ...hera.mes.map((f) => f.nome), ...hera.dias.flat().map((f) => f.nome)])];
+    const achar = (lista: { nome: string; valor: number }[], nome: string) => lista.find((f) => chave(f.nome) === chave(nome))?.valor ?? 0;
+    const vistos = new Set<string>();
+    const novas: LinhaVendaTexto[] = [];
+    for (const nome of nomes) {
+      if (vistos.has(chave(nome))) continue;
+      vistos.add(chave(nome));
+      novas.push({ nome, dias: inicial.diasVenda.map((_, k) => campo(achar(hera.dias[k] ?? [], nome))), mes: campo(achar(hera.mes, nome)) });
+    }
+    setVendas(novas);
+    const primeiro = (s: string) => chave(s).split(/\s+/)[0];
+    const usadas = new Set<number>();
+    const equipe = vendedoras.map((v) => {
+      const i = hera.vendedoras.findIndex((h, j) => !usadas.has(j) && (chave(h.nome) === chave(v.nome) || primeiro(h.nome) === primeiro(v.nome)));
+      if (i < 0) return { ...v, valor: "" };
+      usadas.add(i);
+      return { ...v, valor: campo(hera.vendedoras[i].valor) };
+    });
+    hera.vendedoras.forEach((h, j) => {
+      if (!usadas.has(j)) equipe.push({ nome: h.nome.toLowerCase().replace(/(^|\s)\S/g, (l) => l.toUpperCase()).split(" ")[0], valor: campo(h.valor) });
+    });
+    setVendedoras(equipe);
+    setMexeu(true);
+    setPuxou(true);
+  }
 
   // Rascunho no navegador: o que foi digitado não se perde se a página recarregar ou o salvar falhar.
   const chaveRascunho = `coreto-fluxo-rascunho-${inicial.data}`;
@@ -163,6 +196,12 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [] }: {
           <section className="fx-bloco" id="b-vendas">
             <h3>Vendas por forma de pagamento</h3>
             <p>{nDias > 1 ? "Na segunda entram as vendas de sexta e de sábado, cada dia na sua coluna." : `Vendas de ${nomeDoDia(inicial.diasVenda[0] ?? inicial.data)}.`} “No mês” é o acumulado do mês até esse dia.</p>
+            {hera && (
+              <div className={`fx-hera${puxou ? " feito" : ""}`}>
+                <span><b>{puxou ? "Preenchido com o HeraDash" : "Vendas já estão no HeraDash"}</b>{puxou ? "Vendas e equipe vieram do caixa. Confira antes de salvar." : "Preenche as formas de pagamento e a equipe com o caixa do PDV."}</span>
+                <button type="button" className="botao pequeno" onClick={puxarDoHera}><Icone nome="baixar" tamanho={15} />{puxou ? "Puxar de novo" : "Puxar do HeraDash"}</button>
+              </div>
+            )}
             <div className="fx-linhas">
               <div className="fx-linha cab" style={{ gridTemplateColumns: colunas }}>
                 <b>Forma</b>

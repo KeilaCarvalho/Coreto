@@ -64,7 +64,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const em7 = diaSP(new Date(agora.getTime() + 7 * 864e5));
   const vazio = { data: null, count: null } as const;
 
-  const [mesesR, vendMesR, diasR, contasR, cobrR, saldosR, colunasR, opsR, recR, fotosR, acessoR, hojeR, prontasR, faltasR] = await Promise.all([
+  const [mesesR, vendMesR, diasR, contasR, cobrR, saldosR, colunasR, opsR, recR, fotosR, acessoR, hojeR, prontasR, faltasR, heraR] = await Promise.all([
     veFin ? sb.from("fluxo_meses").select("mes, vendas").gte("mes", seisMeses).order("mes") : vazio,
     veFin ? sb.from("vendas_mensais").select("mes, valor_total").gte("mes", seisMeses).order("mes") : vazio,
     veFin ? sb.from("fluxo_dias").select("data, saldos, vendas").order("data", { ascending: false }).limit(20) : vazio,
@@ -79,12 +79,18 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     administra ? sb.from("acessos_dia").select("primeiro, ultimo, pessoas(nome)").eq("dia", hoje).order("primeiro") : vazio,
     sessao.pode("faccao", "criar") ? sb.from("producao_ops").select("id", { count: "exact", head: true }).not("pronta_em", "is", null).is("conferida_em", null).is("arquivado_em", null) : vazio,
     veProd || sessao.pode("faccao") ? sb.from("producao_pendencias").select("quantidade").is("resolvido_em", null) : vazio,
+    veFin ? sb.from("hera_meses").select("mes, caixa").gte("mes", seisMeses) : vazio,
   ]);
 
   // Vendas por mês (fluxo financeiro; meses antigos vêm do relatório importado)
   const porMes = new Map<string, number>();
   for (const v of (vendMesR.data ?? []) as { mes: string; valor_total: number }[]) porMes.set(v.mes.slice(0, 7), Number(v.valor_total));
   for (const m of (mesesR.data ?? []) as { mes: string; vendas: unknown }[]) { const s = somaValores(m.vendas); if (s > 0) porMes.set(m.mes.slice(0, 7), s); }
+  // HeraDash (caixa do PDV, de hora em hora) manda quando existe: é o mesmo número do fluxo, sem esperar o lançamento.
+  const heraMes = new Map<string, number>();
+  for (const h of (heraR.data ?? []) as { mes: string; caixa: { y: number }[] }[]) heraMes.set(h.mes.slice(0, 7), (heraMes.get(h.mes.slice(0, 7)) ?? 0) + (h.caixa ?? []).reduce((t, p) => t + Number(p.y || 0), 0));
+  for (const [k, v] of heraMes) if (v > 0) porMes.set(k, v);
+  const vendasDoHera = (heraMes.get(hoje.slice(0, 7)) ?? 0) > 0;
   const meses = Array.from({ length: 6 }, (_, i) => { const d = new Date(`${seisMeses}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() + i); const k = d.toISOString().slice(0, 7); return { k, rot: MESES[d.getUTCMonth()], valor: porMes.get(k) ?? 0 }; });
   const vendasMes = meses[5].valor, vendasAnt = meses[4].valor;
   const diaDoMes = Number(hoje.slice(8, 10));
@@ -166,7 +172,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
 
       <div className="ini-grade">
         <div className="c12 ini-inds">
-          {veFin && <Indicador titulo="Vendas do mês" icone="cifrao" valor={reais(vendasMes)} linha={meses.map((m) => m.valor)} selo={ritmo != null ? { texto: `${ritmo >= 0 ? "▲" : "▼"} ${Math.abs(ritmo)}%`, tipo: ritmo >= 0 ? "sobe" : "desce" } : undefined} nota={ritmo != null ? "vs. mês passado" : "lançadas no fluxo"} href="/financeiro/fluxo" />}
+          {veFin && <Indicador titulo="Vendas do mês" icone="cifrao" valor={reais(vendasMes)} linha={meses.map((m) => m.valor)} selo={ritmo != null ? { texto: `${ritmo >= 0 ? "▲" : "▼"} ${Math.abs(ritmo)}%`, tipo: ritmo >= 0 ? "sobe" : "desce" } : undefined} nota={ritmo != null ? (vendasDoHera ? "vs. mês passado · ao vivo do HeraDash" : "vs. mês passado") : vendasDoHera ? "ao vivo do HeraDash" : "lançadas no fluxo"} href={vendasDoHera && sessao.pode("comercial") ? "/comercial/vendas" : "/financeiro/fluxo"} />}
           {veFin && <Indicador titulo="Saldo nos bancos" icone="banco" valor={reais(saldoAtual)} linha={linhaSaldo} selo={saldoAnt != null ? { texto: `${saldoAtual >= saldoAnt ? "▲" : "▼"} ${reais(Math.abs(saldoAtual - saldoAnt))}`, tipo: saldoAtual >= saldoAnt ? "sobe" : "desce" } : undefined} nota={ultimoDia ? `${ultimoDia.data.slice(8, 10)}/${ultimoDia.data.slice(5, 7)}` : "sem fluxo lançado"} href="/financeiro/fluxo" cor="#2f7cf6" />}
           {veFin && <Indicador titulo="A pagar em 7 dias" icone="calendario" valor={reais(totalSemana)} selo={atrasadas.length ? { texto: `${atrasadas.length} ${atrasadas.length === 1 ? "atrasada" : "atrasadas"}`, tipo: "desce" } : { texto: "em dia", tipo: "sobe" }} nota={`${contas.length} ${contas.length === 1 ? "conta" : "contas"}`} href="/financeiro/contas" />}
           {veProd ? <Indicador titulo="Em produção" icone="quadro" valor={`${numero(emProducao.length)} OPs`} selo={opsAtrasadas ? { texto: `${opsAtrasadas} atrasada${opsAtrasadas > 1 ? "s" : ""}`, tipo: "desce" } : undefined} nota={`${numero(emProducao.reduce((t, o) => t + (o.quantidade ?? 0), 0))} peças nas etapas`} href="/producao/quadro" />
