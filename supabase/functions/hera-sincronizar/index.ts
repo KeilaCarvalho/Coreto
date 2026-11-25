@@ -14,8 +14,14 @@ const partes = (iso: string) => ({ dia: iso.slice(8, 10), mes: iso.slice(5, 7), 
 class SemLogin extends Error {}
 
 async function entrar(): Promise<string> {
-  const email = Deno.env.get("HERA_EMAIL"), senha = Deno.env.get("HERA_SENHA");
-  if (!email || !senha) throw new SemLogin("Falta cadastrar HERA_EMAIL e HERA_SENHA nos segredos das Edge Functions.");
+  // Aceita HERA_EMAIL/HERA_SENHA ou EMAIL/SENHA (nome com espaço sobrando também vale).
+  const env = Object.entries(Deno.env.toObject()).map(([k, v]) => [k.trim().toUpperCase(), v] as const);
+  const ler = (...nomes: string[]) => nomes.map((n) => env.find(([k]) => k === n)?.[1]).find(Boolean);
+  const email = ler("HERA_EMAIL", "EMAIL")?.trim(), senha = ler("HERA_SENHA", "SENHA");
+  if (!email || !senha) {
+    const parecidos = Object.keys(Deno.env.toObject()).filter((k) => /hera|email|senha/i.test(k));
+    throw new SemLogin(`Falta cadastrar HERA_EMAIL e HERA_SENHA nos segredos das Edge Functions.${parecidos.length ? ` Encontrei: ${parecidos.join(", ")}.` : ""}`);
+  }
   const r = await fetch(`${BASE}/api/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, senha }) });
   if (!r.ok) throw new SemLogin(`O HeraDash recusou o login (status ${r.status}). Confira o e-mail e a senha do robô.`);
   const cookie = r.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");

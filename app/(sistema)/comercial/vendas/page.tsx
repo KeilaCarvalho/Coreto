@@ -76,6 +76,13 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
     supabase.from("hera_meses").select("mes, loja, metricas, caixa, vendedoras, produtos, subgrupos, atualizado_em").eq("mes", inicio),
     supabase.from("hera_dias").select("data, loja, faturamento, caixa, vendedoras, clientes, atualizado_em").gte("data", inicio).lte("data", fim).order("data"),
   ]);
+  const { data: pessoasR } = await supabase.from("pessoas").select("nome, apelido").eq("e_vendedora", true);
+  // O HeraDash corta o nome em 15 letras ("ROSEMEIRE AUGUS"); usa o nome do cadastro quando bate.
+  const nomeVendedora = (bruto: string) => {
+    const b = bruto.trim().toLowerCase();
+    const p = (pessoasR ?? []).find((x) => x.nome.toLowerCase().startsWith(b) || (b.length >= 15 && x.nome.toLowerCase().startsWith(b.slice(0, 12))));
+    return p ? (p.apelido || p.nome) : nomeBonito(bruto);
+  };
   const hMes = ((hMesR ?? []) as MesHera[]).filter((h) => h.metricas);
   const hDias = (hDiasR ?? []) as DiaHera[];
   const temHera = hMes.length > 0;
@@ -100,7 +107,7 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
   }
   const comissoesRel = (cR ?? []) as Comissao[];
   const comissoes: Comissao[] = comissoesRel.length ? comissoesRel : heraVendedoras.length ? heraVendedoras.map((v) => ({
-    codigo: v.x, vendedora: v.x, vendas: v.y, comissao: 0, percentual: 0, qtd_vendas: 0, qtd_pecas: 0, ticket_medio: 0, valor_pagar: 0,
+    codigo: v.x, vendedora: nomeVendedora(v.x), vendas: v.y, comissao: 0, percentual: 0, qtd_vendas: 0, qtd_pecas: 0, ticket_medio: 0, valor_pagar: 0,
   })) : [...porVendedora.entries()].sort((a, b) => b[1].vendas - a[1].vendas).map(([nome, v]) => ({
     codigo: nome, vendedora: nome, vendas: v.vendas, comissao: 0, percentual: 0, qtd_vendas: v.qtd, qtd_pecas: 0, ticket_medio: v.qtd ? v.vendas / v.qtd : 0, valor_pagar: 0,
   }));
@@ -182,11 +189,11 @@ export default async function Vendas({ searchParams }: { searchParams: Promise<{
       <div className="fx-grade">
         {temHera && mes === hojeIso.slice(0, 7) && (
           <section className="painel c5 hera-hoje">
-            <div className="painel-topo"><div><h2>Hoje</h2><p>{hoje?.clientes.length ? `${hoje.clientes.reduce((t, c) => t + c.vendas, 0)} vendas · ${hoje.clientes.reduce((t, c) => t + c.pecas, 0)} peças` : "Nenhuma venda lançada ainda"}</p></div><div className="fx-total"><strong>{reais(hoje?.total ?? 0)}</strong><span>vendido hoje</span></div></div>
+            <div className="painel-topo"><div><h2>Hoje</h2><p>{hoje?.clientes.length ? (() => { const v = hoje.clientes.reduce((t, c) => t + c.vendas, 0), p = hoje.clientes.reduce((t, c) => t + c.pecas, 0); return `${v} ${v === 1 ? "venda" : "vendas"} · ${p} ${p === 1 ? "peça" : "peças"}`; })() : "Nenhuma venda lançada ainda"}</p></div><div className="fx-total"><strong>{reais(hoje?.total ?? 0)}</strong><span>vendido hoje</span></div></div>
             {hoje && (hoje.formas.length > 0 || hoje.vendedoras.length > 0) ? (
               <ul className="fx-lista">
                 {hoje.formas.map((f) => <li key={f.nome}><span>{f.nome}<small className="mini">{f.detalhes.map((d) => maquinaDoTipo(d.x)).filter(Boolean).join(", ")}</small></span><span className="fx-valor">{reais(f.valor)}</span></li>)}
-                {hoje.vendedoras.map((v) => <li key={v.x} className="hera-vend"><span>{nomeBonito(v.x)}</span><span className="fx-valor">{reais(v.y)}</span></li>)}
+                {hoje.vendedoras.map((v) => <li key={v.x} className="hera-vend"><span>{nomeVendedora(v.x)}</span><span className="fx-valor">{reais(v.y)}</span></li>)}
               </ul>
             ) : <p className="fx-sem-grafico">Assim que entrar a primeira venda no caixa, ela aparece aqui.</p>}
           </section>
