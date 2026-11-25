@@ -91,7 +91,7 @@ function formaDoTipo(tipo: string): string {
   if (t.includes("DEBITO") || t.includes("DÉBITO")) return "Cartão de débito";
   if (t.includes("CART") || t.includes("CRED")) return "Cartão de crédito";
   if (t.includes("DINHEIRO")) return "Dinheiro";
-  return tipo;
+  return tipo.toLowerCase().replace(/^\S/, (l) => l.toUpperCase());
 }
 const chave = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 const r2 = (n: number) => Math.round(n * 100) / 100;
