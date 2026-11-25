@@ -122,7 +122,7 @@ function FechamentoMes({ m, anterior, emAndamento, caixa, aberto }: {
   const categorias = [...m.porCategoria.entries()].map(([nome, c]) => ({ nome, ...c })).sort((a, b) => b.valor - a.valor);
   const maiorCat = categorias[0]?.valor || 1;
   const fornecedores = [...m.porFornecedor.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  const formas = agruparFormas(caixa);
+  const formas = agruparFormas(caixa).filter((f) => Math.abs(f.valor) >= 0.01);
   const totalAberto = aberto.reduce((t, a) => t + Number(a.em_aberto), 0);
   const margemContrib = d.receita ? d.contribuicao / d.receita : 0;
   const equilibrio = margemContrib > 0 ? d.fixas / margemContrib : null;
