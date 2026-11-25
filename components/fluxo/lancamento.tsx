@@ -89,7 +89,7 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [], her
   const [puxou, setPuxou] = useState(false);
 
   /** Preenche vendas (por dia e no mês) e vendedoras com o que veio do caixa do HeraDash. */
-  function puxarDoHera() {
+  function puxarDoHera(automatico = false) {
     if (!hera) return;
     const nomes = [...new Set([...vendas.map((v) => v.nome).filter(Boolean), ...hera.mes.map((f) => f.nome), ...hera.dias.flat().map((f) => f.nome)])];
     const achar = (lista: { nome: string; valor: number }[], nome: string) => lista.find((f) => chave(f.nome) === chave(nome))?.valor ?? 0;
@@ -113,7 +113,7 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [], her
       if (!usadas.has(j)) equipe.push({ nome: h.nome.toLowerCase().replace(/(^|\s)\S/g, (l) => l.toUpperCase()).split(" ")[0], valor: campo(h.valor) });
     });
     setVendedoras(equipe);
-    setMexeu(true);
+    if (!automatico) setMexeu(true);
     setPuxou(true);
   }
 
@@ -126,9 +126,12 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [], her
       if (r && Date.now() - r.t < 3 * 864e5) {
         setVendas(r.vendas); setSaldos(r.saldos); setAReceber(r.aReceber); setVendedoras(r.vendedoras);
         setContasAPagar(r.contasAPagar); setContasPagas(r.contasPagas); setRecuperado(true);
+        return;
       }
     } catch { /* sem rascunho */ }
-  }, [chaveRascunho]);
+    // Dia novo: as vendas já vêm do HeraDash (a pessoa só confere e completa os bancos).
+    if (novo && hera) puxarDoHera(true);
+  }, [chaveRascunho]); // eslint-disable-line react-hooks/exhaustive-deps
   const [mexeu, setMexeu] = useState(false);
   useEffect(() => {
     if (!mexeu) return;
@@ -199,7 +202,7 @@ export function JanelaLancamento({ inicial, novo, salvar, contasPadrao = [], her
             {hera && (
               <div className={`fx-hera${puxou ? " feito" : ""}`}>
                 <span><b>{puxou ? "Preenchido com o HeraDash" : "Vendas já estão no HeraDash"}</b>{puxou ? "Vendas e equipe vieram do caixa. Confira antes de salvar." : "Preenche as formas de pagamento e a equipe com o caixa do PDV."}</span>
-                <button type="button" className="botao pequeno" onClick={puxarDoHera}><Icone nome="baixar" tamanho={15} />{puxou ? "Puxar de novo" : "Puxar do HeraDash"}</button>
+                <button type="button" className="botao pequeno" onClick={() => puxarDoHera()}><Icone nome="baixar" tamanho={15} />{puxou ? "Puxar de novo" : "Puxar do HeraDash"}</button>
               </div>
             )}
             <div className="fx-linhas">

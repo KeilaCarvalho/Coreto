@@ -82,6 +82,63 @@ async function puxarMes(loja: number, primeiro: string) {
   return { mes: primeiro, loja, metricas, caixa: limpar(caixa), vendedoras: limpar(vend), produtos: produtos ?? [], subgrupos: subgrupos ?? [], atualizado_em: new Date().toISOString() };
 }
 
+/* ---------- Fluxo: acumulado do mês (vendas por forma e por vendedora) ---------- */
+function formaDoTipo(tipo: string): string {
+  const t = tipo.toUpperCase();
+  if (t.includes("PIX") && (t.includes("ABERTO") || t.includes("PARC"))) return "Pix em aberto";
+  if (t.includes("PIX") || t.includes("TRANSF")) return "Pix";
+  if (t.includes("LINK")) return "Link de pagamento";
+  if (t.includes("DEBITO") || t.includes("DÉBITO")) return "Cartão de débito";
+  if (t.includes("CART") || t.includes("CRED")) return "Cartão de crédito";
+  if (t.includes("DINHEIRO")) return "Dinheiro";
+  return tipo;
+}
+const chave = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+const r2 = (n: number) => Math.round(n * 100) / 100;
+type Linha = { nome: string; valor: number };
+
+/** Usa o nome que já está no Fluxo quando bate (ex.: "Cartão de Débito", "Millena"). */
+function comNomesDoFluxo(novas: Linha[], antigas: Linha[], porPrimeiroNome: boolean): Linha[] {
+  const usadas = new Set<number>();
+  const primeiro = (s: string) => chave(s).split(/\s+/)[0];
+  const saida = novas.map((n) => {
+    const i = antigas.findIndex((a, j) => !usadas.has(j) && (chave(a.nome) === chave(n.nome) || (porPrimeiroNome && primeiro(a.nome) === primeiro(n.nome))));
+    if (i < 0) return { nome: porPrimeiroNome ? n.nome.toLowerCase().replace(/(^|\s)\S/g, (l) => l.toUpperCase()).split(" ")[0] : n.nome, valor: n.valor };
+    usadas.add(i);
+    return { nome: antigas[i].nome, valor: n.valor };
+  });
+  // Mantém na lista (zeradas) as vendedoras que já estavam no Fluxo e ainda não venderam no mês.
+  if (porPrimeiroNome) antigas.forEach((a, j) => { if (!usadas.has(j)) saida.push({ nome: a.nome, valor: 0 }); });
+  return saida;
+}
+
+async function atualizarFluxo(meses: string[], hoje: string) {
+  for (const mes of meses) {
+    const fim = `${mes.slice(0, 7)}-31`;
+    const { data: dias } = await sb.from("hera_dias").select("caixa, vendedoras").gte("data", mes).lte("data", fim <= hoje ? fim : hoje);
+    if (!dias?.length) continue;
+    const formas = new Map<string, number>(), vend = new Map<string, number>();
+    for (const d of dias as { caixa: Par[]; vendedoras: Par[] }[]) {
+      for (const p of d.caixa ?? []) { const n = formaDoTipo(p.x); formas.set(n, (formas.get(n) ?? 0) + p.y); }
+      for (const p of d.vendedoras ?? []) vend.set(p.x, (vend.get(p.x) ?? 0) + p.y);
+    }
+    const ordenar = (m: Map<string, number>) => [...m.entries()].map(([nome, valor]) => ({ nome, valor: r2(valor) })).filter((l) => l.valor !== 0).sort((a, b) => b.valor - a.valor);
+    if (!formas.size && !vend.size) continue;
+    const { data: atual } = await sb.from("fluxo_meses").select("vendas, vendedoras").eq("mes", mes).maybeSingle();
+    const antigasF = ((atual?.vendas ?? []) as Linha[]), antigasV = ((atual?.vendedoras ?? []) as Linha[]);
+    const vendas = comNomesDoFluxo(ordenar(formas), antigasF, false);
+    const vendedoras = comNomesDoFluxo(ordenar(vend), antigasV, true);
+    // Mantém a ordem que já estava no Fluxo.
+    const pos = (l: Linha[], nome: string) => { const i = l.findIndex((x) => x.nome === nome); return i < 0 ? 999 : i; };
+    vendas.sort((a, b) => pos(antigasF, a.nome) - pos(antigasF, b.nome));
+    vendedoras.sort((a, b) => pos(antigasV, a.nome) - pos(antigasV, b.nome));
+    const { error } = atual
+      ? await sb.from("fluxo_meses").update({ vendas, vendedoras, atualizado_em: new Date().toISOString() }).eq("mes", mes)
+      : await sb.from("fluxo_meses").insert({ mes, vendas, vendedoras });
+    if (error) throw new Error(`Fluxo: ${error.message}`);
+  }
+}
+
 Deno.serve(async (req) => {
   const corpo = await req.json().catch(() => ({})) as { origem?: string; desde?: string; ate?: string };
   const origem = corpo.origem ?? "cron";
@@ -119,6 +176,9 @@ Deno.serve(async (req) => {
     const e1 = (await sb.from("hera_dias").upsert(linhasDia)).error;
     const e2 = (await sb.from("hera_meses").upsert(linhasMes)).error;
     if (e1 || e2) throw new Error((e1 ?? e2)!.message);
+    // Só o mês corrente e o anterior (nas cargas de histórico o Fluxo antigo fica como está).
+    const mesAtual = `${hoje.slice(0, 7)}-01`, mesAnterior = `${somarDias(mesAtual, -1).slice(0, 7)}-01`;
+    await atualizarFluxo(meses.filter((m) => m === mesAtual || m === mesAnterior), hoje);
 
     const resumo = { lojas, dias: dias.length, meses: meses.length, hoje: linhasDia.filter((l) => l.data === hoje).map((l) => ({ loja: l.loja, faturamento: l.faturamento })) };
     await fechar(true, null, resumo);
