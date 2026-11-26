@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { agruparFormas, somarPares, type ParHera } from "@/lib/hera";
+import { TarefasDoDia } from "@/components/tarefas/hoje-inicio";
+import { COLUNAS_TAREFA, type Tarefa } from "@/lib/tarefas";
 import { lerSessao } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { Icone, type NomeIcone } from "@/components/icone";
@@ -57,6 +59,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const veProd = sessao.pode("producao");
   const veFotos = sessao.pode("marketing");
   const administra = sessao.pode("configuracoes", "editar");
+  const veTarefas = sessao.pode("tarefas", "ver");
 
   const agora = new Date();
   const hoje = diaSP(agora);
@@ -65,7 +68,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const em7 = diaSP(new Date(agora.getTime() + 7 * 864e5));
   const vazio = { data: null, count: null } as const;
 
-  const [mesesR, vendMesR, diasR, contasR, cobrR, saldosR, colunasR, opsR, recR, fotosR, acessoR, hojeR, prontasR, faltasR, heraR, heraHojeR, sincR] = await Promise.all([
+  const [mesesR, vendMesR, diasR, contasR, cobrR, saldosR, colunasR, opsR, recR, fotosR, acessoR, hojeR, prontasR, faltasR, heraR, heraHojeR, sincR, tarefasR, feitasR] = await Promise.all([
     veFin ? sb.from("fluxo_meses").select("mes, vendas").gte("mes", seisMeses).order("mes") : vazio,
     veFin ? sb.from("vendas_mensais").select("mes, valor_total").gte("mes", seisMeses).order("mes") : vazio,
     veFin ? sb.from("fluxo_dias").select("data, saldos, vendas").order("data", { ascending: false }).limit(20) : vazio,
@@ -83,7 +86,12 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     veFin ? sb.from("hera_meses").select("mes, caixa").gte("mes", seisMeses) : vazio,
     veFin ? sb.from("hera_dias").select("caixa, vendedoras").eq("data", hoje) : vazio,
     veFin ? sb.from("hera_sincronizacoes").select("fim").eq("ok", true).order("inicio", { ascending: false }).limit(1).maybeSingle() : vazio,
+    veTarefas ? sb.from("tarefas").select(COLUNAS_TAREFA).not("status", "in", "(feito,ideia,esperando)").lte("data", hoje).order("ordem").limit(50) : vazio,
+    veTarefas ? sb.from("tarefa_feitas").select("tarefa_id", { count: "exact", head: true }).gte("feita_em", `${hoje}T00:00:00-03:00`) : vazio,
   ]);
+  const ORDEM_P: Record<string, number> = { alta: 0, normal: 1, baixa: 2 };
+  const tarefasHoje = ((tarefasR.data ?? []) as Tarefa[]).sort((a, b) => (ORDEM_P[a.prioridade] ?? 1) - (ORDEM_P[b.prioridade] ?? 1) || Number(!!a.repete) - Number(!!b.repete) || a.ordem - b.ordem);
+  const feitasHoje = (feitasR as { count: number | null }).count ?? 0;
   // Vendas de hoje (caixa do HeraDash, puxado pelo robô).
   const caixaHoje = somarPares(((heraHojeR.data ?? []) as { caixa: ParHera[] }[]).map((h) => h.caixa ?? []));
   const formasHoje = agruparFormas(caixaHoje).filter((f) => Math.abs(f.valor) >= 0.01);
@@ -220,8 +228,29 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
           </section>
         )}
 
+        {veFin && bancos.length > 0 && (
+          <section className={`painel ${veTarefas ? "c7" : "c12"}`}>
+            <div className="painel-topo"><div><h2>Saldos por banco</h2><p>Do último fluxo lançado</p></div></div>
+            <div className="etapas">
+              {bancos.map((b) => (
+                <div key={b.nome} className="etapa-linha valor">
+                  <span>{b.nome}</span>
+                  <span className="etapa-barra"><i style={{ width: `${Math.max(2, (Math.max(0, b.valor) / Math.max(1, bancos[0].valor)) * 100)}%`, background: corBanco(b.nome).fundo }} /></span>
+                  <b>{reais(b.valor)}</b>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {veTarefas && (
+          <section className={`painel ini-tarefas ${veFin && bancos.length > 0 ? "c5" : "c12"}`}>
+            <TarefasDoDia tarefas={tarefasHoje} hoje={hoje} feitas={feitasHoje} />
+          </section>
+        )}
+
         {veProd && colunas.length > 0 && (
-          <section className="painel c5">
+          <section className="painel c12">
             <div className="painel-topo"><div><h2>Produção por etapa</h2><p>OPs em cada coluna do quadro</p></div><Link className="botao secundario pequeno" href="/producao/quadro">Abrir quadro</Link></div>
             <div className="etapas">
               {colunas.map((c) => {
@@ -234,21 +263,6 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
                   </Link>
                 );
               })}
-            </div>
-          </section>
-        )}
-
-        {veFin && bancos.length > 0 && (
-          <section className="painel c7">
-            <div className="painel-topo"><div><h2>Saldos por banco</h2><p>Do último fluxo lançado</p></div></div>
-            <div className="etapas">
-              {bancos.map((b) => (
-                <div key={b.nome} className="etapa-linha valor">
-                  <span>{b.nome}</span>
-                  <span className="etapa-barra"><i style={{ width: `${Math.max(2, (Math.max(0, b.valor) / Math.max(1, bancos[0].valor)) * 100)}%`, background: corBanco(b.nome).fundo }} /></span>
-                  <b>{reais(b.valor)}</b>
-                </div>
-              ))}
             </div>
           </section>
         )}

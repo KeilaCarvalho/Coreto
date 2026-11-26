@@ -2384,3 +2384,17 @@ body {
   .ini-hoje-total strong { font-size: 28px; }
   .ini-hoje .botao { justify-self: start; }
 }
+/* Início: Para fazer hoje */
+.th-progresso { height: 6px; margin: 0 22px 6px; border-radius: 99px; background: var(--superficie-2); overflow: hidden; }
+.th-progresso i { display: block; height: 100%; border-radius: 99px; background: var(--marca); transition: width .3s ease; }
+.th-lista { list-style: none; margin: 0; padding: 4px 12px 14px; display: grid; }
+.th-lista li { display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 12px; }
+.th-lista li:hover { background: var(--superficie-2); }
+.th-titulo { flex: 1; min-width: 0; color: var(--tinta); font-size: 14px; line-height: 1.35; text-decoration: none; }
+.th-titulo:hover { text-decoration: none; color: var(--verde-700); }
+.th-titulo small { display: block; font-size: 11.5px; color: var(--erro); }
+.th-abrir { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 999px; background: var(--verde-50); color: var(--verde-700); }
+.th-mais a { font-size: 13px; font-weight: 600; color: var(--verde-700); padding-left: 36px; }
+.th-vazio { display: flex; align-items: center; gap: 8px; margin: 4px 22px 20px; color: var(--suave); font-size: 14px; }
+.th-vazio .icone { color: var(--marca); }
+@media (max-width: 900px) { .ini-grade > .ini-tarefas { order: 1; } .th-lista { padding: 4px 6px 12px; } .th-progresso { margin: 0 16px 6px; } }
