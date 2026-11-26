@@ -2148,3 +2148,108 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--verde-700); }
   .rs-col small { font-size: 10px; }
   .rs-topo .abas:first-child { width: 100%; overflow-x: auto; flex-wrap: nowrap; }
 }
+
+/* =====================================================================
+   Visual v6 · "sistema de verdade" (referência CarePath): o app flutua
+   numa moldura sobre um fundo suave; menu e cartões são blocos brancos
+   arredondados; títulos grandes; botão principal preto em pílula.
+   Esta camada vem por último e manda nas anteriores.
+   ===================================================================== */
+:root {
+  --canvas: #f3f5f7;
+  --superficie-2: #f4f6f8;
+  --linha: #e7eaee;
+  --linha-forte: #d6dce1;
+  --raio-cartao: 20px;
+  --raio-campo: 12px;
+  --sombra: 0 0 0 1px rgba(16, 24, 40, 0.055), 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px -16px rgba(16, 24, 40, 0.12);
+  --sombra-destaque: var(--sombra);
+}
+html { background: #dfe4e9; }
+body {
+  background:
+    radial-gradient(1100px 620px at 88% -8%, rgba(0, 194, 197, 0.16), transparent 62%),
+    radial-gradient(900px 560px at -6% 108%, rgba(0, 194, 197, 0.10), transparent 60%),
+    linear-gradient(180deg, #e7ebef 0%, #dde3e8 100%);
+  background-attachment: fixed;
+}
+
+@media (min-width: 901px) {
+  /* A moldura: o app inteiro é um painel claro arredondado sobre o fundo */
+  .app {
+    max-width: 1640px; margin: 18px auto; min-height: calc(100dvh - 36px);
+    padding: 12px; gap: 12px;
+    background: rgba(246, 248, 250, 0.92);
+    border-radius: 30px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7) inset, 0 0 0 1px rgba(16, 24, 40, 0.06), 0 40px 90px -40px rgba(16, 24, 40, 0.38);
+    backdrop-filter: blur(18px) saturate(1.3); -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  }
+  .menu {
+    top: 12px; height: calc(100dvh - 60px); position: sticky;
+    border-right: 0; border-radius: 22px; background: #fff;
+    box-shadow: 0 0 0 1px rgba(16, 24, 40, 0.05), 0 1px 2px rgba(16, 24, 40, 0.04);
+  }
+  .menu-marca { padding: 22px 20px 14px; }
+  .menu-link { border-radius: 12px; }
+  .menu-link[aria-current="page"] { background: var(--verde-50); color: var(--tinta); font-weight: 600; }
+  .menu-link[aria-current="page"]::before { display: none; }
+  .menu-sair { margin: 8px 10px 10px; padding: 10px 12px; border-radius: 16px; background: var(--superficie-2); border-top: 0; }
+
+  /* Barra de cima: some o "cartão", fica só busca e ações sobre a moldura */
+  .topo {
+    position: sticky; top: 0; z-index: 30; padding: 6px 6px 6px 10px; border: 0; border-radius: 18px;
+    background: rgba(246, 248, 250, 0.86); box-shadow: none;
+    backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  }
+  .busca { background: #fff; box-shadow: 0 0 0 1px var(--linha); border-radius: 999px; height: 40px; max-width: 420px; }
+  .icone-botao { border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px var(--linha); }
+  .pagina { padding: 18px 22px 40px; max-width: none; }
+}
+
+/* Títulos grandes e calmos, como "Good morning, Sarah" */
+.cabecalho h1 { font-size: clamp(26px, 2.4vw, 34px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.12; }
+.cabecalho p { font-size: 14px; color: var(--suave); }
+
+/* Cartões: brancos, arredondados, borda quase invisível */
+.painel, .kpi, .fx-bloco { background: #fff; border-radius: var(--raio-cartao); box-shadow: var(--sombra); }
+.painel-topo h2 { font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
+.kpi { padding: 18px 20px 16px; }
+.kpi-valor { font-size: 30px; font-weight: 600; letter-spacing: -0.035em; }
+.kpi .seta { border-radius: 999px; }
+
+/* Cartão de destaque cheio, como o "Loops closed" azul do vídeo (na cor da marca) */
+.kpi.destaque, .fx-kpis .kpi.destaque {
+  background: linear-gradient(150deg, #00c9cc 0%, #00a9ac 100%); color: #052a2b;
+  box-shadow: 0 18px 36px -18px rgba(0, 150, 153, 0.75), 0 0 0 1px rgba(0, 120, 122, 0.25);
+}
+.kpi.destaque .kpi-topo, .kpi.destaque .kpi-nota, .fx-kpis .kpi.destaque .kpi-nota { color: rgba(5, 42, 43, 0.75); }
+.kpi.destaque .seta, .fx-kpis .kpi.destaque .seta { background: rgba(255, 255, 255, 0.35); border-color: transparent; color: #052a2b; }
+.kpi.destaque .kpi-nota b, .fx-kpis .kpi.destaque .kpi-nota b, .kpi.destaque .kpi-nota .sobe, .kpi.destaque .kpi-nota .desce { background: rgba(255, 255, 255, 0.45); color: #052a2b; }
+.kpi.destaque svg path[stroke], .kpi.destaque polyline { stroke: #052a2b; }
+
+/* Botões em pílula: principal preto (como "New referral"), secundários brancos */
+.botao { border-radius: 999px; min-height: 40px; padding: 0 18px; background: var(--tinta); color: #fff; border: 1px solid var(--tinta); box-shadow: 0 6px 16px -8px rgba(16, 24, 40, 0.55); font-weight: 600; }
+.botao:hover { background: #000; color: #fff; }
+.botao .icone { color: var(--marca); }
+.botao.secundario, .botao.leve { background: #fff; color: var(--tinta); border: 1px solid var(--linha-forte); box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04); }
+.botao.secundario .icone, .botao.leve .icone { color: var(--suave); }
+.botao.secundario:hover, .botao.leve:hover { background: var(--superficie-2); color: var(--tinta); }
+.botao.perigo { background: #fff; color: var(--erro); border-color: #f3c7c2; }
+.botao.pequeno { min-height: 34px; padding: 0 14px; }
+.abas { background: #fff; border: 1px solid var(--linha); }
+.abas a[aria-current="page"], .abas button[aria-current="page"], .abas a.ativa { background: var(--tinta); color: #fff; }
+.filtros .botao, .filtros select, .chip { border-radius: 999px; }
+
+/* Campos mais suaves */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { border-radius: var(--raio-campo); }
+
+/* Tabelas respiram mais */
+.tabela th { font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tenue); font-weight: 600; }
+
+/* Celular: sem moldura, cara de app (fundo claro e cartões brancos) */
+@media (max-width: 900px) {
+  html, body { background: var(--canvas); }
+  .app { background: transparent; box-shadow: none; border-radius: 0; margin: 0; }
+  .cabecalho h1 { font-size: 26px; }
+  .kpi-valor { font-size: min(24px, 6vw); }
+}
