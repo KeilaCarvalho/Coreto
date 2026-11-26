@@ -2353,3 +2353,11 @@ body {
 .tl-linha.confirmando { background: var(--erro-fundo); }
 @media (hover: none), (max-width: 700px) { .tl-lixo { opacity: 1; width: 32px; } }
 .fx-formas-painel.do-dia { box-shadow: var(--sombra), inset 0 0 0 2px var(--verde-100); }
+/* Selo "Vendas atualizadas hoje às 17:05" (robô do HeraDash) */
+.ua-selo { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px var(--linha); color: var(--suave); font-size: 12.5px; text-decoration: none; white-space: nowrap; }
+.ua-selo b { color: var(--tinta); font-weight: 600; }
+.ua-selo i { width: 8px; height: 8px; border-radius: 50%; background: #12b76a; box-shadow: 0 0 0 3px rgba(18, 183, 106, 0.18); flex: none; }
+.ua-selo.falhou i { background: #f79009; box-shadow: 0 0 0 3px rgba(247, 144, 9, 0.2); }
+.ua-selo:hover { color: var(--tinta); text-decoration: none; }
+.ua-selo.compacto { height: 32px; padding: 0 10px; gap: 6px; font-size: 12px; font-weight: 600; color: var(--tinta); }
+@media (max-width: 1100px) and (min-width: 901px) { .topo .ua-selo span { display: none; } .topo .ua-selo { padding: 0 12px; } }

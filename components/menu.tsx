@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Icone } from "@/components/icone";
 import type { GrupoMenu } from "@/lib/navegacao";
 import { TabelasNoCelular } from "@/components/tabelas-celular";
+import { UltimaAtualizacao } from "@/components/hera/ultima-atualizacao";
 
 export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, children }: {
   grupos: GrupoMenu[]; tarefas: boolean; nome: string; email: string; sair: () => Promise<void>; pendencias: number; children: React.ReactNode;
@@ -97,6 +98,7 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
             <img className="nome" src="/coreto-nome-escuro.png" alt="Coreto" />
           </Link>
           <div className="barra-movel-acoes">
+            <UltimaAtualizacao compacto />
             <Link className="icone-botao" href="/configuracoes/acessos" aria-label={pendencias ? `${pendencias} pedido(s) de acesso` : "Avisos"}>
               <Icone nome="sino" />{pendencias > 0 && <span className="ponto" />}
             </Link>
@@ -110,6 +112,7 @@ export function Estrutura({ grupos, tarefas, nome, email, sair, pendencias, chil
             <kbd>Ctrl K</kbd>
           </form>
           <div className="topo-acoes">
+            <UltimaAtualizacao />
             <Link className="icone-botao" href="/configuracoes/acessos" aria-label={pendencias ? `${pendencias} pedido(s) de acesso` : "Avisos"}>
               <Icone nome="sino" />{pendencias > 0 && <span className="ponto" />}
             </Link>
