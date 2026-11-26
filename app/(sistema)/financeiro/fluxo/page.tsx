@@ -1,4 +1,4 @@
-import { BarrasDias } from "@/components/barras-dias";
+import { VendasEFormas } from "@/components/fluxo/vendas-formas";
 import { corBanco } from "@/lib/bancos";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -173,11 +173,14 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
 
   /* ---------- gráfico: últimos 14 dias de venda (sem domingo) ---------- */
   const porDiaDeVenda = new Map<string, number>();
+  const formasPorDia: Record<string, LinhaValor[]> = {};
   for (const l of lancamentos) {
     if (l.data > data) continue;
     const dias = diasDeVenda(l.data);
     if (!dias.length) continue;
-    vendasPorDia({ diasVenda: dias, vendasDia: lerVendas(l.vendas, dias.length) }).forEach(({ dia: d, valor }) => porDiaDeVenda.set(d, valor));
+    const linhas = lerVendas(l.vendas, dias.length);
+    vendasPorDia({ diasVenda: dias, vendasDia: linhas }).forEach(({ dia: d, valor }) => porDiaDeVenda.set(d, valor));
+    dias.forEach((d, k) => { formasPorDia[d] = linhas.map((x) => ({ nome: x.nome, valor: Number(x.dias[k]) || 0 })).filter((x) => x.valor).sort((a, b) => b.valor - a.valor); });
   }
   const ultimoDiaVenda = periodo[periodo.length - 1] ?? somarDias(data, -1);
   const barras: { dia: string; valor: number | null }[] = [];
@@ -271,54 +274,27 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
           </section>
 
           <div className="fx-grade">
-            <section className="painel c7">
-              <div className="painel-topo">
-                <div>
-                  <h2>Vendas dia a dia</h2>
-                  <div className="legenda"><span><i style={{ background: "var(--verde-900)" }} />Melhor dia</span><span><i style={{ background: "var(--marca)" }} />Este lançamento</span><span><i style={{ background: "#8fe3e4" }} />Outros dias</span></div>
-                </div>
-                <div className="fx-total"><strong>{reais(totalBarras)}</strong><span>últimos 14 dias de venda</span></div>
-              </div>
-              {maiorBarra > 0 ? (
-                <>
-                  <BarrasDias
-                    total={totalBarras}
-                    inicial={[...barras].reverse().find((b) => periodo.includes(b.dia) && b.valor !== null)?.dia}
-                    barras={barras.map((b) => {
-                      const atual = periodo.includes(b.dia);
-                      const maior = b.valor === maiorBarra && (b.valor ?? 0) > 0;
-                      return {
-                        dia: b.dia, valor: b.valor,
-                        classe: b.valor === null ? "vazia" : maior ? "maior" : atual ? "atual" : "",
-                        rotulo: ABREV[nomeDoDia(b.dia)], sub: b.dia.slice(8, 10),
-                        titulo: `${nomeDoDia(b.dia).charAt(0).toUpperCase()}${nomeDoDia(b.dia).slice(1)}, ${b.dia.slice(8, 10)}/${b.dia.slice(5, 7)}`,
-                      };
-                    })}
-                  />
-                </>
-              ) : <p className="fx-sem-grafico">Ainda não há vendas lançadas nos últimos dias.</p>}
-            </section>
-
-            <section className="painel c5">
-              <div className="painel-topo">
-                <div><h2>Formas de pagamento</h2><p>Acumulado do mês</p></div>
-                {podeLancar && <Editar href={lancar("b-vendas")} rotulo="Editar vendas" />}
-              </div>
-              {salvoDados.vendasMes.length ? (
-                <div className="fx-rosca">
-                  <Rosca linhas={salvoDados.vendasMes} total={t.vendasMes} />
-                  <div className="fx-formas">
-                    {salvoDados.vendasMes.map((l, i) => (
-                      <div className="fx-forma" key={l.nome}>
-                        <i style={{ background: CORES[i % CORES.length] }} />
-                        <span>{l.nome}<small>{pct(l.valor, t.vendasMes)}% do mês</small></span>
-                        <b>{reais(l.valor)}</b>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : <p className="fx-sem-grafico">O acumulado do mês não foi informado.</p>}
-            </section>
+            <VendasEFormas
+              total={totalBarras}
+              totalTexto={reais(totalBarras)}
+              temBarras={maiorBarra > 0}
+              inicial={[...barras].reverse().find((b) => periodo.includes(b.dia) && b.valor !== null)?.dia}
+              barras={barras.map((b) => {
+                const atual = periodo.includes(b.dia);
+                const maior = b.valor === maiorBarra && (b.valor ?? 0) > 0;
+                return {
+                  dia: b.dia, valor: b.valor,
+                  classe: b.valor === null ? "vazia" : maior ? "maior" : atual ? "atual" : "",
+                  rotulo: ABREV[nomeDoDia(b.dia)], sub: b.dia.slice(8, 10),
+                  titulo: `${nomeDoDia(b.dia).charAt(0).toUpperCase()}${nomeDoDia(b.dia).slice(1)}, ${b.dia.slice(8, 10)}/${b.dia.slice(5, 7)}`,
+                };
+              })}
+              mes={salvoDados.vendasMes}
+              totalMes={t.vendasMes}
+              formasPorDia={formasPorDia}
+              legenda={<div className="legenda"><span><i style={{ background: "var(--verde-900)" }} />Melhor dia</span><span><i style={{ background: "var(--marca)" }} />Este lançamento</span><span><i style={{ background: "#8fe3e4" }} />Outros dias</span></div>}
+              editar={podeLancar ? <Editar href={lancar("b-vendas")} rotulo="Editar vendas" /> : undefined}
+            />
 
             <section className="painel c4">
               <div className="painel-topo">

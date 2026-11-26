@@ -11,7 +11,7 @@ const reais = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curr
  * Barras de vendas por dia. Toque (ou passe o mouse) numa barra para ver o total do dia
  * na faixa de cima; no computador cada barra também mostra o valor curto em cima.
  */
-export function BarrasDias({ barras, inicial, total }: { barras: BarraDia[]; inicial?: string; total: number }) {
+export function BarrasDias({ barras, inicial, total, aoEscolher }: { barras: BarraDia[]; inicial?: string; total: number; aoEscolher?: (dia: string) => void }) {
   const maior = Math.max(0, ...barras.map((b) => b.valor ?? 0));
   const padrao = inicial ?? [...barras].reverse().find((b) => b.valor !== null)?.dia ?? barras[0]?.dia;
   const [sel, setSel] = useState(padrao);
@@ -39,7 +39,7 @@ export function BarrasDias({ barras, inicial, total }: { barras: BarraDia[]; ini
               aria-selected={b.dia === sel}
               aria-label={`${b.titulo}: ${b.valor === null ? "sem lançamento" : reais(b.valor)}`}
               className={`fx-barra ${b.classe}${b.dia === sel ? " sel" : ""}`}
-              onClick={() => setSel(b.dia)}
+              onClick={() => { setSel(b.dia); aoEscolher?.(b.dia); }}
               onMouseEnter={() => setSel(b.dia)}
             >
               {b.valor !== null && <i style={{ height: `${alt}%` }} />}

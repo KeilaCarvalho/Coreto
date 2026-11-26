@@ -2352,3 +2352,4 @@ body {
 .tl-confirma .tl-sim { background: var(--erro); border-color: var(--erro); color: #fff; }
 .tl-linha.confirmando { background: var(--erro-fundo); }
 @media (hover: none), (max-width: 700px) { .tl-lixo { opacity: 1; width: 32px; } }
+.fx-formas-painel.do-dia { box-shadow: var(--sombra), inset 0 0 0 2px var(--verde-100); }
