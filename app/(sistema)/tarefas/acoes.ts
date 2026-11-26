@@ -134,3 +134,13 @@ export async function excluirTarefa(_: EstadoAcao, dados: FormData): Promise<Est
   revalidatePath(CAMINHO);
   return { ok: "Tarefa excluída." };
 }
+
+/** Excluir direto da lista (o botão pede confirmação antes). */
+export async function excluirTarefaRapido(id: string): Promise<EstadoAcao> {
+  if (!uuid.test(id)) return { erro: "Tarefa inválida." };
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.from("tarefas").delete().eq("id", id);
+  if (error) return { erro: mensagem(error.message) };
+  revalidatePath(CAMINHO);
+  return { ok: "Tarefa excluída." };
+}

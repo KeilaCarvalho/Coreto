@@ -2343,3 +2343,12 @@ body {
   .tl-abrir .icone { width: 15px; height: 15px; }
 }
 @media (prefers-reduced-motion: reduce) { .tl-linha, .tl-mais > summary::after { transition: none; } }
+/* Tarefas: excluir direto da lista (lixeira → "Excluir? / Não") */
+.tl-lixo { flex: none; align-self: center; width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 999px; background: transparent; color: var(--tenue); cursor: pointer; opacity: 0; transition: opacity .15s ease, background .15s ease, color .15s ease; }
+.tl-linha:hover .tl-lixo, .tl-lixo:focus-visible { opacity: 1; }
+.tl-lixo:hover { background: var(--erro-fundo); color: var(--erro); }
+.tl-confirma { flex: none; align-self: center; display: inline-flex; gap: 6px; }
+.tl-confirma button { height: 32px; padding: 0 12px; border-radius: 999px; font: 600 13px var(--fonte); cursor: pointer; border: 1px solid var(--linha); background: #fff; color: var(--tinta); }
+.tl-confirma .tl-sim { background: var(--erro); border-color: var(--erro); color: #fff; }
+.tl-linha.confirmando { background: var(--erro-fundo); }
+@media (hover: none), (max-width: 700px) { .tl-lixo { opacity: 1; width: 32px; } }

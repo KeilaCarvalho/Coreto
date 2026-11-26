@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Icone } from "@/components/icone";
 import { atalho, diaCurto, type Tarefa } from "@/lib/tarefas";
-import { marcarPasso } from "@/app/(sistema)/tarefas/acoes";
+import { excluirTarefaRapido, marcarPasso } from "@/app/(sistema)/tarefas/acoes";
 import { BotaoFeito, useLinkTarefa } from "./cartao";
 
 /** Linha simples de tarefa (tela Hoje): bolinha, título e só o que importa. */
@@ -15,6 +15,9 @@ export function LinhaTarefa({ t, hoje, quando }: { t: Tarefa; hoje: string; quan
   const [lista, setLista] = useState(passos);
   const [abrir, setAbrir] = useState(false);
   const [, iniciar] = useTransition();
+  const [confirmar, setConfirmar] = useState(false);
+  const [sumiu, setSumiu] = useState(false);
+  const [excluindo, excluir] = useTransition();
   const feitos = lista.filter((p) => p.feito).length;
   const atrasada = !t.repete && t.status !== "feito" && t.data && t.data < hoje;
   const detalhes = [
@@ -22,8 +25,9 @@ export function LinhaTarefa({ t, hoje, quando }: { t: Tarefa; hoje: string; quan
     atrasada ? `desde ${diaCurto(t.data!)}` : null,
     t.status === "esperando" ? `esperando ${t.esperando_quem || "alguém"}` : null,
   ].filter(Boolean);
+  if (sumiu) return null;
   return (
-    <li className={`tl-linha${t.status === "feito" ? " feita" : ""}`}>
+    <li className={`tl-linha${t.status === "feito" ? " feita" : ""}${confirmar ? " confirmando" : ""}`} onMouseLeave={() => setConfirmar(false)}>
       <BotaoFeito tarefa={t} grande />
       <div className="tl-miolo">
         <Link className="tl-titulo" href={link(t.id)} scroll={false}>
@@ -52,7 +56,19 @@ export function LinhaTarefa({ t, hoje, quando }: { t: Tarefa; hoje: string; quan
           </ul>
         )}
       </div>
-      {at && t.status !== "feito" && <Link className="tl-abrir" href={at.valor} title={`Abrir ${at.rotulo}`}>{at.rotulo}<Icone nome="diagonal" tamanho={13} /></Link>}
+      {at && t.status !== "feito" && !confirmar && <Link className="tl-abrir" href={at.valor} title={`Abrir ${at.rotulo}`}>{at.rotulo}<Icone nome="diagonal" tamanho={13} /></Link>}
+      {confirmar ? (
+        <span className="tl-confirma">
+          <button type="button" className="tl-sim" disabled={excluindo} onClick={() => excluir(async () => {
+            setSumiu(true);
+            const r = await excluirTarefaRapido(t.id);
+            if (r?.erro) { setSumiu(false); setConfirmar(false); }
+          })}>{t.repete ? "Excluir rotina" : "Excluir"}</button>
+          <button type="button" className="tl-nao" onClick={() => setConfirmar(false)}>Não</button>
+        </span>
+      ) : (
+        <button type="button" className="tl-lixo" onClick={() => setConfirmar(true)} aria-label={`Excluir: ${t.titulo}`} title="Excluir"><Icone nome="lixeira" tamanho={16} /></button>
+      )}
     </li>
   );
 }
