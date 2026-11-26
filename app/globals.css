@@ -2253,3 +2253,29 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, te
   .cabecalho h1 { font-size: 26px; }
   .kpi-valor { font-size: min(24px, 6vw); }
 }
+
+/* v6 · ajustes: moldura mais visível e cartão de destaque no Início */
+html { background: #d8dee4; }
+body {
+  background:
+    radial-gradient(1000px 620px at 92% -10%, rgba(0, 194, 197, 0.22), transparent 62%),
+    radial-gradient(820px 560px at -8% 110%, rgba(0, 194, 197, 0.14), transparent 60%),
+    linear-gradient(180deg, #e2e7ec 0%, #d5dce2 100%);
+  background-attachment: fixed;
+}
+@media (min-width: 901px) {
+  .app { width: calc(100% - 48px); margin: 24px auto; min-height: calc(100dvh - 48px); background: rgba(247, 249, 251, 0.94); }
+  .menu { height: calc(100dvh - 72px); }
+}
+.ind { border-radius: var(--raio-cartao); padding: 16px 18px; }
+.ind-valor { font-weight: 600; font-size: 26px; }
+.ind-titulo .ico { border-radius: 999px; }
+.ini-inds > .ind:first-child, .ind.destaque {
+  background: linear-gradient(150deg, #00c9cc 0%, #00a6a9 100%); color: #052a2b;
+  box-shadow: 0 18px 36px -18px rgba(0, 150, 153, 0.75), 0 0 0 1px rgba(0, 120, 122, 0.25);
+}
+.ini-inds > .ind:first-child .ind-titulo, .ini-inds > .ind:first-child .ind-rodape { color: rgba(5, 42, 43, 0.78); }
+.ini-inds > .ind:first-child .ind-titulo .ico { background: rgba(255, 255, 255, 0.4); color: #052a2b; }
+.ini-inds > .ind:first-child .ind-linha path { stroke: #052a2b; }
+.ini-inds > .ind:first-child .ind-linha path + path, .ini-inds > .ind:first-child .ind-linha path[fill]:not([fill="none"]) { fill: rgba(255, 255, 255, 0.25); }
+.ini-inds > .ind:first-child .selo { background: rgba(255, 255, 255, 0.5); color: #052a2b; }
