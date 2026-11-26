@@ -171,6 +171,17 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
     contasPagas: Number(contasMes?.contas_pagas ?? 0),
   };
 
+  /* ---------- última vez que o robô puxou as vendas do HeraDash ---------- */
+  const { data: sincR } = await supabase.from("hera_sincronizacoes").select("fim").eq("ok", true).order("inicio", { ascending: false }).limit(1).maybeSingle();
+  const sincTexto = (() => {
+    const fim = (sincR as { fim: string | null } | null)?.fim;
+    if (!fim) return null;
+    const dia = new Date(fim).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    const hh = new Date(fim).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+    const hojeSP = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    return `Atualizado ${dia === hojeSP ? "hoje" : `${dia.slice(8, 10)}/${dia.slice(5, 7)}`} às ${hh}`;
+  })();
+
   /* ---------- gráfico: últimos 14 dias de venda (sem domingo) ---------- */
   const porDiaDeVenda = new Map<string, number>();
   const formasPorDia: Record<string, LinhaValor[]> = {};
@@ -294,6 +305,7 @@ export default async function PaginaFluxo({ searchParams }: { searchParams: Prom
               formasPorDia={formasPorDia}
               legenda={<div className="legenda"><span><i style={{ background: "var(--verde-900)" }} />Melhor dia</span><span><i style={{ background: "var(--marca)" }} />Este lançamento</span><span><i style={{ background: "#8fe3e4" }} />Outros dias</span></div>}
               editar={podeLancar ? <Editar href={lancar("b-vendas")} rotulo="Editar vendas" /> : undefined}
+              atualizado={sincTexto}
             />
 
             <section className="painel c4">

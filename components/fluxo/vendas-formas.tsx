@@ -32,9 +32,9 @@ function Rosca({ linhas, total, rotulo, cores }: { linhas: Linha[]; total: numbe
  * "Vendas dia a dia" + "Formas de pagamento" lado a lado: ao clicar numa coluna,
  * o quadro de formas passa a mostrar aquele dia; "Ver o mês" volta para o acumulado.
  */
-export function VendasEFormas({ barras, inicial, total, totalTexto, temBarras, mes, totalMes, formasPorDia, legenda, editar }: {
+export function VendasEFormas({ barras, inicial, total, totalTexto, temBarras, mes, totalMes, formasPorDia, legenda, editar, atualizado }: {
   barras: BarraDia[]; inicial?: string; total: number; totalTexto: string; temBarras: boolean;
-  mes: Linha[]; totalMes: number; formasPorDia: Record<string, Linha[]>; legenda: React.ReactNode; editar?: React.ReactNode;
+  mes: Linha[]; totalMes: number; formasPorDia: Record<string, Linha[]>; legenda: React.ReactNode; editar?: React.ReactNode; atualizado?: string | null;
 }) {
   const [dia, setDia] = useState<string | null>(null);
   // Cor fixa por forma (a mesma no mês e nos dias).
@@ -50,7 +50,7 @@ export function VendasEFormas({ barras, inicial, total, totalTexto, temBarras, m
           <div><h2>Vendas dia a dia</h2>{legenda}</div>
           <div className="fx-total"><strong>{totalTexto}</strong><span>últimos 14 dias de venda</span></div>
         </div>
-        {temBarras ? <BarrasDias total={total} inicial={inicial} barras={barras} aoEscolher={(d) => setDia(d)} />
+        {temBarras ? <BarrasDias total={total} inicial={inicial} barras={barras} aoEscolher={(d) => setDia(d)} atualizado={atualizado} />
           : <p className="fx-sem-grafico">Ainda não há vendas lançadas nos últimos dias.</p>}
       </section>
 

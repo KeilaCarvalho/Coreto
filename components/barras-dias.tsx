@@ -11,7 +11,7 @@ const reais = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curr
  * Barras de vendas por dia. Toque (ou passe o mouse) numa barra para ver o total do dia
  * na faixa de cima; no computador cada barra também mostra o valor curto em cima.
  */
-export function BarrasDias({ barras, inicial, total, aoEscolher }: { barras: BarraDia[]; inicial?: string; total: number; aoEscolher?: (dia: string) => void }) {
+export function BarrasDias({ barras, inicial, total, aoEscolher, atualizado }: { barras: BarraDia[]; inicial?: string; total: number; aoEscolher?: (dia: string) => void; atualizado?: string | null }) {
   const maior = Math.max(0, ...barras.map((b) => b.valor ?? 0));
   const padrao = inicial ?? [...barras].reverse().find((b) => b.valor !== null)?.dia ?? barras[0]?.dia;
   const [sel, setSel] = useState(padrao);
@@ -26,7 +26,7 @@ export function BarrasDias({ barras, inicial, total, aoEscolher }: { barras: Bar
             {atual.valor !== null && total > 0 && <span className="bd-pct">{Math.round((atual.valor / total) * 100)}% do período</span>}
           </>
         ) : null}
-        <span className="bd-dica">Toque numa barra</span>
+        {atualizado ? <span className="bd-hora"><i />{atualizado}</span> : <span className="bd-dica">Toque numa barra</span>}
       </div>
       <div className="fx-barras bd-barras" role="listbox" aria-label="Vendas por dia">
         {barras.map((b) => {

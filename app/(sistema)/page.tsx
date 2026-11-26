@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { agruparFormas, somarPares, type ParHera } from "@/lib/hera";
 import { lerSessao } from "@/lib/sessao";
 import { supabaseServidor } from "@/lib/supabase/server";
 import { Icone, type NomeIcone } from "@/components/icone";
@@ -64,7 +65,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const em7 = diaSP(new Date(agora.getTime() + 7 * 864e5));
   const vazio = { data: null, count: null } as const;
 
-  const [mesesR, vendMesR, diasR, contasR, cobrR, saldosR, colunasR, opsR, recR, fotosR, acessoR, hojeR, prontasR, faltasR, heraR] = await Promise.all([
+  const [mesesR, vendMesR, diasR, contasR, cobrR, saldosR, colunasR, opsR, recR, fotosR, acessoR, hojeR, prontasR, faltasR, heraR, heraHojeR, sincR] = await Promise.all([
     veFin ? sb.from("fluxo_meses").select("mes, vendas").gte("mes", seisMeses).order("mes") : vazio,
     veFin ? sb.from("vendas_mensais").select("mes, valor_total").gte("mes", seisMeses).order("mes") : vazio,
     veFin ? sb.from("fluxo_dias").select("data, saldos, vendas").order("data", { ascending: false }).limit(20) : vazio,
@@ -80,7 +81,17 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     sessao.pode("faccao", "criar") ? sb.from("producao_ops").select("id", { count: "exact", head: true }).not("pronta_em", "is", null).is("conferida_em", null).is("arquivado_em", null) : vazio,
     veProd || sessao.pode("faccao") ? sb.from("producao_pendencias").select("quantidade").is("resolvido_em", null) : vazio,
     veFin ? sb.from("hera_meses").select("mes, caixa").gte("mes", seisMeses) : vazio,
+    veFin ? sb.from("hera_dias").select("caixa, vendedoras").eq("data", hoje) : vazio,
+    veFin ? sb.from("hera_sincronizacoes").select("fim").eq("ok", true).order("inicio", { ascending: false }).limit(1).maybeSingle() : vazio,
   ]);
+  // Vendas de hoje (caixa do HeraDash, puxado pelo robô).
+  const caixaHoje = somarPares(((heraHojeR.data ?? []) as { caixa: ParHera[] }[]).map((h) => h.caixa ?? []));
+  const formasHoje = agruparFormas(caixaHoje).filter((f) => Math.abs(f.valor) >= 0.01);
+  const vendasHoje = formasHoje.reduce((t, f) => t + f.valor, 0);
+  const vendedorasHoje = somarPares(((heraHojeR.data ?? []) as { vendedoras: ParHera[] }[]).map((h) => h.vendedoras ?? [])).filter((v) => v.y);
+  const sincFim = (sincR.data as { fim: string | null } | null)?.fim ?? null;
+  const horaSinc = sincFim ? new Date(sincFim).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }) : null;
+  const diaSinc = sincFim ? diaSP(new Date(sincFim)) : null;
 
   // Vendas por mês (fluxo financeiro; meses antigos vêm do relatório importado)
   const porMes = new Map<string, number>();
@@ -178,6 +189,23 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
           {veProd ? <Indicador titulo="Em produção" icone="quadro" valor={`${numero(emProducao.length)} OPs`} selo={opsAtrasadas ? { texto: `${opsAtrasadas} atrasada${opsAtrasadas > 1 ? "s" : ""}`, tipo: "desce" } : undefined} nota={`${numero(emProducao.reduce((t, o) => t + (o.quantidade ?? 0), 0))} peças nas etapas`} href="/producao/quadro" />
             : veEstoque ? <Indicador titulo="Peças em estoque" icone="saldos" valor={numero(pecas)} nota="somando todos os locais" href="/estoque/saldos" /> : null}
         </div>
+
+        {veFin && (
+          <section className="painel c12 ini-hoje">
+            <div className="ini-hoje-total">
+              <span className="ini-hoje-rot">Vendas de hoje</span>
+              <strong>{reais(vendasHoje)}</strong>
+              <span className="ini-hoje-hora"><i />{horaSinc ? `atualizado ${diaSinc === hoje ? "hoje" : `em ${diaSinc!.slice(8, 10)}/${diaSinc!.slice(5, 7)}`} às ${horaSinc}` : "aguardando a primeira atualização"}</span>
+            </div>
+            <div className="ini-hoje-formas">
+              {formasHoje.length ? formasHoje.map((f) => (
+                <span key={f.nome} className="ini-hoje-forma"><small>{f.nome}</small><b>{reais(f.valor)}</b></span>
+              )) : <span className="ini-hoje-vazio">Nenhuma venda no caixa ainda hoje.</span>}
+              {vendedorasHoje.length > 0 && <span className="ini-hoje-vend">{vendedorasHoje.map((v) => `${v.x.split(" ")[0].charAt(0)}${v.x.split(" ")[0].slice(1).toLowerCase()} ${reais(v.y)}`).join(" · ")}</span>}
+            </div>
+            <Link className="botao secundario pequeno" href="/financeiro/fluxo">Abrir fluxo</Link>
+          </section>
+        )}
 
         {veFin && (
           <section className="painel c12">
