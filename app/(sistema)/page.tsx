@@ -180,7 +180,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
         </div>
 
         {veFin && (
-          <section className="painel c7">
+          <section className="painel c12">
             <div className="painel-topo"><div><h2>Vendas por mês</h2><p>Últimos 6 meses · o mês atual ainda está correndo</p></div><Link className="botao secundario pequeno" href="/comercial/vendas">Ver vendas</Link></div>
             <div className="barras-mes" style={{ "--n": 6 } as React.CSSProperties}>
               {meses.map((m, i) => {
@@ -191,21 +191,6 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
             <div className="barras-mes-rot" style={{ "--n": 6 } as React.CSSProperties}>{meses.map((m) => <span key={m.k}>{m.rot}</span>)}</div>
           </section>
         )}
-
-        <section className={`painel ini-sinais ${veFin ? "c5" : "c7"}`}>
-          <div className="painel-topo"><div><h2>Pede atenção</h2><p>O que dá pra resolver agora</p></div>{sinais.length > 0 && <span className="etiqueta alerta">{sinais.length}</span>}</div>
-          {sinais.length ? (
-            <div className="sinais">
-              {sinais.slice(0, 6).map((s) => (
-                <div key={s.titulo} className={`sinal ${s.tipo}`}>
-                  <span className="ico"><Icone nome={s.icone} /></span>
-                  <div><strong>{s.titulo}</strong><span>{s.texto}</span></div>
-                  <Link className="botao secundario pequeno" href={s.href}>{s.acao}</Link>
-                </div>
-              ))}
-            </div>
-          ) : <p className="sinal-vazio">Tudo em dia por aqui. Avisos de contas, facção, produção e fotos aparecem neste cartão.</p>}
-        </section>
 
         {veProd && colunas.length > 0 && (
           <section className="painel c5">
