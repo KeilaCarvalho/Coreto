@@ -2279,3 +2279,8 @@ body {
 .ini-inds > .ind:first-child .ind-linha path { stroke: #052a2b; }
 .ini-inds > .ind:first-child .ind-linha path + path, .ini-inds > .ind:first-child .ind-linha path[fill]:not([fill="none"]) { fill: rgba(255, 255, 255, 0.25); }
 .ini-inds > .ind:first-child .selo { background: rgba(255, 255, 255, 0.5); color: #052a2b; }
+@media (max-width: 900px) {
+  .ind { padding: 14px; }
+  .ind-valor { font-size: min(21px, 5.2vw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kpi-valor { font-size: min(22px, 5.4vw); }
+}
