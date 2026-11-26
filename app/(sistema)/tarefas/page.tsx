@@ -9,6 +9,7 @@ import { Kpi } from "@/components/painel";
 import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
 import { CartaoTarefa } from "@/components/tarefas/cartao";
+import { LinhaTarefa } from "@/components/tarefas/linha";
 import { Kanban } from "@/components/tarefas/kanban";
 import { CamposTarefa } from "@/components/tarefas/campos-tarefa";
 import { AREAS, COLUNAS_TAREFA, area, dataAmigavel, diaCurto, descreverRepete, diaSP, hojeSP, somarDias, type Tarefa } from "@/lib/tarefas";
@@ -57,6 +58,9 @@ export default async function MinhasTarefas({ searchParams }: { searchParams: Pr
   // --- Hoje ---
   const abertas = todas.filter((t) => t.status !== "feito" && t.status !== "ideia");
   const atrasadas = abertas.filter((t) => t.data && t.data < hoje).sort(porPrioridade);
+  // Tela Hoje: rotina que ficou para trás aparece hoje, sem cara de atraso (ela volta sozinha).
+  const listaHoje = abertas.filter((t) => t.data && t.data <= hoje && t.status !== "esperando")
+    .sort((a, b) => (ORDEM_PRIORIDADE[a.prioridade] ?? 1) - (ORDEM_PRIORIDADE[b.prioridade] ?? 1) || Number(!!a.repete) - Number(!!b.repete) || a.ordem - b.ordem);
   const deHoje = abertas.filter((t) => t.data === hoje).sort((a, b) => Number(!a.repete) - Number(!b.repete) || porPrioridade(a, b));
   const fazendo = abertas.filter((t) => t.status === "fazendo" && (!t.data || t.data > hoje)).sort(porPrioridade);
   const esperando = abertas.filter((t) => t.status === "esperando" && (!t.data || t.data > hoje)).sort(porPrioridade);
@@ -85,6 +89,100 @@ export default async function MinhasTarefas({ searchParams }: { searchParams: Pr
 
   const nome = sessao.pessoa?.nome?.split(" ")[0] ?? "";
   const totalHoje = atrasadas.length + deHoje.length;
+  const feitasN = feitasHojeUnicas.length, totalDia = listaHoje.length + feitasN;
+  const progresso = totalDia ? feitasN / totalDia : 0;
+  const saudacao = (() => { const h = Number(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false })); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; })();
+  const dataExtenso = new Date(`${hoje}T12:00:00-03:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+
+  if (ver === "hoje") return (
+    <div className="tl">
+      <header className="tl-topo">
+        <div>
+          <p className="tl-data">{dataExtenso}</p>
+          <h1>{saudacao}{nome ? `, ${nome}` : ""}</h1>
+          <p className="tl-resumo">{!totalDia ? "Nada para hoje. Aproveite!" : listaHoje.length ? `${listaHoje.length} ${listaHoje.length === 1 ? "coisa" : "coisas"} para hoje${feitasN ? ` · ${feitasN} ${feitasN === 1 ? "feita" : "feitas"}` : ""}` : "Tudo feito por hoje 🎉"}</p>
+        </div>
+        <div className="tl-anel" style={{ ["--p" as string]: `${Math.round(progresso * 100)}%` }} aria-label={`${feitasN} de ${totalDia} feitas`}>
+          <span>{feitasN}<small>/{totalDia}</small></span>
+        </div>
+      </header>
+      <Suspense><AvisoDaUrl /></Suspense>
+
+      <FormAcao acao={adicionarRapida} className="tl-anotar" limparAoSalvar>
+        <Icone nome="mais" />
+        <input name="titulo" placeholder="Anotar uma tarefa…" aria-label="Nova tarefa" maxLength={200} autoComplete="off" required />
+        <input type="hidden" name="area" value="geral" />
+        <select name="para" aria-label="Quando" defaultValue="hoje">
+          <option value="hoje">Hoje</option>
+          <option value="ideia">Algum dia</option>
+        </select>
+        <BotaoEnviar className="botao pequeno" enviando="…">Anotar</BotaoEnviar>
+      </FormAcao>
+
+      <section className="tl-bloco">
+        {listaHoje.length ? (
+          <ul className="tl-lista">{listaHoje.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
+        ) : (
+          <div className="tl-vazio"><Icone nome="certo" tamanho={28} /><b>{feitasN ? "Tudo feito por hoje" : "Lista limpa"}</b><span>Anote acima o que aparecer.</span></div>
+        )}
+      </section>
+
+      {esperando.length > 0 && (
+        <details className="tl-mais" open>
+          <summary>Esperando alguém <span>{esperando.length}</span></summary>
+          <ul className="tl-lista">{esperando.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
+        </details>
+      )}
+      {proximos.length + fazendo.length > 0 && (
+        <details className="tl-mais">
+          <summary>Próximos dias <span>{proximos.length + fazendo.length}</span></summary>
+          <ul className="tl-lista">{[...fazendo, ...proximos].map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} quando={t.data ? dataAmigavel(t.data, hoje) ?? undefined : "fazendo"} />)}</ul>
+        </details>
+      )}
+      {semData.length > 0 && (
+        <details className="tl-mais">
+          <summary>Algum dia <span>{semData.length}</span></summary>
+          <ul className="tl-lista">{semData.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
+        </details>
+      )}
+      {feitasN > 0 && (
+        <details className="tl-mais">
+          <summary>Feitas hoje <span>{feitasN}</span></summary>
+          <ul className="tl-lista">{feitasHojeUnicas.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
+        </details>
+      )}
+
+      <nav className="tl-rodape" aria-label="Outras visões">
+        <Link href="/tarefas?ver=kanban">Ver quadro</Link>
+        <Link href="/tarefas?ver=lista">Ver todas e rotinas</Link>
+        <Link href={novaHref()} scroll={false}>Tarefa com detalhes</Link>
+      </nav>
+
+      <Suspense>
+        <JanelaLateral param="tarefa" valor="nova" limpar={["status"]} titulo="Nova tarefa" subtitulo="Só você vê.">
+          <FormAcao acao={salvarTarefa}>
+            <CamposTarefa inicial={inicialNova} hoje={hoje} />
+            <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar enviando="Salvando…">Criar tarefa</BotaoEnviar></div>
+          </FormAcao>
+        </JanelaLateral>
+      </Suspense>
+      {editando && (
+        <Suspense>
+          <JanelaLateral param="tarefa" valor={editando.id} titulo="Editar tarefa" subtitulo={editando.repete ? `Rotina · ${descreverRepete(editando.repete)}` : area(editando.area).rotulo}>
+            <FormAcao acao={salvarTarefa}>
+              <input type="hidden" name="id" value={editando.id} />
+              <CamposTarefa key={editando.id} inicial={editando} hoje={hoje} />
+              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar>Salvar</BotaoEnviar></div>
+            </FormAcao>
+            <FormAcao acao={excluirTarefa} className="tf-excluir">
+              <input type="hidden" name="id" value={editando.id} />
+              <BotaoEnviar className="botao-link perigo" enviando="Excluindo…">Excluir esta tarefa</BotaoEnviar>
+            </FormAcao>
+          </JanelaLateral>
+        </Suspense>
+      )}
+    </div>
+  );
 
   return (
     <>
