@@ -10,6 +10,7 @@ import { BotaoEnviar, FormAcao } from "@/components/form-acao";
 import { AvisoDaUrl, CancelarJanela, JanelaLateral } from "@/components/janela-lateral";
 import { CartaoTarefa } from "@/components/tarefas/cartao";
 import { LinhaTarefa } from "@/components/tarefas/linha";
+import { QuandoTarefa } from "@/components/tarefas/quando";
 import { Kanban } from "@/components/tarefas/kanban";
 import { CamposTarefa } from "@/components/tarefas/campos-tarefa";
 import { AREAS, COLUNAS_TAREFA, area, dataAmigavel, diaCurto, descreverRepete, diaSP, hojeSP, somarDias, type Tarefa } from "@/lib/tarefas";
@@ -112,10 +113,7 @@ export default async function MinhasTarefas({ searchParams }: { searchParams: Pr
         <Icone nome="mais" />
         <input name="titulo" placeholder="Anotar uma tarefa…" aria-label="Nova tarefa" maxLength={200} autoComplete="off" required />
         <input type="hidden" name="area" value="geral" />
-        <select name="para" aria-label="Quando" defaultValue="hoje">
-          <option value="hoje">Hoje</option>
-          <option value="ideia">Algum dia</option>
-        </select>
+        <QuandoTarefa hoje={hoje} />
         <BotaoEnviar className="botao pequeno" enviando="…">Anotar</BotaoEnviar>
       </FormAcao>
 

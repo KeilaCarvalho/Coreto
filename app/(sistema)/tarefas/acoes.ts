@@ -62,15 +62,21 @@ export async function adicionarRapida(_: EstadoAcao, dados: FormData): Promise<E
   const titulo = texto(dados, "titulo");
   if (!titulo) return { erro: "Escreva a tarefa." };
   if (titulo.length > 200) return { erro: "Tarefa grande demais: use as anotações para os detalhes." };
-  const ideia = texto(dados, "para") === "ideia";
+  const para = texto(dados, "para");
+  const ideia = para === "ideia";
+  const escolhida = texto(dados, "data");
+  if (para === "data" && !/^\d{4}-\d{2}-\d{2}$/.test(escolhida)) return { erro: "Escolha a data da tarefa." };
+  const hoje = hojeSP();
+  const amanha = new Date(new Date(`${hoje}T12:00:00Z`).getTime() + 864e5).toISOString().slice(0, 10);
+  const data = ideia ? null : para === "data" ? escolhida : para === "amanha" ? amanha : hoje;
   const area = valores(AREAS).includes(texto(dados, "area")) ? texto(dados, "area") : "geral";
   const supabase = await supabaseServidor();
-  const { error } = await supabase.from("tarefas").insert({
-    titulo, area, status: ideia ? "ideia" : "a_fazer", data: ideia ? null : hojeSP(),
-  });
+  const { error } = await supabase.from("tarefas").insert({ titulo, area, status: ideia ? "ideia" : "a_fazer", data });
   if (error) return { erro: mensagem(error.message) };
   revalidatePath(CAMINHO);
-  return { ok: ideia ? "Anotado em Ideias/Futuro." : "Anotado para hoje." };
+  revalidatePath("/");
+  if (ideia) return { ok: "Anotado em Algum dia." };
+  return { ok: data === hoje ? "Anotado para hoje." : `Anotado para ${data!.split("-").reverse().slice(0, 2).join("/")}.` };
 }
 
 /** Marca como feita (rotina pula para a próxima data). */

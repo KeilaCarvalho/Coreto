@@ -2398,3 +2398,14 @@ body {
 .th-vazio { display: flex; align-items: center; gap: 8px; margin: 4px 22px 20px; color: var(--suave); font-size: 14px; }
 .th-vazio .icone { color: var(--marca); }
 @media (max-width: 900px) { .ini-grade > .ini-tarefas { order: 1; } .th-lista { padding: 4px 6px 12px; } .th-progresso { margin: 0 16px 6px; } }
+/* Tarefas: Quando (hoje, amanhã, data, algum dia) */
+.tl-quando { display: inline-flex; gap: 6px; align-items: center; flex: none; }
+.tl-quando select, .tl-quando input[type="date"] { width: auto; height: 36px; border-radius: 999px; border: 1px solid var(--linha); background: var(--superficie-2); font-size: 13.5px; padding: 0 12px; }
+.tl-quando select { padding-right: 30px; }
+@media (max-width: 700px) {
+  .tl-anotar { flex-wrap: wrap; border-radius: 22px; padding: 8px 8px 8px 14px; }
+  .tl-anotar input[name="titulo"] { flex-basis: calc(100% - 40px); }
+  .tl-anotar .tl-quando { flex: 1; min-width: 0; }
+  .tl-anotar .tl-quando select { display: block; flex: 1; min-width: 0; }
+  .tl-anotar .tl-quando input[type="date"] { flex: 1; min-width: 0; }
+}
