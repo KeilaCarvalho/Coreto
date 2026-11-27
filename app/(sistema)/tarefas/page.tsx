@@ -57,7 +57,7 @@ export default async function MinhasTarefas({ searchParams }: { searchParams: Pr
   const daArea = (t: Tarefa) => !filtroArea || t.area === filtroArea;
 
   // --- Hoje ---
-  const abertas = todas.filter((t) => t.status !== "feito" && t.status !== "ideia");
+  const abertas = todas.filter((t) => t.status !== "feito" && t.status !== "ideia" && daArea(t));
   const atrasadas = abertas.filter((t) => t.data && t.data < hoje).sort(porPrioridade);
   // Tela Hoje: rotina que ficou para trás aparece hoje, sem cara de atraso (ela volta sozinha).
   const listaHoje = abertas.filter((t) => t.data && t.data <= hoje && t.status !== "esperando")
@@ -73,7 +73,7 @@ export default async function MinhasTarefas({ searchParams }: { searchParams: Pr
       .map((t) => ({ ...t, status: "feito" })),
   ];
   const vistas = new Set<string>();
-  const feitasHojeUnicas = feitasHoje.filter((t) => (vistas.has(t.id) ? false : (vistas.add(t.id), true)));
+  const feitasHojeUnicas = feitasHoje.filter((t) => daArea(t) && (vistas.has(t.id) ? false : (vistas.add(t.id), true)));
 
   // --- Kanban e Lista ---
   const semRotina = todas.filter((t) => !t.repete && daArea(t));
@@ -95,93 +95,6 @@ export default async function MinhasTarefas({ searchParams }: { searchParams: Pr
   const saudacao = (() => { const h = Number(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false })); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; })();
   const dataExtenso = new Date(`${hoje}T12:00:00-03:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
-  if (ver === "hoje") return (
-    <div className="tl">
-      <header className="tl-topo">
-        <div>
-          <p className="tl-data">{dataExtenso}</p>
-          <h1>{saudacao}{nome ? `, ${nome}` : ""}</h1>
-          <p className="tl-resumo">{!totalDia ? "Nada para hoje. Aproveite!" : listaHoje.length ? `${listaHoje.length} ${listaHoje.length === 1 ? "coisa" : "coisas"} para hoje${feitasN ? ` · ${feitasN} ${feitasN === 1 ? "feita" : "feitas"}` : ""}` : "Tudo feito por hoje 🎉"}</p>
-        </div>
-        <div className="tl-anel" style={{ ["--p" as string]: `${Math.round(progresso * 100)}%` }} aria-label={`${feitasN} de ${totalDia} feitas`}>
-          <span>{feitasN}<small>/{totalDia}</small></span>
-        </div>
-      </header>
-      <Suspense><AvisoDaUrl /></Suspense>
-
-      <FormAcao acao={adicionarRapida} className="tl-anotar" limparAoSalvar>
-        <Icone nome="mais" />
-        <input name="titulo" placeholder="Anotar uma tarefa…" aria-label="Nova tarefa" maxLength={200} autoComplete="off" required />
-        <input type="hidden" name="area" value="geral" />
-        <QuandoTarefa hoje={hoje} />
-        <BotaoEnviar className="botao pequeno" enviando="…">Anotar</BotaoEnviar>
-      </FormAcao>
-
-      <section className="tl-bloco">
-        {listaHoje.length ? (
-          <ul className="tl-lista">{listaHoje.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
-        ) : (
-          <div className="tl-vazio"><Icone nome="certo" tamanho={28} /><b>{feitasN ? "Tudo feito por hoje" : "Lista limpa"}</b><span>Anote acima o que aparecer.</span></div>
-        )}
-      </section>
-
-      {esperando.length > 0 && (
-        <details className="tl-mais" open>
-          <summary>Esperando alguém <span>{esperando.length}</span></summary>
-          <ul className="tl-lista">{esperando.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
-        </details>
-      )}
-      {proximos.length + fazendo.length > 0 && (
-        <details className="tl-mais">
-          <summary>Próximos dias <span>{proximos.length + fazendo.length}</span></summary>
-          <ul className="tl-lista">{[...fazendo, ...proximos].map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} quando={t.data ? dataAmigavel(t.data, hoje) ?? undefined : "fazendo"} />)}</ul>
-        </details>
-      )}
-      {semData.length > 0 && (
-        <details className="tl-mais">
-          <summary>Algum dia <span>{semData.length}</span></summary>
-          <ul className="tl-lista">{semData.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
-        </details>
-      )}
-      {feitasN > 0 && (
-        <details className="tl-mais">
-          <summary>Feitas hoje <span>{feitasN}</span></summary>
-          <ul className="tl-lista">{feitasHojeUnicas.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
-        </details>
-      )}
-
-      <nav className="tl-rodape" aria-label="Outras visões">
-        <Link href="/tarefas?ver=kanban">Ver quadro</Link>
-        <Link href="/tarefas?ver=lista">Ver todas e rotinas</Link>
-        <Link href={novaHref()} scroll={false}>Tarefa com detalhes</Link>
-      </nav>
-
-      <Suspense>
-        <JanelaLateral param="tarefa" valor="nova" limpar={["status"]} titulo="Nova tarefa" subtitulo="Só você vê.">
-          <FormAcao acao={salvarTarefa}>
-            <CamposTarefa inicial={inicialNova} hoje={hoje} />
-            <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar enviando="Salvando…">Criar tarefa</BotaoEnviar></div>
-          </FormAcao>
-        </JanelaLateral>
-      </Suspense>
-      {editando && (
-        <Suspense>
-          <JanelaLateral param="tarefa" valor={editando.id} titulo="Editar tarefa" subtitulo={editando.repete ? `Rotina · ${descreverRepete(editando.repete)}` : area(editando.area).rotulo}>
-            <FormAcao acao={salvarTarefa}>
-              <input type="hidden" name="id" value={editando.id} />
-              <CamposTarefa key={editando.id} inicial={editando} hoje={hoje} />
-              <div className="formulario-rodape"><CancelarJanela /><BotaoEnviar>Salvar</BotaoEnviar></div>
-            </FormAcao>
-            <FormAcao acao={excluirTarefa} className="tf-excluir">
-              <input type="hidden" name="id" value={editando.id} />
-              <BotaoEnviar className="botao-link perigo" enviando="Excluindo…">Excluir esta tarefa</BotaoEnviar>
-            </FormAcao>
-          </JanelaLateral>
-        </Suspense>
-      )}
-    </div>
-  );
-
   return (
     <>
       <Cabecalho
@@ -197,10 +110,7 @@ export default async function MinhasTarefas({ searchParams }: { searchParams: Pr
         <select name="area" aria-label="Área" defaultValue={filtroArea || "geral"}>
           {AREAS.map((a) => <option key={a.valor} value={a.valor}>{a.rotulo}</option>)}
         </select>
-        <select name="para" aria-label="Quando" defaultValue="hoje">
-          <option value="hoje">Para hoje</option>
-          <option value="ideia">Ideia/Futuro</option>
-        </select>
+        <QuandoTarefa hoje={hoje} />
         <BotaoEnviar className="botao pequeno" enviando="…">Anotar</BotaoEnviar>
       </FormAcao>
 
@@ -208,11 +118,11 @@ export default async function MinhasTarefas({ searchParams }: { searchParams: Pr
         <nav className="abas" aria-label="Visão">
           {VISOES.map((v) => (
             <Link key={v.valor} href={`/tarefas?ver=${v.valor}${filtroArea ? `&area=${filtroArea}` : ""}`} className={ver === v.valor ? "ativa" : undefined} aria-current={ver === v.valor ? "page" : undefined}>
-              {v.rotulo}{v.valor === "hoje" && totalHoje > 0 && <span className="contador">{totalHoje}</span>}
+              {v.rotulo}{v.valor === "hoje" && listaHoje.length > 0 && <span className="contador">{listaHoje.length}</span>}
             </Link>
           ))}
         </nav>
-        {ver !== "hoje" && (
+        {(
           <nav className="tf-areas" aria-label="Filtrar por área">
             <Link href={`/tarefas?ver=${ver}`} className={!filtroArea ? "ativa" : undefined}>Todas</Link>
             {AREAS.map((a) => (
@@ -223,30 +133,48 @@ export default async function MinhasTarefas({ searchParams }: { searchParams: Pr
       </div>
 
       {ver === "hoje" && (
-        <>
-          <div className="kpis">
-            <Kpi destaque titulo="Para hoje" valor={numero(deHoje.length)} nota={`${deHoje.filter((t) => t.repete).length} rotinas`} />
-            <Kpi titulo="Atrasadas" valor={numero(atrasadas.length)} nota={atrasadas.length ? "de dias anteriores" : "nada atrasado"} />
-            <Kpi titulo="Fazendo / esperando" valor={numero(fazendo.length + esperando.length)} nota="em andamento" />
-            <Kpi titulo="Feitas hoje" valor={numero(feitasHojeUnicas.length)} nota={feitasHojeUnicas.length ? "bom trabalho" : "ainda nenhuma"} />
-          </div>
-          <div className="tf-hoje">
-            <div className="tf-coluna-principal">
-              <Grupo titulo="Atrasadas" nota="Ficaram para trás" tarefas={atrasadas} hoje={hoje} classe="atrasadas" />
-              <Grupo titulo={`Hoje, ${diaCurto(hoje)}`} tarefas={deHoje} hoje={hoje} mostrarData={false} />
-              {!atrasadas.length && !deHoje.length && (
-                <section className="tf-grupo"><Vazio titulo="Tudo em dia" texto="Nada marcado para hoje. Anote acima o que precisar fazer." /></section>
-              )}
-              <Grupo titulo="Feitas hoje" tarefas={feitasHojeUnicas} hoje={hoje} classe="feitas" mostrarData={false} />
+        <div className="tl tl-larga">
+          <div className="tl-cabeca">
+            <div>
+              <p className="tl-data">{dataExtenso}</p>
+              <p className="tl-resumo">{!totalDia ? "Nada para hoje." : listaHoje.length ? `${listaHoje.length} ${listaHoje.length === 1 ? "coisa" : "coisas"} para hoje${feitasN ? ` · ${feitasN} ${feitasN === 1 ? "feita" : "feitas"}` : ""}` : "Tudo feito por hoje 🎉"}</p>
             </div>
-            <div className="tf-coluna-lateral">
-              <Grupo titulo="Fazendo" tarefas={fazendo} hoje={hoje} />
-              <Grupo titulo="Esperando alguém" tarefas={esperando} hoje={hoje} />
-              <Grupo titulo="Próximos 7 dias" tarefas={proximos} hoje={hoje} />
-              <Grupo titulo="Sem data" nota="Quando der" tarefas={semData} hoje={hoje} />
+            <div className="tl-anel" style={{ ["--p" as string]: `${Math.round(progresso * 100)}%` }} aria-label={`${feitasN} de ${totalDia} feitas`}>
+              <span>{feitasN}<small>/{totalDia}</small></span>
             </div>
           </div>
-        </>
+          <section className="tl-bloco">
+            {listaHoje.length ? (
+              <ul className="tl-lista">{listaHoje.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
+            ) : (
+              <div className="tl-vazio"><Icone nome="certo" tamanho={28} /><b>{feitasN ? "Tudo feito por hoje" : "Lista limpa"}</b><span>Anote acima o que aparecer.</span></div>
+            )}
+          </section>
+          {esperando.length > 0 && (
+            <details className="tl-mais" open>
+              <summary>Esperando alguém <span>{esperando.length}</span></summary>
+              <ul className="tl-lista">{esperando.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
+            </details>
+          )}
+          {proximos.length + fazendo.length > 0 && (
+            <details className="tl-mais">
+              <summary>Próximos dias <span>{proximos.length + fazendo.length}</span></summary>
+              <ul className="tl-lista">{[...fazendo, ...proximos].map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} quando={t.data ? dataAmigavel(t.data, hoje) ?? undefined : "fazendo"} />)}</ul>
+            </details>
+          )}
+          {semData.length > 0 && (
+            <details className="tl-mais">
+              <summary>Algum dia <span>{semData.length}</span></summary>
+              <ul className="tl-lista">{semData.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
+            </details>
+          )}
+          {feitasN > 0 && (
+            <details className="tl-mais">
+              <summary>Feitas hoje <span>{feitasN}</span></summary>
+              <ul className="tl-lista">{feitasHojeUnicas.map((t) => <LinhaTarefa key={t.id} t={t} hoje={hoje} />)}</ul>
+            </details>
+          )}
+        </div>
       )}
 
       {ver === "kanban" && (

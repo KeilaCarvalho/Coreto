@@ -2409,3 +2409,9 @@ body {
   .tl-anotar .tl-quando select { display: block; flex: 1; min-width: 0; }
   .tl-anotar .tl-quando input[type="date"] { flex: 1; min-width: 0; }
 }
+/* Tarefas · Hoje na largura toda, igual à Lista */
+.tl.tl-larga { max-width: none; margin: 0; padding-top: 0; }
+.tl-cabeca { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 2px 4px; }
+.tl-cabeca .tl-resumo { margin-top: 2px; }
+.tf-rapida .tl-quando select, .tf-rapida .tl-quando input[type="date"] { height: 38px; }
+@media (max-width: 700px) { .tf-rapida .tl-quando { flex: 1; min-width: 0; } .tf-rapida .tl-quando select { flex: 1; min-width: 0; } }
