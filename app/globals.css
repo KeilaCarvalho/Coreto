@@ -2428,3 +2428,18 @@ body {
 .tf-acoes .tf-sim { background: var(--erro); border-color: var(--erro); color: #fff; }
 .tf-cartao.confirmando { background: var(--erro-fundo); }
 @media (hover: none), (max-width: 700px) { .tf-acoes { opacity: 1; } }
+/* Menu lateral em sanfona: só os grupos grandes; toca para abrir as opções */
+.menu-sanfona { margin-top: 4px; }
+.menu-sanfona .menu-grupo-nome { display: none; }
+.menu-mestre { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 0 10px; border: 0; border-radius: 12px; background: transparent; color: var(--tinta); font: 600 14px var(--fonte); text-align: left; cursor: pointer; }
+.menu-mestre:hover { background: var(--superficie-2); }
+.menu-mestre > .icone:first-child { color: var(--suave); }
+.menu-mestre.tem-atual > .icone:first-child { color: var(--verde-700); }
+.menu-mestre .menu-qtd { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--tenue); }
+.menu-mestre > .icone:last-child { color: var(--tenue); transition: transform .2s ease; }
+.menu-sanfona.aberto > .menu-mestre > .icone:last-child { transform: rotate(90deg); }
+.menu-itens { display: grid; gap: 1px; margin: 2px 0 6px 14px; padding-left: 10px; border-left: 1px solid var(--linha); }
+.menu-itens .menu-link { min-height: 36px; font-size: 13.5px; }
+.menu-recolher { margin: 10px 10px 4px; padding: 4px 0; border: 0; background: none; color: var(--tenue); font: 500 12.5px var(--fonte); cursor: pointer; text-align: left; }
+.menu-recolher:hover { color: var(--verde-700); }
+@media (prefers-reduced-motion: reduce) { .menu-mestre > .icone:last-child { transition: none; } }
