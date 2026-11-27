@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Icone } from "@/components/icone";
 import { area, atalho, dataAmigavel, descreverRepete, type Tarefa } from "@/lib/tarefas";
-import { concluirTarefa, desfazerTarefa, marcarPasso } from "@/app/(sistema)/tarefas/acoes";
+import { concluirTarefa, desfazerTarefa, excluirTarefaRapido, marcarPasso } from "@/app/(sistema)/tarefas/acoes";
 
 /** Link que abre a tarefa na janela lateral, mantendo a visão atual. */
 export function useLinkTarefa() {
@@ -54,9 +54,13 @@ export function CartaoTarefa({ t, hoje, mostrarData = true, semFeito = false, ex
   const [abrirPassos, setAbrirPassos] = useState(false);
   const [lista, setLista] = useState(passos);
   const [, iniciar] = useTransition();
+  const [confirmar, setConfirmar] = useState(false);
+  const [sumiu, setSumiu] = useState(false);
+  const [excluindo, excluir] = useTransition();
+  if (sumiu) return null;
 
   return (
-    <article className={`tf-cartao${t.status === "feito" ? " feita" : ""}${t.prioridade === "alta" ? " alta" : ""}`} style={{ ["--cor-area" as string]: a.cor }}>
+    <article className={`tf-cartao${t.status === "feito" ? " feita" : ""}${t.prioridade === "alta" ? " alta" : ""}${confirmar ? " confirmando" : ""}`} style={{ ["--cor-area" as string]: a.cor }} onMouseLeave={() => setConfirmar(false)}>
       {!semFeito && <BotaoFeito tarefa={t} />}
       <div className="tf-miolo">
         <Link className="tf-titulo" href={link(t.id)} scroll={false}>{t.titulo}</Link>
@@ -89,6 +93,23 @@ export function CartaoTarefa({ t, hoje, mostrarData = true, semFeito = false, ex
               </li>
             ))}
           </ul>
+        )}
+      </div>
+      <div className="tf-acoes" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} draggable={false}>
+        {confirmar ? (
+          <>
+            <button type="button" className="tf-sim" disabled={excluindo} onClick={() => excluir(async () => {
+              setSumiu(true);
+              const r = await excluirTarefaRapido(t.id);
+              if (r?.erro) { setSumiu(false); setConfirmar(false); }
+            })}>{t.repete ? "Excluir rotina" : "Excluir"}</button>
+            <button type="button" className="tf-nao" onClick={() => setConfirmar(false)}>Não</button>
+          </>
+        ) : (
+          <>
+            <Link className="tf-acao" href={link(t.id)} scroll={false} aria-label={`Editar: ${t.titulo}`} title="Editar"><Icone nome="lapis" tamanho={15} /></Link>
+            <button type="button" className="tf-acao lixo" onClick={() => setConfirmar(true)} aria-label={`Excluir: ${t.titulo}`} title="Excluir"><Icone nome="lixeira" tamanho={15} /></button>
+          </>
         )}
       </div>
     </article>

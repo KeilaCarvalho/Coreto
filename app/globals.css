@@ -2415,3 +2415,16 @@ body {
 .tl-cabeca .tl-resumo { margin-top: 2px; }
 .tf-rapida .tl-quando select, .tf-rapida .tl-quando input[type="date"] { height: 38px; }
 @media (max-width: 700px) { .tf-rapida .tl-quando { flex: 1; min-width: 0; } .tf-rapida .tl-quando select { flex: 1; min-width: 0; } }
+/* Tarefas: editar e excluir direto no cartão (Kanban e Lista) e na linha (Hoje) */
+.tl-editar:hover { background: var(--verde-50) !important; color: var(--verde-700) !important; }
+.tl-linha .tl-lixo + .tl-lixo { margin-left: -6px; }
+.tf-cartao { position: relative; }
+.tf-acoes { flex: none; align-self: flex-start; display: inline-flex; gap: 2px; margin-left: auto; opacity: 0; transition: opacity .15s ease; }
+.tf-cartao:hover .tf-acoes, .tf-cartao.confirmando .tf-acoes, .tf-acoes:focus-within { opacity: 1; }
+.tf-acao { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 999px; background: transparent; color: var(--tenue); cursor: pointer; }
+.tf-acao:hover { background: var(--verde-50); color: var(--verde-700); }
+.tf-acao.lixo:hover { background: var(--erro-fundo); color: var(--erro); }
+.tf-acoes .tf-sim, .tf-acoes .tf-nao { height: 30px; padding: 0 10px; border-radius: 999px; font: 600 12.5px var(--fonte); cursor: pointer; border: 1px solid var(--linha); background: #fff; color: var(--tinta); white-space: nowrap; }
+.tf-acoes .tf-sim { background: var(--erro); border-color: var(--erro); color: #fff; }
+.tf-cartao.confirmando { background: var(--erro-fundo); }
+@media (hover: none), (max-width: 700px) { .tf-acoes { opacity: 1; } }

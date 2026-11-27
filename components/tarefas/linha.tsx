@@ -67,7 +67,10 @@ export function LinhaTarefa({ t, hoje, quando }: { t: Tarefa; hoje: string; quan
           <button type="button" className="tl-nao" onClick={() => setConfirmar(false)}>Não</button>
         </span>
       ) : (
-        <button type="button" className="tl-lixo" onClick={() => setConfirmar(true)} aria-label={`Excluir: ${t.titulo}`} title="Excluir"><Icone nome="lixeira" tamanho={16} /></button>
+        <>
+          <Link className="tl-lixo tl-editar" href={link(t.id)} scroll={false} aria-label={`Editar: ${t.titulo}`} title="Editar"><Icone nome="lapis" tamanho={16} /></Link>
+          <button type="button" className="tl-lixo" onClick={() => setConfirmar(true)} aria-label={`Excluir: ${t.titulo}`} title="Excluir"><Icone nome="lixeira" tamanho={16} /></button>
+        </>
       )}
     </li>
   );
